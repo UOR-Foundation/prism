@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+*.jsonld
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.venv/
+venv/
