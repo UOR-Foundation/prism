@@ -1,5 +1,5 @@
 <p align="center">
-<img src="cover.png" alt="PRISM: A Universal Coordinate System for Information" width="100%">
+<img src="docs/cover.png" alt="PRISM: A Universal Coordinate System for Information" width="100%">
 </p>
 
 # PRISM
