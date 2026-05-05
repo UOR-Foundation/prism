@@ -1,0 +1,34 @@
+[package]
+name = "uor-prism-verify"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+description = "The Prism replay façade: a thin verification surface re-exporting `certify_from_trace`, `Certified`, and the wire-format types defined by `uor-foundation`."
+documentation = "https://docs.rs/uor-prism-verify"
+categories = ["no-std", "rust-patterns"]
+keywords = ["prism", "uor", "verify", "replay", "no-std"]
+
+[lib]
+name = "prism_verify"
+
+[dependencies]
+uor-prism = { version = "0.1.0", path = "../uor-prism", default-features = false }
+uor-foundation = { workspace = true }
+
+[features]
+default = []
+std = ["uor-prism/std", "uor-foundation/std"]
+alloc = ["uor-prism/alloc", "uor-foundation/alloc"]
+serde = ["uor-prism/serde", "uor-foundation/serde"]
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

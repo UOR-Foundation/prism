@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup show active-toolchain || rustup toolchain install
+      - run: rustup target add thumbv7em-none-eabihf
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - run: cargo test --workspace --all-features
+      - run: cargo build -p uor-prism --target thumbv7em-none-eabihf --no-default-features
+      - run: cargo build -p uor-prism-verify --target thumbv7em-none-eabihf --no-default-features
+      - run: cargo run -p wiki-link-check -- --quiet
+      - run: cargo doc --workspace --no-deps
+        env:
+          RUSTDOCFLAGS: "-D rustdoc::broken_intra_doc_links -D rustdoc::missing_crate_level_docs"
+
+  publish:
+    name: publish
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: crates-io
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Dry-run publish (uor-prism)
+        run: cargo publish --dry-run -p uor-prism
+
+      - name: Dry-run publish (uor-prism-verify)
+        # Skip verify here because it needs uor-prism to already be on
+        # the registry; the dry run is just a packaging check.
+        run: cargo publish --dry-run -p uor-prism-verify --no-verify
+
+      - name: Publish uor-prism
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish -p uor-prism
+
+      - name: Wait for crates.io index
+        run: |
+          set -euo pipefail
+          version=$(cargo metadata --format-version=1 --no-deps \
+            | python3 -c 'import json,sys; m=json.load(sys.stdin); print(next(p["version"] for p in m["packages"] if p["name"]=="uor-prism"))')
+          echo "waiting for uor-prism@${version} to appear on crates.io"
+          for i in $(seq 1 60); do
+            if curl -sSf -A "uor-prism-release-bot (alex@uor.foundation)" \
+                "https://crates.io/api/v1/crates/uor-prism/${version}" >/dev/null 2>&1; then
+              echo "available."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "timed out waiting for index propagation" >&2
+          exit 1
+
+      - name: Publish uor-prism-verify
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish -p uor-prism-verify

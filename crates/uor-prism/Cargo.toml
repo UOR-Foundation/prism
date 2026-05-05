@@ -1,0 +1,33 @@
+[package]
+name = "uor-prism"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+description = "The Prism runtime: pipeline, sealed Prism-mechanism types (Validated, Grounded, Certified), replay machinery, and operation vocabulary, per the UOR-Framework architecture specification."
+documentation = "https://docs.rs/uor-prism"
+categories = ["compilers", "no-std", "rust-patterns"]
+keywords = ["prism", "uor", "sealed", "verification", "no-std"]
+
+[lib]
+name = "prism"
+
+[dependencies]
+uor-foundation = { workspace = true }
+
+[features]
+default = []
+std = ["uor-foundation/std"]
+alloc = ["uor-foundation/alloc"]
+serde = ["uor-foundation/serde"]
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

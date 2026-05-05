@@ -1,0 +1,20 @@
+name: Wiki Drift Check
+
+on:
+  schedule:
+    # Mondays 07:00 UTC. Catches wiki edits that broke our backlinks even
+    # when no PR has been opened against this repo.
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo run -p wiki-link-check

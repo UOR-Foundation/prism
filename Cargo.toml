@@ -1,0 +1,49 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/uor-prism",
+    "crates/uor-prism-verify",
+    "tools/wiki-link-check",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.83"
+license = "MIT"
+authors = ["The UOR Foundation"]
+repository = "https://github.com/UOR-Foundation/prism"
+homepage = "https://github.com/UOR-Foundation/UOR-Framework/wiki"
+readme = "README.md"
+
+[workspace.dependencies]
+uor-foundation = { version = "0.3", default-features = false }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+unreachable_pub = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "deny"
+unimplemented = "deny"
+# Proper nouns and identifiers like `UOR-Framework`, `UORassembly`, `TC-04`,
+# `ADR-015` collectively make doc-markdown too noisy. Code identifiers
+# already use backticks per CV-02; we don't need clippy second-guessing
+# the surrounding prose.
+doc_markdown = "allow"
+
+[workspace.lints.rustdoc]
+broken_intra_doc_links = "deny"
+private_intra_doc_links = "warn"
+missing_crate_level_docs = "deny"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

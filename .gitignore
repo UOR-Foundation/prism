@@ -1,9 +1,13 @@
-__pycache__/
-*.py[cod]
-*.jsonld
-*.egg-info/
-dist/
-build/
-.pytest_cache/
-.venv/
-venv/
+# Rust
+/target
+**/*.rs.bk
+
+# Editor + OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# wiki-link-check cache (cloned wiki working copies)
+.cache/
+.claude/
