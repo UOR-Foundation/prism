@@ -1,0 +1,36 @@
+{
+  "name": "Categorical X",
+  "features": {
+    "ghcr.io/devcontainers/features/rust:1": {},
+    "ghcr.io/guiyomh/features/just:0": {},
+    "ghcr.io/lumenpink/devcontainer-features/wasm-pack:0": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "anthropic.claude-code",
+        "leanprover.lean4"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "[rust]": {
+          "editor.defaultFormatter": "rust-lang.rust-analyzer"
+        },
+        "rust-analyzer.check.command": "clippy",
+        "rust-analyzer.procMacro.enable": true,
+        "rust-analyzer.cargo.allFeatures": true,
+        "search.exclude": {
+          "**/target": true
+        },
+        "files.watcherExclude": {
+          "**/target/**": true
+        }
+      }
+    }
+  },
+  "remoteEnv": {
+    "PATH": "/home/codespace/.elan/bin:/home/codespace/.cargo/bin:${containerEnv:PATH}"
+  },
+  "postCreateCommand": "curl https://elan.lean-lang.org/elan-init.sh -sSf | sh -s -- -y --default-toolchain none"
+}
