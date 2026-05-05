@@ -37,6 +37,9 @@ unimplemented = "deny"
 # already use backticks per CV-02; we don't need clippy second-guessing
 # the surrounding prose.
 doc_markdown = "allow"
+# Re-exports inherit foundation type names like `PipelineFailure` inside
+# the `pipeline` module; the prefix is foundation-controlled, not ours.
+module_name_repetitions = "allow"
 
 [workspace.lints.rustdoc]
 broken_intra_doc_links = "deny"

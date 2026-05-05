@@ -1,0 +1,58 @@
+//! Operation-declaration vocabulary.
+//!
+//! `operation` exposes the closed primitive vocabulary the application
+//! author composes when declaring a constrained type: the [`Term`] AST
+//! and its arena ([`TermArena`]), the [`TermList`] container, and the
+//! ten-element closed set of [`PrimitiveOp`] discriminants.
+//!
+//! Per ADR-014, `prism` provides the *vocabulary* — `prism` does not
+//! ship pre-implemented operation libraries. The author selects which
+//! primitives to assemble; the foundation guarantees the closed set is
+//! exhaustive (the v0.2.2 conformance suite enforces W4: kind-typed
+//! discriminants with no proc-macro back-doors).
+//!
+//! # See also
+//!
+//! - [Wiki: 05 Building Block View § Whitebox `prism`](https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism)
+//! - [Wiki: 08 Concepts § Operation Declaration](https://github.com/UOR-Foundation/UOR-Framework/wiki/08-Concepts#operation-declaration)
+//! - [Wiki: 09 Architecture Decisions § ADR-014](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
+//!
+//! # Constraints
+//!
+//! - **TC-01** — operation declaration is a compile-time activity; no
+//!   runtime dispatch is generated for the declared primitives
+//! - **TC-04** — the closed set of primitives is part of the
+//!   bilateral compile-time UORassembly contract
+//! - **ADR-014** — `prism` declares the vocabulary; it does not ship
+//!   pre-implemented libraries
+//!
+//! # C4 placement
+//!
+//! Component `operation declaration` (Level 3) inside container `prism`
+//! (Level 2). The vocabulary is consumed by [`crate::pipeline`] and by
+//! application-author code that constructs [`Term`] expressions.
+//!
+//! # Behavior
+//!
+//! ```rust
+//! // Given: the closed set of primitive operations
+//! // When:  matched exhaustively
+//! // Then:  every variant is named exactly once and the match compiles
+//! use prism::operation::PrimitiveOp;
+//! fn _arity_class(op: PrimitiveOp) -> &'static str {
+//!     match op {
+//!         PrimitiveOp::Neg | PrimitiveOp::Bnot | PrimitiveOp::Succ | PrimitiveOp::Pred => "unary",
+//!         PrimitiveOp::Add
+//!         | PrimitiveOp::Sub
+//!         | PrimitiveOp::Mul
+//!         | PrimitiveOp::Xor
+//!         | PrimitiveOp::And
+//!         | PrimitiveOp::Or => "binary",
+//!     }
+//! }
+//! assert_eq!(_arity_class(PrimitiveOp::Add), "binary");
+//! assert_eq!(_arity_class(PrimitiveOp::Neg), "unary");
+//! ```
+
+pub use uor_foundation::PrimitiveOp;
+pub use uor_foundation::{Term, TermArena, TermList};

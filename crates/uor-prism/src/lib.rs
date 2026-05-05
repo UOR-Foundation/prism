@@ -2,11 +2,18 @@
 //!
 //! This crate is the Rust realization of the **`prism`** container of the
 //! Prism system specified by the [UOR-Framework wiki][wiki]. It hosts the
-//! singular principal data path (`pipeline::run`), the three sealed
-//! Prism-mechanism types (`Validated`, `Grounded`, `Certified`), the replay
-//! machinery (`certify_from_trace`), the operation-declaration vocabulary,
-//! and the standard type library. The substrate vocabulary lives in
-//! [`uor_foundation`], which this crate re-exports as a convenience.
+//! singular principal data path ([`pipeline::run`]), the three sealed
+//! Prism-mechanism types ([`seal::Validated`], [`seal::Grounded`],
+//! [`seal::Certified`]), the replay machinery ([`replay::certify_from_trace`]),
+//! the operation-declaration vocabulary ([`operation`]), the standard type
+//! library ([`std_types`]), and the foundation surface re-exports
+//! ([`vocabulary`]).
+//!
+//! The substrate vocabulary lives in [`uor_foundation`], which this crate
+//! re-exports as a convenience. ADR-013 (closure of `prism` under
+//! `uor-foundation`) makes every type and operation reachable from `prism`
+//! ultimately derive from the foundation; we satisfy that closure by
+//! re-exporting rather than redefining.
 //!
 //! The crate is published to crates.io under the package name
 //! [`uor-prism`](https://crates.io/crates/uor-prism); the library name is
@@ -18,6 +25,7 @@
 //! - [Wiki: 01 Introduction and Goals](https://github.com/UOR-Foundation/UOR-Framework/wiki/01-Introduction-and-Goals)
 //! - [Wiki: 04 Solution Strategy](https://github.com/UOR-Foundation/UOR-Framework/wiki/04-Solution-Strategy)
 //! - [Wiki: 05 Building Block View § Whitebox `prism`](https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism)
+//! - [Wiki: 06 Runtime View § Scenario 1: Principal Data Path Execution](https://github.com/UOR-Foundation/UOR-Framework/wiki/06-Runtime-View#scenario-1-principal-data-path-execution)
 //! - [Wiki: 09 Architecture Decisions](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
 //! - [Wiki: 12 Glossary](https://github.com/UOR-Foundation/UOR-Framework/wiki/12-Glossary)
 //!
@@ -27,34 +35,43 @@
 //!
 //! - **TC-01** — zero-cost runtime; no Prism interpreter layer at execution
 //! - **TC-02** — sealing of `Validated`, `Grounded`, `Certified` via the Rust
-//!   type system, enforced through `pub(crate)` constructors
+//!   type system, enforced through `pub(crate)` constructors in the substrate
 //! - **TC-03** — singular principal data path; exactly one constructor for
-//!   `Grounded<T>`, reached only through `pipeline::run`
+//!   `Grounded<T>`, reached only through [`pipeline::run`]
 //! - **TC-04** — bilateral compile-time UORassembly enforcement
 //! - **TC-05** — replayability without invoking author deciders or hash
-//!   functions
+//!   functions; surfaced through [`replay::certify_from_trace`]
 //! - **TC-06** — no application-author infrastructure at runtime
 //!
 //! Substitution axes are restricted to `HostTypes`, `HostBounds`, and
-//! `Hasher`.
+//! `Hasher` (ADR-007). `HostTypes` and `Hasher` are foundation-defined
+//! traits; `HostBounds` is realized through the const generics on
+//! [`pipeline::ConstrainedTypeShape`] implementations chosen by the
+//! application author.
 //!
 //! # C4 placement
 //!
-//! Container `prism` (Level 2) of the Prism system. As implementation
-//! lands, modules in this crate will mirror the Level 2 components named in
-//! the wiki's [Building Block View § Whitebox `prism`][05-prism]:
-//! `pipeline`, `seal regime`, `replay`, `operation declaration`, the
-//! standard type library, and re-exports of the `uor-foundation` vocabulary.
-//! No top-level module is permitted that does not correspond to a wiki
-//! Level 2 component.
+//! Container `prism` (Level 2) of the Prism system. The submodules mirror
+//! the Level 2 components named in the wiki's
+//! [Building Block View § Whitebox `prism`][05-prism]:
+//!
+//! - [`pipeline`] — the principal data path
+//! - [`seal`] — the sealed Prism-mechanism types
+//! - [`replay`] — trace-replay verification surface
+//! - [`operation`] — operation declaration vocabulary
+//! - [`std_types`] — standard type library
+//! - [`vocabulary`] — foundation surface re-exports
 //!
 //! # Behavior
 //!
 //! ```rust
 //! // Given: the substrate dependency `uor-foundation` is in scope
 //! // When:  the prism crate is loaded
-//! // Then:  the foundation namespace resolves and the wiki landing URL is
-//! //        exposed for downstream tooling
+//! // Then:  every wiki Level 2 module of `prism` resolves at compile time,
+//! //        and the foundation namespace is reachable for consumers who
+//! //        prefer a single import root
+//! use prism::{operation as _, pipeline as _, replay as _};
+//! use prism::{seal as _, std_types as _, vocabulary as _};
 //! use uor_foundation as _;
 //! assert_eq!(prism::WIKI, "https://github.com/UOR-Foundation/UOR-Framework/wiki");
 //! ```
@@ -67,13 +84,21 @@
 
 pub use uor_foundation;
 
+pub mod operation;
+pub mod pipeline;
+pub mod replay;
+pub mod seal;
+pub mod std_types;
+pub mod vocabulary;
+
 /// Canonical URL of the UOR-Framework wiki, the normative source for the
 /// Prism architecture realized by this crate.
 ///
-/// Every public item in `prism` carries a backlink to a wiki page rooted at
-/// this URL. Consumers may reference this constant when surfacing the same
-/// origin programmatically — for example, in error messages that direct
-/// users to the architectural section that defines a violated invariant.
+/// Every public item in `prism` carries a backlink to a wiki section that
+/// roots at this URL. Consumers may reference this constant when surfacing
+/// the same origin programmatically — for example, in error messages that
+/// direct users to the architectural section that defines a violated
+/// invariant.
 ///
 /// # See also
 ///

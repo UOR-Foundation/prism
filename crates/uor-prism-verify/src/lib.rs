@@ -1,11 +1,18 @@
 //! `prism_verify` — the Prism replay façade.
 //!
-//! This crate is the Rust realization of the **`prism-verify`** container of
-//! the Prism system specified by the [UOR-Framework wiki][wiki]. It is a
-//! thin verification surface that re-exports `certify_from_trace` and
-//! `Certified` from [`prism`], together with the trace and certificate
-//! wire-format type definitions from [`uor_foundation`]. Verification
-//! consumers depend on this crate alone, never on the runtime.
+//! This crate is the Rust realization of the **`prism-verify`** container
+//! of the Prism system specified by the [UOR-Framework wiki][wiki]. It is
+//! a thin verification surface that re-exports
+//! [`certify_from_trace`] from [`prism`], [`Certified`] from `prism`,
+//! and the trace and certificate wire-format types from
+//! [`uor_foundation`]. Verification consumers depend on this crate
+//! alone, never on the runtime; this preserves TC-06 (no
+//! application-author infrastructure) and minimizes the verifier's
+//! attack surface and dependency footprint.
+//!
+//! The façade is genuinely thin: every item in this crate's API is a
+//! re-export of an item defined elsewhere in the architecture. The
+//! crate adds zero behavior; it adds a *namespace*.
 //!
 //! The crate is published to crates.io under the package name
 //! [`uor-prism-verify`](https://crates.io/crates/uor-prism-verify); the
@@ -17,38 +24,44 @@
 //! - [Wiki: 01 Introduction and Goals](https://github.com/UOR-Foundation/UOR-Framework/wiki/01-Introduction-and-Goals)
 //! - [Wiki: 03 Context and Scope](https://github.com/UOR-Foundation/UOR-Framework/wiki/03-Context-and-Scope)
 //! - [Wiki: 05 Building Block View § Whitebox `prism-verify`](https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism-verify)
-//! - [Wiki: 12 Glossary](https://github.com/UOR-Foundation/UOR-Framework/wiki/12-Glossary)
+//! - [Wiki: 06 Runtime View § Scenario 2: Trace-Replay Verification](https://github.com/UOR-Foundation/UOR-Framework/wiki/06-Runtime-View#scenario-2-trace-replay-verification)
+//! - [Wiki: 12 Glossary § Term Definitions](https://github.com/UOR-Foundation/UOR-Framework/wiki/12-Glossary#term-definitions)
 //!
 //! # Constraints
 //!
 //! This crate is normatively bound by:
 //!
-//! - **TC-05** — replayability of the principal data path without invoking
-//!   author deciders or hash functions; this façade is the user-facing
-//!   surface of that property
+//! - **TC-05** — replayability of the principal data path without
+//!   invoking author deciders or hash functions; this façade is the
+//!   user-facing surface of that property
 //! - **TC-06** — verification proceeds without any application-author
 //!   infrastructure
 //! - **QS-03** — local verification: this crate is the dependency
 //!   verification consumers pin, exposing nothing beyond the surface
-//!   needed to re-derive a `Certified<GroundingCertificate>` from a `Trace`
+//!   needed to re-derive a `Certified<GroundingCertificate>` from a
+//!   `Trace`
+//! - **QS-05** — replay equivalence: the round-trip produces a
+//!   bit-identical certificate
 //!
 //! # C4 placement
 //!
-//! Container `prism-verify` (Level 2) of the Prism system. The crate's
-//! components mirror the Level 2 building blocks described in the wiki's
-//! [Building Block View § Whitebox `prism-verify`][05-verify]: the
-//! re-export of `certify_from_trace`, the re-export of `Certified`, and the
-//! re-exports of foundation wire-format types.
+//! Container `prism-verify` (Level 2) of the Prism system. Its
+//! components mirror the Level 2 building blocks described in the
+//! wiki's [Building Block View § Whitebox `prism-verify`][05-verify]:
+//! the re-export of `certify_from_trace`, the re-export of `Certified`,
+//! and the re-exports of foundation wire-format types.
 //!
 //! # Behavior
 //!
 //! ```rust
-//! // Given: prism_verify is loaded
-//! // When:  the runtime crate `prism` is reachable through it
-//! // Then:  consumers can resolve the wiki origin via either entry point
-//! use prism as _;
-//! use uor_foundation as _;
-//! assert_eq!(prism_verify::WIKI, prism::WIKI);
+//! // Given: an empty Trace (the simplest deterministic verifier input)
+//! // When:  certify_from_trace is invoked on it
+//! // Then:  the structural validator rejects with ReplayError::EmptyTrace,
+//! //        proving that the façade's certify_from_trace, ReplayError,
+//! //        and Trace re-exports are wired correctly together
+//! use prism_verify::{certify_from_trace, ReplayError, Trace};
+//! let trace = Trace::empty();
+//! assert!(matches!(certify_from_trace(&trace), Err(ReplayError::EmptyTrace)));
 //! ```
 //!
 //! [wiki]: https://github.com/UOR-Foundation/UOR-Framework/wiki
@@ -60,12 +73,22 @@
 pub use prism;
 pub use uor_foundation;
 
+// The verifier API: one function and its companion result types.
+pub use prism::replay::certify_from_trace;
+pub use prism::seal::Certified;
+
+// Wire-format types the verifier consumes and emits.
+pub use uor_foundation::{
+    ContentFingerprint, GroundingCertificate, ReplayError, Trace, TraceEvent, TRACE_MAX_EVENTS,
+    TRACE_REPLAY_FORMAT_VERSION,
+};
+
 /// Canonical URL of the UOR-Framework wiki, the normative source for the
 /// Prism architecture realized by this façade.
 ///
 /// Re-exported from [`prism::WIKI`] so that verification consumers who
-/// depend on this façade alone can still surface the architectural origin
-/// without a transitive dependency declaration.
+/// depend on this façade alone can still surface the architectural
+/// origin without a transitive dependency declaration.
 ///
 /// # See also
 ///

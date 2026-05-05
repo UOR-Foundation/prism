@@ -1,0 +1,61 @@
+//! The seal regime: the three sealed Prism-mechanism types.
+//!
+//! `seal` is the surface for [`Validated`], [`Grounded`], and [`Certified`]
+//! — the three types whose construction is gated by the principal data
+//! path. They are the structural witness that the wiki's TC-02 sealing
+//! property holds: every value carrying these types was produced by
+//! `pipeline::run` (or the replay façade, for `Certified`), never by
+//! direct construction outside the substrate.
+//!
+//! In v0.3 of the architecture, the sealing is realized by `pub(crate)`
+//! constructors in `uor-foundation::enforcement` (per ADR-011, sealing is
+//! enforced by Rust visibility rules, not runtime sentinels). `prism`
+//! owns the *namespace* of these types per the wiki's prescription, and
+//! re-exports them here. Future evolution of `uor-foundation` may move
+//! the constructors into this crate's seal regime; the public API
+//! presented to consumers does not change.
+//!
+//! # See also
+//!
+//! - [Wiki: 05 Building Block View § Whitebox `prism` seal regime and replay][05-seal]
+//! - [Wiki: 08 Concepts § Sealing Discipline](https://github.com/UOR-Foundation/UOR-Framework/wiki/08-Concepts#sealing-discipline)
+//! - [Wiki: 09 Architecture Decisions § ADR-011](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
+//! - [Wiki: 12 Glossary § Term Definitions](https://github.com/UOR-Foundation/UOR-Framework/wiki/12-Glossary#term-definitions)
+//!
+//! # Constraints
+//!
+//! - **TC-02** — sealing of the three Prism-mechanism types via the Rust
+//!   type system; no runtime sentinel is involved
+//! - **TC-03** — `Grounded<T>` has exactly one constructor: `pipeline::run`
+//! - **ADR-011** — sealing is `pub(crate)`, no tokens, no runtime checks
+//!
+//! # C4 placement
+//!
+//! Component `seal regime` (Level 3) inside container `prism` (Level 2).
+//! Co-located with [`crate::replay`] in the wiki because both are about
+//! who is permitted to mint a sealed value: `seal` covers the forward
+//! path through `pipeline::run`, `replay` covers the reverse path
+//! through `certify_from_trace`.
+//!
+//! # Behavior
+//!
+//! ```rust
+//! // Given: the three Prism-mechanism types are exposed by `seal`
+//! // When:  external code references them by name
+//! // Then:  the references type-check at compile time, even though no
+//! //        external code can construct them — the constructors are
+//! //        `pub(crate)` in the foundation, satisfying TC-02
+//! use prism::seal::{Certified, Grounded, Validated};
+//! use prism::std_types::ConstrainedTypeInput;
+//! use prism::uor_foundation::enforcement::Runtime;
+//! fn _name<T: ?Sized>() -> &'static str { core::any::type_name::<T>() }
+//! let _ = (
+//!     _name::<Validated<ConstrainedTypeInput, Runtime>>(),
+//!     _name::<Grounded<ConstrainedTypeInput>>(),
+//!     _name::<Certified<prism::vocabulary::GroundingCertificate>>(),
+//! );
+//! ```
+//!
+//! [05-seal]: https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism-seal-regime-and-replay
+
+pub use uor_foundation::{Certified, Grounded, Validated};

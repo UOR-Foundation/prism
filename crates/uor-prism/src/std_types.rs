@@ -1,0 +1,78 @@
+//! Standard type library.
+//!
+//! `std_types` exposes the ten morphism kinds that the foundation
+//! pre-declares: five [`grounding`](GroundingMapKind) maps (host bytes →
+//! `Grounded`) and five [`projection`](ProjectionMapKind) maps
+//! (`Grounded` → host bytes). Each kind is sealed: the trait family is
+//! closed by foundation, downstream cannot add new map kinds, and each
+//! concrete struct is a zero-size marker that compiles into the
+//! constraint nerve.
+//!
+//! Per ADR-017 ("Canonical UOR-address surface for standard types"),
+//! these types produce content-deterministic addresses; the catalog
+//! evolves operationally, not in the wiki, and `std_types` is the
+//! re-export surface that tracks it.
+//!
+//! # See also
+//!
+//! - [Wiki: 05 Building Block View § Whitebox `prism`](https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism)
+//! - [Wiki: 09 Architecture Decisions § ADR-017](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
+//! - [Wiki: 12 Glossary § Term Definitions](https://github.com/UOR-Foundation/UOR-Framework/wiki/12-Glossary#term-definitions)
+//!
+//! # Constraints
+//!
+//! - **TC-02** — the morphism-kind traits are sealed by foundation; no
+//!   downstream extension is permitted
+//! - **TC-04** — the kind classification participates in compile-time
+//!   UORassembly enforcement (a `Grounding` impl whose `Map` does not
+//!   inhabit [`GroundingMapKind`] fails to compile)
+//! - **ADR-017** — addresses are content-deterministic; the catalog is
+//!   operational, not declarative
+//!
+//! # C4 placement
+//!
+//! Component `standard type library` (Level 3) inside container `prism`
+//! (Level 2). It is consumed by application authors implementing
+//! [`uor_foundation::enforcement::Grounding`] or
+//! [`uor_foundation::enforcement::Sinking`].
+//!
+//! # Behavior
+//!
+//! ```rust
+//! // Given: the ten morphism-kind marker types
+//! // When:  each is used as a phantom type parameter
+//! // Then:  the foundation's sealed trait family classifies them
+//! //        identically to the foundation's own use sites
+//! use prism::std_types::{
+//!     BinaryGroundingMap, BinaryProjectionMap, DigestGroundingMap,
+//!     DigestProjectionMap, IntegerGroundingMap, IntegerProjectionMap,
+//!     JsonGroundingMap, JsonProjectionMap, Utf8GroundingMap,
+//!     Utf8ProjectionMap,
+//! };
+//! fn _accepts_grounding<M: prism::std_types::GroundingMapKind>() {}
+//! fn _accepts_projection<M: prism::std_types::ProjectionMapKind>() {}
+//! _accepts_grounding::<BinaryGroundingMap>();
+//! _accepts_grounding::<DigestGroundingMap>();
+//! _accepts_grounding::<IntegerGroundingMap>();
+//! _accepts_grounding::<JsonGroundingMap>();
+//! _accepts_grounding::<Utf8GroundingMap>();
+//! _accepts_projection::<BinaryProjectionMap>();
+//! _accepts_projection::<DigestProjectionMap>();
+//! _accepts_projection::<IntegerProjectionMap>();
+//! _accepts_projection::<JsonProjectionMap>();
+//! _accepts_projection::<Utf8ProjectionMap>();
+//! ```
+
+pub use uor_foundation::enforcement::{
+    BinaryGroundingMap, BinaryProjectionMap, DigestGroundingMap, DigestProjectionMap,
+    GroundingMapKind, IntegerGroundingMap, IntegerProjectionMap, JsonGroundingMap,
+    JsonProjectionMap, MorphismKind, ProjectionMapKind, Utf8GroundingMap, Utf8ProjectionMap,
+};
+
+// `ConstrainedTypeInput` is the foundation's pre-declared canonical
+// constrained-type shape: a built-in `ConstrainedTypeShape` impl that
+// participates in the principal data path without the application
+// author having to declare a fresh shape. It is the closest thing the
+// standard type library has to a "prelude" type and is the canonical
+// example used in the trace-replay round-trip scenario.
+pub use uor_foundation::enforcement::ConstrainedTypeInput;
