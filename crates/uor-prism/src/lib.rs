@@ -27,6 +27,7 @@
 //! - [Wiki: 05 Building Block View § Whitebox `prism`](https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism)
 //! - [Wiki: 06 Runtime View § Scenario 1: Principal Data Path Execution](https://github.com/UOR-Foundation/UOR-Framework/wiki/06-Runtime-View#scenario-1-principal-data-path-execution)
 //! - [Wiki: 09 Architecture Decisions](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
+//! - [Wiki: 10 Quality Requirements § Quality Scenarios](https://github.com/UOR-Foundation/UOR-Framework/wiki/10-Quality-Requirements#quality-scenarios)
 //! - [Wiki: 12 Glossary](https://github.com/UOR-Foundation/UOR-Framework/wiki/12-Glossary)
 //!
 //! # Constraints

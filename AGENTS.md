@@ -72,7 +72,7 @@ Substitution axes (the only permitted variation points): `HostTypes`,
 ├── rust-toolchain.toml                # pinned to MSRV 1.83 stable
 ├── rustfmt.toml
 └── .github/workflows/
-    ├── ci.yml                         # PR + push: fmt, clippy, test, doc, no_std, MSRV, wiki-links, deny
+    ├── ci.yml                         # PR + push: fmt, clippy, test, doc, no_std, wiki-links, deny
     ├── release.yml                    # tag-driven cargo publish
     ├── docs.yml                       # rustdoc → GitHub Pages
     └── wiki-drift.yml                 # weekly cron: wiki-link-check against wiki HEAD
@@ -81,7 +81,11 @@ Substitution axes (the only permitted variation points): `HostTypes`,
 ## 4. Toolchain
 
 - **Rust edition**: 2021
-- **MSRV**: 1.83 (matches `uor-foundation` v0.3.0; pinned via `rust-toolchain.toml`)
+- **MSRV**: 1.83 (the *effective* requirement of `uor-foundation` v0.3.0;
+  its declared `rust-version = "1.81"` is stale because the published
+  source uses `const_mut_refs`, stabilized in 1.83). Pinned via
+  `rust-toolchain.toml`, which the Rust toolchain enforces on every
+  cargo invocation in this workspace.
 - **`uor-foundation`**: `^0.3`, `default-features = false`, `no_std`-clean
 - **Workspace resolver**: `"2"`
 - **Release profile** (per QS-01): `opt-level = 3`, `lto = true`, `codegen-units = 1`
@@ -201,10 +205,13 @@ Every gate is required to merge.
 | `test`       | `cargo test --workspace --all-features`                                   | Unit + doctests (BDD specs)       |
 | `no-std`     | `cargo build -p uor-prism --target thumbv7em-none-eabihf --no-default-features` | Deployment view, `#![no_std]`     |
 |              | `cargo build -p uor-prism-verify --target thumbv7em-none-eabihf --no-default-features` |                                   |
-| `msrv`       | `cargo +1.83 build --workspace`                                            | MSRV not silently regressed       |
 | `doc`        | `RUSTDOCFLAGS='-D rustdoc::broken_intra_doc_links -D rustdoc::missing_crate_level_docs' cargo doc --workspace --no-deps` | C4 view stays linkable          |
 | `wiki-links` | `cargo run -p wiki-link-check`                                             | All wiki backlinks resolve        |
 | `deny`       | `cargo deny check`                                                         | Licenses + advisories + sources   |
+
+MSRV is enforced implicitly by `rust-toolchain.toml` (every cargo
+command in the workspace runs against the pinned channel), not by a
+dedicated CI gate.
 
 ## 8. Release pipeline (`.github/workflows/release.yml`)
 

@@ -6,6 +6,8 @@ rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
 description = "Internal CI binary that validates UOR-Framework wiki backlinks against the wiki source repository."
 publish = false
 

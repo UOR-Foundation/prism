@@ -21,6 +21,7 @@
 //!
 //! - [Wiki: 05 Building Block View § Whitebox `prism` pipeline — staged transitions][05-pipeline]
 //! - [Wiki: 06 Runtime View § Scenario 1: Principal Data Path Execution][06-scenario-1]
+//! - [Wiki: 07 Deployment View § Quality Properties of the Deployment](https://github.com/UOR-Foundation/UOR-Framework/wiki/07-Deployment-View#quality-properties-of-the-deployment)
 //! - [Wiki: 08 Concepts § Hashing Substrate Contract](https://github.com/UOR-Foundation/UOR-Framework/wiki/08-Concepts#hashing-substrate-contract)
 //! - [Wiki: 09 Architecture Decisions § ADR-012](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
 //!

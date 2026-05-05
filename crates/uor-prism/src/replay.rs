@@ -54,8 +54,7 @@
 //! // Given: an empty trace (the simplest deterministic input)
 //! // When:  certify_from_trace is invoked on it
 //! // Then:  the structural validator rejects it with EmptyTrace
-//! use prism::replay::certify_from_trace;
-//! use prism::vocabulary::{ReplayError, Trace};
+//! use prism::replay::{certify_from_trace, ReplayError, Trace};
 //! let trace = Trace::empty();
 //! let result = certify_from_trace(&trace);
 //! assert!(matches!(result, Err(ReplayError::EmptyTrace)));
@@ -66,3 +65,10 @@
 //! [verify]: https://crates.io/crates/uor-prism-verify
 
 pub use uor_foundation::enforcement::replay::certify_from_trace;
+
+// The trace and certificate wire-format types this module operates on.
+// They live in [`crate::vocabulary`] as well — vocabulary is the broad
+// single-import surface — but they are re-anchored here so consumers
+// who write `use prism::replay::{certify_from_trace, Trace};` reach a
+// coherent module-local API.
+pub use uor_foundation::{ReplayError, Trace, TraceEvent};

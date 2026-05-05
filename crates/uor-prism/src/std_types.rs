@@ -61,6 +61,20 @@
 //! _accepts_projection::<IntegerProjectionMap>();
 //! _accepts_projection::<JsonProjectionMap>();
 //! _accepts_projection::<Utf8ProjectionMap>();
+//!
+//! // And: the structural marker traits classify each kind as the
+//! // ontology declares. `BinaryGroundingMap` is total and invertible;
+//! // `IntegerGroundingMap` additionally preserves structure; the
+//! // foundation rejects (at compile time) any attempt to claim a
+//! // structural property a kind does not carry.
+//! use prism::std_types::{Invertible, PreservesStructure, Total};
+//! fn _total_invertible<M: prism::std_types::GroundingMapKind + Total + Invertible>() {}
+//! fn _preserves_structure<M: prism::std_types::GroundingMapKind + PreservesStructure>() {}
+//! _total_invertible::<BinaryGroundingMap>();
+//! _total_invertible::<IntegerGroundingMap>();
+//! _preserves_structure::<IntegerGroundingMap>();
+//! _preserves_structure::<JsonGroundingMap>();
+//! _preserves_structure::<Utf8GroundingMap>();
 //! ```
 
 pub use uor_foundation::enforcement::{

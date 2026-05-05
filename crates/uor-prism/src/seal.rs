@@ -47,7 +47,7 @@
 //! //        `pub(crate)` in the foundation, satisfying TC-02
 //! use prism::seal::{Certified, CompileTime, Grounded, Runtime, Validated};
 //! use prism::std_types::ConstrainedTypeInput;
-//! fn _name<T: ?Sized>() -> &'static str { core::any::type_name::<T>() }
+//! fn _name<T>() -> &'static str { core::any::type_name::<T>() }
 //! let _ = (
 //!     _name::<Validated<ConstrainedTypeInput, CompileTime>>(),
 //!     _name::<Validated<ConstrainedTypeInput, Runtime>>(),

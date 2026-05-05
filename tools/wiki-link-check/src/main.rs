@@ -35,8 +35,6 @@
 //!   2  Usage or I/O error.
 //! ```
 
-#![forbid(unsafe_code)]
-
 use std::env;
 use std::path::PathBuf;
 use std::process::ExitCode;

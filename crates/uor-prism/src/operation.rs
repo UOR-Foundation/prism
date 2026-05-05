@@ -52,6 +52,13 @@
 //! }
 //! assert_eq!(_arity_class(PrimitiveOp::Add), "binary");
 //! assert_eq!(_arity_class(PrimitiveOp::Neg), "unary");
+//!
+//! // And: the author-implemented admission and projection traits are
+//! // reachable as trait bounds. The generic functions compile only
+//! // because `Grounding` and `Sinking` are public traits at this path.
+//! use prism::operation::{Grounding, Sinking};
+//! fn _accepts_grounding<G: Grounding>() {}
+//! fn _accepts_sinking<S: Sinking>() {}
 //! ```
 
 pub use uor_foundation::PrimitiveOp;
