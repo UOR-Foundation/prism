@@ -69,6 +69,18 @@ pub use uor_foundation::enforcement::{
     JsonProjectionMap, MorphismKind, ProjectionMapKind, Utf8GroundingMap, Utf8ProjectionMap,
 };
 
+// Sealed structural marker traits that classify morphism kinds. Authors
+// use these in trait bounds to require, for example, an invertible
+// grounding map without naming the concrete kind. The traits are
+// foundation-sealed; downstream cannot add new structural classes.
+pub use uor_foundation::enforcement::{Invertible, PreservesMetric, PreservesStructure, Total};
+
+// The two sealed `GroundedValue` variants returned by `Grounding` impls,
+// plus their sealed marker traits. `GroundedValue` is the closed set
+// of permitted intermediates (`GroundedCoord` and `GroundedTuple<N>`);
+// `GroundedShape` is the closed-set bound on the `T` of `Grounded<T>`.
+pub use uor_foundation::enforcement::{GroundedCoord, GroundedShape, GroundedTuple, GroundedValue};
+
 // `ConstrainedTypeInput` is the foundation's pre-declared canonical
 // constrained-type shape: a built-in `ConstrainedTypeShape` impl that
 // participates in the principal data path without the application

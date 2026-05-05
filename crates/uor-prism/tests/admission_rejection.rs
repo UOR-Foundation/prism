@@ -1,0 +1,77 @@
+//! Failure-mode coverage for the principal data path's admission stage.
+//!
+//! Per the wiki's
+//! [Runtime View § Scenario 1: Principal Data Path Execution][06-scenario-1],
+//! a `CompileUnitBuilder` whose required fields are missing must produce
+//! a typed `ShapeViolation` with `ViolationKind::Missing` and the exact
+//! ontology property IRI that names the absent field. These tests pin
+//! the property IRIs so any drift between `uor-foundation`'s ontology
+//! and the rejection contract is caught here.
+//!
+//! [06-scenario-1]: https://github.com/UOR-Foundation/UOR-Framework/wiki/06-Runtime-View#scenario-1-principal-data-path-execution
+
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
+use prism::operation::Term;
+use prism::pipeline::{validate_compile_unit_const, ViolationKind};
+use prism::std_types::ConstrainedTypeInput;
+use prism::vocabulary::{CompileUnitBuilder, VerificationDomain, WittLevel};
+
+static SENTINEL_TERMS: &[Term] = &[Term::Literal {
+    value: 1,
+    level: WittLevel::W8,
+}];
+static SENTINEL_DOMAINS: &[VerificationDomain] = &[VerificationDomain::Enumerative];
+
+#[test]
+fn missing_root_term_is_typed_missing() {
+    // Given: a CompileUnitBuilder with every required field except root_term.
+    let builder = CompileUnitBuilder::new()
+        .witt_level_ceiling(WittLevel::W8)
+        .thermodynamic_budget(100)
+        .target_domains(SENTINEL_DOMAINS)
+        .result_type::<ConstrainedTypeInput>();
+
+    // When: the const validator runs.
+    let err =
+        validate_compile_unit_const(&builder).expect_err("missing root_term must be rejected");
+
+    // Then: the typed error names the missing property by its ontology IRI.
+    assert_eq!(err.kind, ViolationKind::Missing);
+    assert_eq!(
+        err.property_iri,
+        "https://uor.foundation/reduction/rootTerm"
+    );
+}
+
+#[test]
+fn missing_thermodynamic_budget_is_typed_missing() {
+    let builder = CompileUnitBuilder::new()
+        .root_term(SENTINEL_TERMS)
+        .witt_level_ceiling(WittLevel::W8)
+        .target_domains(SENTINEL_DOMAINS)
+        .result_type::<ConstrainedTypeInput>();
+    let err = validate_compile_unit_const(&builder)
+        .expect_err("missing thermodynamic_budget must be rejected");
+    assert_eq!(err.kind, ViolationKind::Missing);
+    assert_eq!(
+        err.property_iri,
+        "https://uor.foundation/reduction/thermodynamicBudget"
+    );
+}
+
+#[test]
+fn missing_result_type_is_typed_missing() {
+    let builder = CompileUnitBuilder::new()
+        .root_term(SENTINEL_TERMS)
+        .witt_level_ceiling(WittLevel::W8)
+        .thermodynamic_budget(100)
+        .target_domains(SENTINEL_DOMAINS);
+    let err =
+        validate_compile_unit_const(&builder).expect_err("missing result_type must be rejected");
+    assert_eq!(err.kind, ViolationKind::Missing);
+    assert_eq!(
+        err.property_iri,
+        "https://uor.foundation/reduction/resultType"
+    );
+}

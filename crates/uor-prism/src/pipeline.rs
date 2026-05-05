@@ -71,7 +71,30 @@
 //! [06-scenario-1]: https://github.com/UOR-Foundation/UOR-Framework/wiki/06-Runtime-View#scenario-1-principal-data-path-execution
 
 pub use uor_foundation::pipeline::{
-    run, validate_constrained_type, validate_constrained_type_const, ConstrainedTypeShape,
-    ConstraintRef, FragmentKind, StageOutcome,
+    run, validate_compile_unit_const, validate_constrained_type, validate_constrained_type_const,
+    ConstrainedTypeShape, ConstraintRef, FragmentKind, StageOutcome,
 };
+pub use uor_foundation::ViolationKind;
 pub use uor_foundation::{PipelineFailure, ShapeViolation};
+
+// `TimingPolicy` is the foundation-sealed trait the application author
+// references to declare timing budgets that participate in preflight
+// and runtime timing checks of the principal data path. It is part of
+// the admission contract surfaced by [`run`] indirectly, through
+// `Validated<CompileUnit, _>`'s thermodynamic-budget plumbing.
+pub use uor_foundation::enforcement::TimingPolicy;
+
+// Free functions that drive the per-stage admission machinery. They are
+// surfaced because `prism::pipeline` is the wiki-defined home of the
+// principal data path (ADR-012); having them here means consumers can
+// reach the const-evaluable validators without depending on
+// `uor-foundation`'s `pipeline` module path directly.
+pub use uor_foundation::pipeline::{
+    fragment_classify, preflight_budget_solvency, preflight_dispatch_coverage,
+    preflight_feasibility, preflight_package_coherence,
+};
+
+// `WITT_MAX_BITS` is the normative upper bound on Witt-level bit width
+// honored by `preflight_budget_solvency`. Surfacing it here keeps the
+// pipeline contract self-contained.
+pub use uor_foundation::pipeline::WITT_MAX_BITS;

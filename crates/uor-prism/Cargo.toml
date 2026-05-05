@@ -21,9 +21,10 @@ uor-foundation = { workspace = true }
 
 [features]
 default = []
-std = ["uor-foundation/std"]
 alloc = ["uor-foundation/alloc"]
-serde = ["uor-foundation/serde"]
+std = ["alloc", "uor-foundation/std"]
+serde = ["alloc", "uor-foundation/serde"]
+observability = ["alloc", "uor-foundation/observability"]
 
 [lints]
 workspace = true

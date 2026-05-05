@@ -45,17 +45,35 @@
 //! // Then:  the references type-check at compile time, even though no
 //! //        external code can construct them — the constructors are
 //! //        `pub(crate)` in the foundation, satisfying TC-02
-//! use prism::seal::{Certified, Grounded, Validated};
+//! use prism::seal::{Certified, CompileTime, Grounded, Runtime, Validated};
 //! use prism::std_types::ConstrainedTypeInput;
-//! use prism::uor_foundation::enforcement::Runtime;
 //! fn _name<T: ?Sized>() -> &'static str { core::any::type_name::<T>() }
 //! let _ = (
+//!     _name::<Validated<ConstrainedTypeInput, CompileTime>>(),
 //!     _name::<Validated<ConstrainedTypeInput, Runtime>>(),
 //!     _name::<Grounded<ConstrainedTypeInput>>(),
 //!     _name::<Certified<prism::vocabulary::GroundingCertificate>>(),
 //! );
 //! ```
 //!
+//! Scenario 3 of the [Runtime View][06-scenario-3] specifies that the
+//! Rust toolchain must reject programs that violate sealing or the
+//! UORassembly contract. The following compile-fail doctest is the
+//! enforcement evidence: it attempts to assign a literal `()` as a
+//! validation phase to `Validated`, which fails because `()` does not
+//! implement the foundation-sealed `ValidationPhase` trait.
+//!
+//! ```compile_fail
+//! use prism::seal::Validated;
+//! use prism::std_types::ConstrainedTypeInput;
+//! // `()` is not a `ValidationPhase` impl — only foundation-supplied
+//! // `CompileTime` and `Runtime` markers are. The Rust toolchain
+//! // rejects the program at compile time (TC-04 + ADR-011).
+//! fn _bad(_: Validated<ConstrainedTypeInput, ()>) {}
+//! ```
+//!
 //! [05-seal]: https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism-seal-regime-and-replay
+//! [06-scenario-3]: https://github.com/UOR-Foundation/UOR-Framework/wiki/06-Runtime-View#scenario-3-compile-time-uorassembly-enforcement
 
+pub use uor_foundation::enforcement::{CompileTime, Runtime, ValidationPhase};
 pub use uor_foundation::{Certified, Grounded, Validated};

@@ -94,7 +94,9 @@ The rustdoc surface IS the C4 view of the system. To make that load-bearing:
 
 ### 5.1 Required structure for every `pub` item
 
-Every public item in `uor-prism` and `uor-prism-verify` carries:
+Every **first-class** public item in `uor-prism` and `uor-prism-verify`
+(modules, constants, types, functions, traits declared in this
+repository) carries:
 
 1. **One-line brief** as the first paragraph (rustdoc summary line).
 2. **`# See also`** section with at least one verified backlink to the
@@ -107,6 +109,15 @@ Every public item in `uor-prism` and `uor-prism-verify` carries:
 5. **`# Behavior`** doctest framed as Given / When / Then comments
    inside a ` ```rust ` block. Doctests are the executable behavior
    spec — they run in CI as part of `cargo test --workspace`.
+
+**Re-exports** of `uor-foundation` items inherit the foundation's
+rustdoc verbatim — they do not get a second copy of the five-block
+structure here. The structure attaches to the **module** that re-exports
+them, which describes which wiki section the re-exports realize and
+why each one is included. This matches ADR-013 (closure of `prism`
+under `uor-foundation`): the substrate is the source of truth for the
+items themselves, and `prism` is the source of truth for their
+architectural placement.
 
 ### 5.2 Module hierarchy ↔ wiki components
 

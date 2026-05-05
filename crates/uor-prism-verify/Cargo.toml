@@ -22,9 +22,9 @@ uor-foundation = { workspace = true }
 
 [features]
 default = []
-std = ["uor-prism/std", "uor-foundation/std"]
 alloc = ["uor-prism/alloc", "uor-foundation/alloc"]
-serde = ["uor-prism/serde", "uor-foundation/serde"]
+std = ["alloc", "uor-prism/std", "uor-foundation/std"]
+serde = ["alloc", "uor-prism/serde", "uor-foundation/serde"]
 
 [lints]
 workspace = true

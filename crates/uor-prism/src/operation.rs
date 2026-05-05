@@ -56,3 +56,17 @@
 
 pub use uor_foundation::PrimitiveOp;
 pub use uor_foundation::{Term, TermArena, TermList};
+
+// Author-implemented admission and projection traits. Per ADR-014 these
+// are vocabulary the application author composes to declare how host
+// bytes are admitted into the principal data path (`Grounding`) and how
+// `Grounded<T>` values are projected back to host carriers (`Sinking`).
+// `GroundingExt` is the foundation-supplied sealed extension trait that
+// drives admission via `ground(host_bytes) -> Option<Self::Output>`.
+pub use uor_foundation::enforcement::{Grounding, GroundingExt, Sinking};
+
+// `GroundingProgram` is the combinator-builder for `Grounding::program()`,
+// the kind-typed program a `Grounding` impl returns. Re-exported so
+// authors can name the type without depending on `uor-foundation`'s
+// `enforcement` module path directly.
+pub use uor_foundation::enforcement::GroundingProgram;
