@@ -202,3 +202,188 @@ impl<const N: usize> ConstrainedTypeShape for FixedSites<N> {
     const SITE_COUNT: usize = N;
     const CONSTRAINTS: &'static [ConstraintRef] = &[];
 }
+
+/// `Bytes<N>` — byte-buffer admission intent of width `N`.
+///
+/// Structurally identical to [`FixedSites<N>`] but with a distinct IRI
+/// that self-documents byte-buffer admission at the call site. Use
+/// `Bytes<N>` when the unit's intent is "this is a byte sequence" and
+/// `FixedSites<N>` when the intent is "this is a generic site
+/// container of width N".
+///
+/// # See also
+///
+/// - [`crate::std_types`] — the family contract and IRI namespace
+/// - [Wiki: 05 Building Block View § Whitebox `prism`](https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism)
+/// - [AGENTS.md § 11](../../../AGENTS.md#11-standard-type-library-policy)
+///
+/// # Constraints
+///
+/// - **TC-01** — admission is compile-time
+/// - **TC-04** — bilateral compile-time enforcement
+/// - **ADR-013** — closure under `uor-foundation`
+/// - **ADR-017** — content-addressed identity via the IRI
+///
+/// # Behavior
+///
+/// ```rust
+/// use prism::pipeline::ConstrainedTypeShape;
+/// use prism::std_types::{Bytes, FixedSites};
+/// // Same SITE_COUNT as FixedSites<N>, distinct IRI.
+/// assert_eq!(<Bytes<32> as ConstrainedTypeShape>::SITE_COUNT, 32);
+/// assert_eq!(<Bytes<32> as ConstrainedTypeShape>::IRI, "uor.foundation/prism/std_types/Bytes");
+/// assert_ne!(
+///     <Bytes<32> as ConstrainedTypeShape>::IRI,
+///     <FixedSites<32> as ConstrainedTypeShape>::IRI,
+/// );
+/// ```
+pub struct Bytes<const N: usize>;
+
+impl<const N: usize> ConstrainedTypeShape for Bytes<N> {
+    const IRI: &'static str = "uor.foundation/prism/std_types/Bytes";
+    const SITE_COUNT: usize = N;
+    const CONSTRAINTS: &'static [ConstraintRef] = &[];
+}
+
+// ---- Typed primitives (baseline per AGENTS.md § 11.4) ----
+//
+// Each typed primitive is a unit struct that impls `ConstrainedTypeShape`
+// with a stable IRI under `uor.foundation/prism/std_types/<TypeName>`,
+// `SITE_COUNT` set to its byte width when used at `WittLevel::W8`, and
+// empty `CONSTRAINTS`. Value-level invariants (IEEE 754 well-formedness,
+// `Bool ∈ {0, 1}`, UTF-32 codepoint validity) are host-side decisions
+// enforced by the application's `Grounding` impl per the family contract
+// laid out in this module's docs and in AGENTS.md § 11.
+
+macro_rules! typed_primitive {
+    (
+        $(#[$brief:meta])*
+        $name:ident, $iri:literal, $sites:literal
+    ) => {
+        $(#[$brief])*
+        ///
+        /// # See also
+        ///
+        /// - [`crate::std_types`] for the family contract and IRI namespace.
+        /// - [Wiki: 05 Building Block View § Whitebox `prism`](https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism)
+        /// - [AGENTS.md § 11](../../../AGENTS.md#11-standard-type-library-policy)
+        ///
+        /// # Constraints
+        ///
+        /// - **TC-01** — admission is compile-time
+        /// - **TC-04** — bilateral compile-time enforcement
+        /// - **ADR-013** — closure under `uor-foundation`
+        /// - **ADR-017** — content-addressed identity via the IRI
+        ///
+        /// # Behavior
+        ///
+        /// ```rust
+        /// use prism::pipeline::ConstrainedTypeShape;
+        #[doc = concat!("use prism::std_types::", stringify!($name), ";")]
+        #[doc = concat!(
+            "assert_eq!(<", stringify!($name), " as ConstrainedTypeShape>::SITE_COUNT, ",
+            stringify!($sites), ");"
+        )]
+        #[doc = concat!(
+            "assert_eq!(<", stringify!($name), " as ConstrainedTypeShape>::IRI, \"", $iri, "\");"
+        )]
+        #[doc = concat!(
+            "assert!(<", stringify!($name), " as ConstrainedTypeShape>::CONSTRAINTS.is_empty());"
+        )]
+        /// ```
+        pub struct $name;
+
+        impl ConstrainedTypeShape for $name {
+            const IRI: &'static str = $iri;
+            const SITE_COUNT: usize = $sites;
+            const CONSTRAINTS: &'static [ConstraintRef] = &[];
+        }
+    };
+}
+
+// Unsigned integers — byte-aligned widths from 8 to 256 bits.
+typed_primitive!(
+    /// Unsigned 8-bit integer (1 byte at `WittLevel::W8`).
+    U8, "uor.foundation/prism/std_types/U8", 1
+);
+typed_primitive!(
+    /// Unsigned 16-bit integer (2 bytes at `WittLevel::W8`).
+    U16, "uor.foundation/prism/std_types/U16", 2
+);
+typed_primitive!(
+    /// Unsigned 32-bit integer (4 bytes at `WittLevel::W8`).
+    /// Width of a Bitcoin block-header nonce.
+    U32, "uor.foundation/prism/std_types/U32", 4
+);
+typed_primitive!(
+    /// Unsigned 64-bit integer (8 bytes at `WittLevel::W8`).
+    U64, "uor.foundation/prism/std_types/U64", 8
+);
+typed_primitive!(
+    /// Unsigned 128-bit integer (16 bytes at `WittLevel::W8`).
+    U128, "uor.foundation/prism/std_types/U128", 16
+);
+typed_primitive!(
+    /// Unsigned 256-bit integer (32 bytes at `WittLevel::W8`).
+    /// Width of a SHA-256 output and a Bitcoin difficulty target.
+    U256, "uor.foundation/prism/std_types/U256", 32
+);
+
+// Signed integers — same byte widths, distinct IRIs to self-document
+// signed admission intent.
+typed_primitive!(
+    /// Signed 8-bit integer (1 byte at `WittLevel::W8`).
+    I8, "uor.foundation/prism/std_types/I8", 1
+);
+typed_primitive!(
+    /// Signed 16-bit integer (2 bytes at `WittLevel::W8`).
+    I16, "uor.foundation/prism/std_types/I16", 2
+);
+typed_primitive!(
+    /// Signed 32-bit integer (4 bytes at `WittLevel::W8`).
+    I32, "uor.foundation/prism/std_types/I32", 4
+);
+typed_primitive!(
+    /// Signed 64-bit integer (8 bytes at `WittLevel::W8`).
+    I64, "uor.foundation/prism/std_types/I64", 8
+);
+typed_primitive!(
+    /// Signed 128-bit integer (16 bytes at `WittLevel::W8`).
+    I128, "uor.foundation/prism/std_types/I128", 16
+);
+typed_primitive!(
+    /// Signed 256-bit integer (32 bytes at `WittLevel::W8`).
+    I256, "uor.foundation/prism/std_types/I256", 32
+);
+
+// IEEE 754 floating-point — IEEE well-formedness (NaN, subnormal
+// handling) is the application's `Grounding` impl's responsibility.
+typed_primitive!(
+    /// IEEE 754 binary32 floating-point (4 bytes at `WittLevel::W8`).
+    /// Well-formedness (NaN, subnormal, and infinity policy) is enforced
+    /// host-side by the application's `Grounding` impl.
+    F32, "uor.foundation/prism/std_types/F32", 4
+);
+typed_primitive!(
+    /// IEEE 754 binary64 floating-point (8 bytes at `WittLevel::W8`).
+    /// Well-formedness is enforced host-side.
+    F64, "uor.foundation/prism/std_types/F64", 8
+);
+
+// Boolean — value-in-{0, 1} contract is enforced host-side; the
+// distinct IRI separates `Bool` from `U8` at the content-address level.
+typed_primitive!(
+    /// Boolean (1 byte at `WittLevel::W8`). The value-in-{0, 1} contract
+    /// is enforced host-side by the application's `Grounding` impl;
+    /// the distinct IRI separates `Bool` from `U8` at the content-address
+    /// level.
+    Bool, "uor.foundation/prism/std_types/Bool", 1
+);
+
+// Character — UTF-32 codepoint width; Unicode validity is host-side.
+typed_primitive!(
+    /// Unicode codepoint (4 bytes at `WittLevel::W8`, UTF-32 width).
+    /// Unicode validity (codepoint range, surrogate exclusion) is
+    /// enforced host-side by the application's `Grounding` impl.
+    Char, "uor.foundation/prism/std_types/Char", 4
+);

@@ -309,7 +309,25 @@ content-addresses through their differing `(SITE_COUNT, CONSTRAINTS)`.
 
 ### 11.4 Growth policy
 
-Adding a stdlib type requires:
+There are two growth tracks, distinguished by whether the type is a
+*baseline primitive* every implementor reaches for or a more
+specialized addition.
+
+**Baseline primitives** are admissible without per-type demonstrated
+demand because every implementor reaches for them — withholding them
+would force every downstream to re-derive the same trivial boilerplate.
+The baseline set is fixed at:
+
+- The byte-paired integer family `U8`/`I8` through `U256`/`I256` (the
+  complete set of byte-aligned widths up to 32 bytes).
+- The IEEE float widths `F32` and `F64`.
+- `Bool`.
+- `Bytes<const N: usize>` and `Char`.
+- `FixedSites<const N: usize>` (the structural building block under
+  every other typed primitive).
+
+Any addition outside this set follows the **specialized track** and
+requires:
 
 1. **Demonstrated need.** At least one downstream consumer that would
    author the same boilerplate from first principles in its absence.
@@ -322,7 +340,7 @@ Adding a stdlib type requires:
 4. **Catalog entry** added to § 11.6 below.
 
 Stdlib types are stable from inclusion. Removal requires a deprecation
-period and a semver-major bump.
+period.
 
 ### 11.5 Implementation pattern
 
@@ -356,14 +374,48 @@ impl<…> ConstrainedTypeShape for <TypeName><…> {
 }
 ```
 
-### 11.6 Catalog (v0.1)
+### 11.6 Catalog
 
-| Type | Purpose | Composition |
+Baseline primitives. Every type below has a stable IRI under
+`uor.foundation/prism/std_types/<TypeName>`, empty `CONSTRAINTS`
+(value-level invariants such as IEEE 754 well-formedness, UTF-32
+codepoint validity, or `Bool ∈ {0, 1}` are host-side decisions
+enforced by the application's `Grounding` impl), and `SITE_COUNT` set
+to the byte width of the carrier when used at `WittLevel::W8`.
+
+**Structural building blocks**
+
+| Type | `SITE_COUNT` | Purpose |
 |---|---|---|
-| `FixedSites<const N: usize>` | Admit exactly `N` sites, unconstrained per-site | `SITE_COUNT = N`, `CONSTRAINTS = &[]` |
+| `FixedSites<const N: usize>` | `N` | Generic structural shape — N sites, no per-site constraint. The base parametric building block. |
+| `Bytes<const N: usize>` | `N` | Byte-buffer admission intent — same structure as `FixedSites<N>`, distinct IRI for self-documenting byte-buffer use. |
 
-The catalog is intentionally minimal at v0.1. Subsequent additions
-follow the growth policy (§ 11.4).
+**Integers (paired signed / unsigned)**
+
+| Type | `SITE_COUNT` | Notes |
+|---|---|---|
+| `U8`, `I8` | `1` | byte-aligned 8-bit |
+| `U16`, `I16` | `2` | 16-bit |
+| `U32`, `I32` | `4` | 32-bit (Bitcoin nonce width) |
+| `U64`, `I64` | `8` | 64-bit |
+| `U128`, `I128` | `16` | 128-bit |
+| `U256`, `I256` | `32` | 256-bit (SHA-256 output width, Bitcoin difficulty target) |
+
+**Floating-point**
+
+| Type | `SITE_COUNT` | Notes |
+|---|---|---|
+| `F32` | `4` | IEEE 754 binary32; well-formedness (NaN, subnormal handling) is host-side |
+| `F64` | `8` | IEEE 754 binary64; well-formedness is host-side |
+
+**Other primitives**
+
+| Type | `SITE_COUNT` | Notes |
+|---|---|---|
+| `Bool` | `1` | Value-in-{0, 1} contract enforced host-side; the IRI distinguishes from `U8` |
+| `Char` | `4` | UTF-32 codepoint width; Unicode validity is host-side |
+
+Subsequent additions follow the specialized track of § 11.4.
 
 ## 12. Out of scope (explicit)
 
