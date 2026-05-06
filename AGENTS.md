@@ -246,7 +246,126 @@ On push to `main`:
 - No wiki backlink that has not been validated by `wiki-link-check`.
 - `Cargo.lock` is committed.
 
-## 11. Out of scope (explicit)
+## 11. Standard type library policy
+
+`prism::std_types` realizes the wiki's
+[Building Block View § Whitebox `prism`](https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism)
+component named "standard type library". Per ADR-017 the catalog is
+content-addressed and evolves *operationally* — the wiki defines the
+catalog's purpose and identity rules, not its specific contents. The
+catalog exists so that `prism` consumers do not have to derive common
+patterns from first principles every time they author a
+`ConstrainedTypeShape`.
+
+### 11.1 Inclusion criteria
+
+A type belongs in `prism::std_types` if and only if all of the
+following hold:
+
+1. **Built on foundation primitives.** Its body uses only
+   foundation-supplied vocabulary (`ConstrainedTypeShape`,
+   `ConstraintRef`, the closed `PrimitiveOp` set, `pipeline` admission
+   functions). No new traits, no operation logic, no resolver
+   implementations.
+2. **Application-neutral.** Reusable across multiple unrelated
+   downstream applications. No type carries a single domain's
+   assumptions (cryptocurrency, JSON-RPC, an organization's internal
+   protocol, etc.).
+3. **Content-addressed.** `IRI` is unique within the namespace
+   `uor.foundation/prism/std_types/<TypeName>` and the
+   `(IRI, SITE_COUNT, CONSTRAINTS)` triple deterministically encodes the
+   shape's identity per ADR-017.
+4. **Compile-time stable.** All admission decisions resolve at compile
+   time via the const path (`validate_compile_unit_const`,
+   `validate_constrained_type_const`); no runtime allocation, no runtime
+   trait dispatch.
+5. **`#![no_std]`-clean.** Compiles on `thumbv7em-none-eabihf` without
+   `alloc` or `std`.
+
+### 11.2 Exclusion criteria
+
+The following are explicitly out of scope and remain downstream concerns:
+
+- **Operation libraries** (ADR-014). Pre-implemented resolvers,
+  deciders, computation strategies, or DSL macros.
+- **Cryptographic substrates.** Concrete `Hasher` impls (BLAKE3,
+  SHA-256, …). The `Hasher` trait is the third substitution axis per
+  ADR-007; choosing one is the application's prerogative.
+- **Domain-specific shapes.** Anything tied to a single application
+  domain — a Bitcoin block-header shape, an Ethereum transaction
+  shape, etc. These belong in domain crates that consume
+  `uor-prism::std_types` as building blocks.
+- **Speculative additions.** Types added to anticipate future demand
+  without an observed downstream consumer.
+
+### 11.3 IRI namespace
+
+Every `prism::std_types` type owns an IRI under
+`uor.foundation/prism/std_types/<TypeName>`. The IRI identifies the
+*shape family*; instance identity (parameter values for generic shapes)
+is carried by the `(SITE_COUNT, CONSTRAINTS)` pair, not by the IRI. Two
+distinct generic instantiations share an IRI but produce distinct
+content-addresses through their differing `(SITE_COUNT, CONSTRAINTS)`.
+
+### 11.4 Growth policy
+
+Adding a stdlib type requires:
+
+1. **Demonstrated need.** At least one downstream consumer that would
+   author the same boilerplate from first principles in its absence.
+   Speculation alone is not sufficient.
+2. **Inclusion criteria satisfied** (§ 11.1).
+3. **PR contents:** the new type with the five-block doc structure
+   (§ 5.1), an integration test exercising the type end-to-end through
+   `pipeline::run` and `certify_from_trace`, and verified wiki
+   backlinks.
+4. **Catalog entry** added to § 11.6 below.
+
+Stdlib types are stable from inclusion. Removal requires a deprecation
+period and a semver-major bump.
+
+### 11.5 Implementation pattern
+
+Every stdlib type follows this shape:
+
+```rust
+/// `<TypeName>` admits …  (one-line brief)
+///
+/// # See also
+/// - [Wiki: 05 Building Block View …]
+/// - [AGENTS.md § 11](../../../AGENTS.md#11-standard-type-library-policy)
+///
+/// # Constraints
+/// - **TC-01**, **TC-04** (always)
+/// - **ADR-017** (always)
+/// - other applicable IDs
+///
+/// # C4 placement
+/// Component `standard type library` (Level 3) inside container `prism`.
+///
+/// # Behavior
+/// ```rust
+/// // Given/When/Then exercise of the shape's identity
+/// ```
+pub struct <TypeName><…> { _private: () }
+
+impl<…> ConstrainedTypeShape for <TypeName><…> {
+    const IRI: &'static str = "uor.foundation/prism/std_types/<TypeName>";
+    const SITE_COUNT: usize = …;
+    const CONSTRAINTS: &'static [ConstraintRef] = …;
+}
+```
+
+### 11.6 Catalog (v0.1)
+
+| Type | Purpose | Composition |
+|---|---|---|
+| `FixedSites<const N: usize>` | Admit exactly `N` sites, unconstrained per-site | `SITE_COUNT = N`, `CONSTRAINTS = &[]` |
+
+The catalog is intentionally minimal at v0.1. Subsequent additions
+follow the growth policy (§ 11.4).
+
+## 12. Out of scope (explicit)
 
 - Implementing the full Prism runtime. This file defines the *infrastructure*
   for that work; the runtime is built incrementally in subsequent changes,

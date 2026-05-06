@@ -131,3 +131,74 @@ pub use uor_foundation::enforcement::{
 // parameterized GAT `Inputs<H>` so witness inputs can hold
 // host-decimal and handle fields without leaking concrete types.
 pub use uor_foundation::OntologyVerifiedMint;
+
+// ---- First-class stdlib types (§ 11 of AGENTS.md) ----
+
+use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef};
+
+/// `FixedSites<N>` — admit exactly `N` sites, unconstrained per-site.
+///
+/// The simplest non-trivial standard-type-library citizen: a generic
+/// `ConstrainedTypeShape` that fixes a site count and imposes no
+/// per-site constraint. It is the parametric building block under any
+/// downstream shape that wants "this many sites, my own grounding
+/// admission decides what each site contains" — for example, a 32-byte
+/// hash output (32 sites at `WittLevel::W8`), an 80-byte Bitcoin block
+/// header (80 sites at `WittLevel::W8`), or a 16-element
+/// integer-vector at `WittLevel::W64`.
+///
+/// At any instantiation, `<FixedSites<N> as ConstrainedTypeShape>::SITE_COUNT == N`
+/// and `<FixedSites<N> as ConstrainedTypeShape>::CONSTRAINTS` is the empty
+/// slice (foundation reads "empty `CONSTRAINTS`" as "unconstrained" per
+/// the trait's normative documentation). The IRI is shared across all
+/// `N` per the catalog's IRI-namespace rule
+/// ([AGENTS.md § 11.3](../../../AGENTS.md#113-iri-namespace)); instance
+/// identity flows through `(SITE_COUNT, CONSTRAINTS)`.
+///
+/// # See also
+///
+/// - [Wiki: 05 Building Block View § Whitebox `prism`](https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism)
+/// - [Wiki: 09 Architecture Decisions § ADR-017](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
+///
+/// # Constraints
+///
+/// - **TC-01** — admission is a compile-time activity; `SITE_COUNT` and
+///   `CONSTRAINTS` are `const`-evaluable
+/// - **TC-04** — bilateral compile-time enforcement: a downstream
+///   author who consumes `FixedSites<N>` cannot violate the contract
+///   without the toolchain rejecting their program
+/// - **ADR-013** — closure under `uor-foundation`: the body uses only
+///   foundation vocabulary (`ConstrainedTypeShape`, `ConstraintRef`)
+/// - **ADR-017** — content-addressed identity: the
+///   `(IRI, SITE_COUNT, CONSTRAINTS)` triple deterministically encodes
+///   each instantiation
+///
+/// # Behavior
+///
+/// ```rust
+/// // Given: a fixed-32-sites shape
+/// // When:  its trait constants are read
+/// // Then:  SITE_COUNT reflects N and CONSTRAINTS is empty
+/// use prism::pipeline::ConstrainedTypeShape;
+/// use prism::std_types::FixedSites;
+/// assert_eq!(<FixedSites<32> as ConstrainedTypeShape>::SITE_COUNT, 32);
+/// assert!(<FixedSites<32> as ConstrainedTypeShape>::CONSTRAINTS.is_empty());
+/// assert_eq!(
+///     <FixedSites<32> as ConstrainedTypeShape>::IRI,
+///     "uor.foundation/prism/std_types/FixedSites",
+/// );
+/// // And: a different N produces a distinct shape — same IRI, different
+/// // SITE_COUNT — so the content-addressing pair distinguishes instances.
+/// assert_eq!(<FixedSites<80> as ConstrainedTypeShape>::SITE_COUNT, 80);
+/// assert_eq!(
+///     <FixedSites<80> as ConstrainedTypeShape>::IRI,
+///     <FixedSites<32> as ConstrainedTypeShape>::IRI,
+/// );
+/// ```
+pub struct FixedSites<const N: usize>;
+
+impl<const N: usize> ConstrainedTypeShape for FixedSites<N> {
+    const IRI: &'static str = "uor.foundation/prism/std_types/FixedSites";
+    const SITE_COUNT: usize = N;
+    const CONSTRAINTS: &'static [ConstraintRef] = &[];
+}
