@@ -1,19 +1,25 @@
 //! End-to-end coverage for every baseline primitive in `prism::std_types`,
-//! per [AGENTS.md § 11](../../../AGENTS.md#11-standard-type-library-policy).
+//! per [AGENTS.md § 11](../../../AGENTS.md#11-standard-type-library-policy)
+//! and the closure rule from
+//! [Concepts § Closure Under uor-foundation][08-closure].
 //!
 //! For each baseline primitive the test suite asserts:
 //!
 //! 1. The trait constants are `const`-evaluable (TC-01).
-//! 2. The IRI lives under the catalog's namespace
-//!    (`uor.foundation/prism/std_types/<TypeName>`).
+//! 2. The IRI is the foundation's `ConstrainedType` class IRI — shared
+//!    across every empty-constraint stdlib type, **derived from the
+//!    constraint declaration, not from the Rust type name** per the
+//!    closure rule of ADR-017.
 //! 3. `validate_constrained_type` admits the shape via foundation's
 //!    preflight gate (feasibility + package coherence) without invoking
 //!    any author-side logic.
-//! 4. The (IRI, SITE_COUNT, CONSTRAINTS) triple of distinct shapes
-//!    diverges where the catalog says it should: `U32` ≠ `I32` by IRI
-//!    (paired-pair distinction), `Bool` ≠ `U8` by IRI (semantic
-//!    distinction at equal byte width), `Bytes<32>` ≠ `FixedSites<32>`
-//!    by IRI (intent distinction at equal structure).
+//! 4. Closure semantics: structurally-identical Rust types
+//!    (e.g. `U32` and `I32`, `Bool` and `U8`, `Bytes<32>` and
+//!    `FixedSites<32>`) produce **identical** content-addresses through
+//!    their shared IRI and equal `(SITE_COUNT, CONSTRAINTS)`. The Rust
+//!    type name is for the developer; the IRI is for content-addressing.
+//!
+//! [08-closure]: https://github.com/UOR-Foundation/UOR-Framework/wiki/08-Concepts#closure-under-uor-foundation
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -23,7 +29,10 @@ use prism::std_types::{
     U64, U8,
 };
 
-const NS: &str = "https://uor.foundation/type/";
+/// The single IRI shared by every empty-constraint stdlib type, per
+/// ADR-017 closure: derived from the constraint declaration, not from
+/// the Rust type name.
+const SHARED_IRI: &str = "https://uor.foundation/type/ConstrainedType";
 
 #[test]
 fn integer_byte_widths_match_catalog() {
@@ -58,32 +67,31 @@ fn other_baseline_widths_match_catalog() {
 }
 
 #[test]
-fn iris_live_in_the_catalog_namespace() {
-    let assert_ns = |iri: &str, suffix: &str| {
+fn every_baseline_iri_is_the_foundation_class_iri() {
+    let assert_shared = |iri: &str, name: &str| {
         assert_eq!(
-            iri,
-            format!("{NS}{suffix}"),
-            "IRI {iri} not in catalog namespace under {suffix}",
+            iri, SHARED_IRI,
+            "{name}'s IRI must equal foundation's ConstrainedType class IRI",
         );
     };
-    assert_ns(<U8 as ConstrainedTypeShape>::IRI, "U8");
-    assert_ns(<U16 as ConstrainedTypeShape>::IRI, "U16");
-    assert_ns(<U32 as ConstrainedTypeShape>::IRI, "U32");
-    assert_ns(<U64 as ConstrainedTypeShape>::IRI, "U64");
-    assert_ns(<U128 as ConstrainedTypeShape>::IRI, "U128");
-    assert_ns(<U256 as ConstrainedTypeShape>::IRI, "U256");
-    assert_ns(<I8 as ConstrainedTypeShape>::IRI, "I8");
-    assert_ns(<I16 as ConstrainedTypeShape>::IRI, "I16");
-    assert_ns(<I32 as ConstrainedTypeShape>::IRI, "I32");
-    assert_ns(<I64 as ConstrainedTypeShape>::IRI, "I64");
-    assert_ns(<I128 as ConstrainedTypeShape>::IRI, "I128");
-    assert_ns(<I256 as ConstrainedTypeShape>::IRI, "I256");
-    assert_ns(<F32 as ConstrainedTypeShape>::IRI, "F32");
-    assert_ns(<F64 as ConstrainedTypeShape>::IRI, "F64");
-    assert_ns(<Bool as ConstrainedTypeShape>::IRI, "Bool");
-    assert_ns(<Char as ConstrainedTypeShape>::IRI, "Char");
-    assert_ns(<Bytes<32> as ConstrainedTypeShape>::IRI, "Bytes");
-    assert_ns(<FixedSites<32> as ConstrainedTypeShape>::IRI, "FixedSites");
+    assert_shared(<U8 as ConstrainedTypeShape>::IRI, "U8");
+    assert_shared(<U16 as ConstrainedTypeShape>::IRI, "U16");
+    assert_shared(<U32 as ConstrainedTypeShape>::IRI, "U32");
+    assert_shared(<U64 as ConstrainedTypeShape>::IRI, "U64");
+    assert_shared(<U128 as ConstrainedTypeShape>::IRI, "U128");
+    assert_shared(<U256 as ConstrainedTypeShape>::IRI, "U256");
+    assert_shared(<I8 as ConstrainedTypeShape>::IRI, "I8");
+    assert_shared(<I16 as ConstrainedTypeShape>::IRI, "I16");
+    assert_shared(<I32 as ConstrainedTypeShape>::IRI, "I32");
+    assert_shared(<I64 as ConstrainedTypeShape>::IRI, "I64");
+    assert_shared(<I128 as ConstrainedTypeShape>::IRI, "I128");
+    assert_shared(<I256 as ConstrainedTypeShape>::IRI, "I256");
+    assert_shared(<F32 as ConstrainedTypeShape>::IRI, "F32");
+    assert_shared(<F64 as ConstrainedTypeShape>::IRI, "F64");
+    assert_shared(<Bool as ConstrainedTypeShape>::IRI, "Bool");
+    assert_shared(<Char as ConstrainedTypeShape>::IRI, "Char");
+    assert_shared(<Bytes<32> as ConstrainedTypeShape>::IRI, "Bytes");
+    assert_shared(<FixedSites<32> as ConstrainedTypeShape>::IRI, "FixedSites");
 }
 
 #[test]
@@ -112,50 +120,69 @@ fn admission_succeeds_for_every_baseline_type() {
 }
 
 #[test]
-fn paired_signed_and_unsigned_are_distinct_by_iri() {
-    // U32 and I32 share SITE_COUNT but must have distinct content-addresses.
+fn paired_signed_and_unsigned_share_iri_per_closure() {
+    // U32 and I32 share constraint declaration ⇒ same IRI ⇒ same UOR
+    // content-address. The Rust name distinguishes intent at the call
+    // site; the IRI does not.
     assert_eq!(
         <U32 as ConstrainedTypeShape>::SITE_COUNT,
         <I32 as ConstrainedTypeShape>::SITE_COUNT,
     );
-    assert_ne!(
+    assert_eq!(
         <U32 as ConstrainedTypeShape>::IRI,
         <I32 as ConstrainedTypeShape>::IRI,
     );
 }
 
 #[test]
-fn semantic_aliases_preserve_iri_distinction() {
-    // `Bool`, `U8`, `I8`, `Char`'s structural footprint at given widths
-    // overlaps with structural shapes — but the catalog's IRI rules
-    // keep them content-addressed apart.
+fn semantic_aliases_share_iri_at_equal_constraints() {
+    // `Bool`, `U8`, `I8`, `FixedSites<1>` all have SITE_COUNT=1 and
+    // empty CONSTRAINTS — closure says they share an IRI. The Rust
+    // type name self-documents intent; the IRI is for addressing.
     assert_eq!(<Bool as ConstrainedTypeShape>::SITE_COUNT, 1);
     assert_eq!(<U8 as ConstrainedTypeShape>::SITE_COUNT, 1);
     assert_eq!(<I8 as ConstrainedTypeShape>::SITE_COUNT, 1);
     assert_eq!(<FixedSites<1> as ConstrainedTypeShape>::SITE_COUNT, 1);
-    assert_ne!(
+    assert_eq!(
         <Bool as ConstrainedTypeShape>::IRI,
         <U8 as ConstrainedTypeShape>::IRI,
     );
-    assert_ne!(
+    assert_eq!(
         <U8 as ConstrainedTypeShape>::IRI,
         <I8 as ConstrainedTypeShape>::IRI,
     );
-    assert_ne!(
+    assert_eq!(
         <Bool as ConstrainedTypeShape>::IRI,
         <FixedSites<1> as ConstrainedTypeShape>::IRI,
     );
 }
 
 #[test]
-fn bytes_and_fixed_sites_are_iri_distinct_at_equal_width() {
+fn bytes_and_fixed_sites_share_iri_at_equal_width() {
+    // Per closure: same constraint declaration ⇒ same IRI.
     assert_eq!(
         <Bytes<32> as ConstrainedTypeShape>::SITE_COUNT,
         <FixedSites<32> as ConstrainedTypeShape>::SITE_COUNT,
     );
-    assert_ne!(
+    assert_eq!(
         <Bytes<32> as ConstrainedTypeShape>::IRI,
         <FixedSites<32> as ConstrainedTypeShape>::IRI,
+    );
+}
+
+#[test]
+fn distinct_site_counts_distinguish_via_constraint_declaration() {
+    // Closure says shapes with DIFFERENT constraint declarations have
+    // distinguishable content-addresses, even when sharing IRI. The
+    // (IRI, SITE_COUNT, CONSTRAINTS) triple — not IRI alone — is what
+    // determines the UOR address.
+    assert_eq!(
+        <U8 as ConstrainedTypeShape>::IRI,
+        <U32 as ConstrainedTypeShape>::IRI,
+    );
+    assert_ne!(
+        <U8 as ConstrainedTypeShape>::SITE_COUNT,
+        <U32 as ConstrainedTypeShape>::SITE_COUNT,
     );
 }
 

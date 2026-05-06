@@ -44,7 +44,9 @@ fn iri_is_shared_across_instantiations() {
     );
     assert_eq!(
         <FixedSites<32> as ConstrainedTypeShape>::IRI,
-        "https://uor.foundation/type/FixedSites",
+        "https://uor.foundation/type/ConstrainedType",
+        "per ADR-017 closure: every empty-constraint stdlib type shares \
+         the foundation's `ConstrainedType` class IRI",
     );
 }
 

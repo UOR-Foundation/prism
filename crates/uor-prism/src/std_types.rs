@@ -1,17 +1,53 @@
 //! Standard type library.
 //!
-//! `std_types` exposes the ten morphism kinds that the foundation
-//! pre-declares: five [`grounding`](GroundingMapKind) maps (host bytes →
-//! `Grounded`) and five [`projection`](ProjectionMapKind) maps
-//! (`Grounded` → host bytes). Each kind is sealed: the trait family is
-//! closed by foundation, downstream cannot add new map kinds, and each
-//! concrete struct is a zero-size marker that compiles into the
-//! constraint nerve.
+//! `std_types` is `prism`'s realization of the wiki's
+//! [Building Block View § Whitebox `prism`](https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism)
+//! component named "standard type library" — the catalog of pre-declared
+//! types built from `uor-foundation`'s vocabulary, available so
+//! application authors do not have to derive common shape patterns
+//! from first principles. Per ADR-017 the catalog is **canonical**: it
+//! is the addressing surface that schema-import tools and applications
+//! target so traces and certificates address consistently across the
+//! ecosystem.
 //!
-//! Per ADR-017 ("Canonical UOR-address surface for standard types"),
-//! these types produce content-deterministic addresses; the catalog
-//! evolves operationally, not in the wiki, and `std_types` is the
-//! re-export surface that tracks it.
+//! The catalog is layered:
+//!
+//! - **Foundation-supplied surface (re-exports).** The ten morphism
+//!   kinds (`BinaryGroundingMap`, …, `Utf8ProjectionMap`), the
+//!   structural marker traits (`Total`, `Invertible`,
+//!   `PreservesStructure`, `PreservesMetric`), the sealed
+//!   `GroundedValue`/`GroundedShape` family, `ConstrainedTypeInput`,
+//!   `CartesianProductShape` and its `kunneth_compose` helper, the
+//!   partition-algebra families (`*Witness`, `*Evidence`,
+//!   `*MintInputs`, `PartitionResolver`, `PartitionHandle`,
+//!   `NullPartition`, `VerifiedMint`), and the `OntologyVerifiedMint`
+//!   sealed mint trait.
+//! - **First-class prism-defined surface.** [`FixedSites<N>`],
+//!   [`Bytes<N>`], and the byte-aligned numeric / character / boolean
+//!   primitives (`U8` … `I256`, `F32`, `F64`, `Bool`, `Char`).
+//!
+//! ## IRI rule (closure under `uor-foundation`)
+//!
+//! The IRI of every prism-defined stdlib type is **derived from its
+//! constraint declaration, not from the Rust type name** — this is the
+//! direct quote from
+//! [Concepts § Closure Under uor-foundation][08-closure]
+//! and the binding rule of ADR-017. Concretely: every prism stdlib
+//! type with empty `CONSTRAINTS` shares the same IRI
+//! (`https://uor.foundation/type/ConstrainedType`, the foundation's
+//! ontology class for `ConstrainedTypeShape` instances). Instance
+//! identity flows through `(SITE_COUNT, CONSTRAINTS)`, so distinct
+//! site counts produce distinct content-addresses while same-shape
+//! Rust types (e.g., `U32` and `I32`) produce **identical**
+//! content-addresses by design — the Rust name is for the developer,
+//! the IRI is for content-addressing.
+//!
+//! See [AGENTS.md § 11](../../../AGENTS.md#11-standard-type-library-policy)
+//! for the inclusion / exclusion criteria, the catalog growth tracks
+//! (baseline vs. specialized), and the implementation pattern every
+//! stdlib type follows.
+//!
+//! [08-closure]: https://github.com/UOR-Foundation/UOR-Framework/wiki/08-Concepts#closure-under-uor-foundation
 //!
 //! # See also
 //!
@@ -150,12 +186,13 @@ use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef};
 /// At any instantiation, `<FixedSites<N> as ConstrainedTypeShape>::SITE_COUNT == N`
 /// and `<FixedSites<N> as ConstrainedTypeShape>::CONSTRAINTS` is the empty
 /// slice (foundation reads "empty `CONSTRAINTS`" as "unconstrained" per
-/// the trait's normative documentation). The IRI is shared across all
-/// `N` per the catalog's IRI-namespace rule
-/// ([AGENTS.md § 11.3](../../../AGENTS.md#113-iri-namespace)) and lives
-/// under `https://uor.foundation/type/` per ADR-017's rejection of any
-/// prism-claimed namespace; instance identity flows through
-/// `(SITE_COUNT, CONSTRAINTS)`.
+/// the trait's normative documentation). The IRI is the foundation's
+/// `ConstrainedType` class IRI — shared across every empty-constraint
+/// stdlib type per [ADR-017][09-adr-017] and the closure rule documented
+/// in this module's header — so instance identity flows entirely
+/// through `(SITE_COUNT, CONSTRAINTS)`.
+///
+/// [09-adr-017]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 ///
 /// # See also
 ///
@@ -187,10 +224,11 @@ use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef};
 /// assert!(<FixedSites<32> as ConstrainedTypeShape>::CONSTRAINTS.is_empty());
 /// assert_eq!(
 ///     <FixedSites<32> as ConstrainedTypeShape>::IRI,
-///     "https://uor.foundation/type/FixedSites",
+///     "https://uor.foundation/type/ConstrainedType",
 /// );
-/// // And: a different N produces a distinct shape — same IRI, different
-/// // SITE_COUNT — so the content-addressing pair distinguishes instances.
+/// // And: a different N produces a distinct content-address — same
+/// // IRI, different SITE_COUNT — so the (IRI, SITE_COUNT, CONSTRAINTS)
+/// // triple distinguishes the two instantiations.
 /// assert_eq!(<FixedSites<80> as ConstrainedTypeShape>::SITE_COUNT, 80);
 /// assert_eq!(
 ///     <FixedSites<80> as ConstrainedTypeShape>::IRI,
@@ -200,18 +238,19 @@ use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef};
 pub struct FixedSites<const N: usize>;
 
 impl<const N: usize> ConstrainedTypeShape for FixedSites<N> {
-    const IRI: &'static str = "https://uor.foundation/type/FixedSites";
+    const IRI: &'static str = "https://uor.foundation/type/ConstrainedType";
     const SITE_COUNT: usize = N;
     const CONSTRAINTS: &'static [ConstraintRef] = &[];
 }
 
 /// `Bytes<N>` — byte-buffer admission intent of width `N`.
 ///
-/// Structurally identical to [`FixedSites<N>`] but with a distinct IRI
-/// that self-documents byte-buffer admission at the call site. Use
-/// `Bytes<N>` when the unit's intent is "this is a byte sequence" and
-/// `FixedSites<N>` when the intent is "this is a generic site
-/// container of width N".
+/// Structurally identical to [`FixedSites<N>`] and content-address-
+/// identical at equal `N` (closure rule: same constraint declaration ⇒
+/// same IRI ⇒ same UOR address). Use `Bytes<N>` when the unit's intent
+/// is "this is a byte sequence" and `FixedSites<N>` when the intent is
+/// "this is a generic site container of width N"; the Rust type name
+/// distinguishes intent at the call site, the IRI does not.
 ///
 /// # See also
 ///
@@ -231,10 +270,13 @@ impl<const N: usize> ConstrainedTypeShape for FixedSites<N> {
 /// ```rust
 /// use prism::pipeline::ConstrainedTypeShape;
 /// use prism::std_types::{Bytes, FixedSites};
-/// // Same SITE_COUNT as FixedSites<N>, distinct IRI.
+/// // Same SITE_COUNT and same IRI as FixedSites<N> per closure.
 /// assert_eq!(<Bytes<32> as ConstrainedTypeShape>::SITE_COUNT, 32);
-/// assert_eq!(<Bytes<32> as ConstrainedTypeShape>::IRI, "https://uor.foundation/type/Bytes");
-/// assert_ne!(
+/// assert_eq!(
+///     <Bytes<32> as ConstrainedTypeShape>::IRI,
+///     "https://uor.foundation/type/ConstrainedType",
+/// );
+/// assert_eq!(
 ///     <Bytes<32> as ConstrainedTypeShape>::IRI,
 ///     <FixedSites<32> as ConstrainedTypeShape>::IRI,
 /// );
@@ -242,7 +284,7 @@ impl<const N: usize> ConstrainedTypeShape for FixedSites<N> {
 pub struct Bytes<const N: usize>;
 
 impl<const N: usize> ConstrainedTypeShape for Bytes<N> {
-    const IRI: &'static str = "https://uor.foundation/type/Bytes";
+    const IRI: &'static str = "https://uor.foundation/type/ConstrainedType";
     const SITE_COUNT: usize = N;
     const CONSTRAINTS: &'static [ConstraintRef] = &[];
 }
@@ -306,56 +348,56 @@ macro_rules! typed_primitive {
 // Unsigned integers — byte-aligned widths from 8 to 256 bits.
 typed_primitive!(
     /// Unsigned 8-bit integer (1 byte at `WittLevel::W8`).
-    U8, "https://uor.foundation/type/U8", 1
+    U8, "https://uor.foundation/type/ConstrainedType", 1
 );
 typed_primitive!(
     /// Unsigned 16-bit integer (2 bytes at `WittLevel::W8`).
-    U16, "https://uor.foundation/type/U16", 2
+    U16, "https://uor.foundation/type/ConstrainedType", 2
 );
 typed_primitive!(
     /// Unsigned 32-bit integer (4 bytes at `WittLevel::W8`).
     /// Width of a Bitcoin block-header nonce.
-    U32, "https://uor.foundation/type/U32", 4
+    U32, "https://uor.foundation/type/ConstrainedType", 4
 );
 typed_primitive!(
     /// Unsigned 64-bit integer (8 bytes at `WittLevel::W8`).
-    U64, "https://uor.foundation/type/U64", 8
+    U64, "https://uor.foundation/type/ConstrainedType", 8
 );
 typed_primitive!(
     /// Unsigned 128-bit integer (16 bytes at `WittLevel::W8`).
-    U128, "https://uor.foundation/type/U128", 16
+    U128, "https://uor.foundation/type/ConstrainedType", 16
 );
 typed_primitive!(
     /// Unsigned 256-bit integer (32 bytes at `WittLevel::W8`).
     /// Width of a SHA-256 output and a Bitcoin difficulty target.
-    U256, "https://uor.foundation/type/U256", 32
+    U256, "https://uor.foundation/type/ConstrainedType", 32
 );
 
 // Signed integers — same byte widths, distinct IRIs to self-document
 // signed admission intent.
 typed_primitive!(
     /// Signed 8-bit integer (1 byte at `WittLevel::W8`).
-    I8, "https://uor.foundation/type/I8", 1
+    I8, "https://uor.foundation/type/ConstrainedType", 1
 );
 typed_primitive!(
     /// Signed 16-bit integer (2 bytes at `WittLevel::W8`).
-    I16, "https://uor.foundation/type/I16", 2
+    I16, "https://uor.foundation/type/ConstrainedType", 2
 );
 typed_primitive!(
     /// Signed 32-bit integer (4 bytes at `WittLevel::W8`).
-    I32, "https://uor.foundation/type/I32", 4
+    I32, "https://uor.foundation/type/ConstrainedType", 4
 );
 typed_primitive!(
     /// Signed 64-bit integer (8 bytes at `WittLevel::W8`).
-    I64, "https://uor.foundation/type/I64", 8
+    I64, "https://uor.foundation/type/ConstrainedType", 8
 );
 typed_primitive!(
     /// Signed 128-bit integer (16 bytes at `WittLevel::W8`).
-    I128, "https://uor.foundation/type/I128", 16
+    I128, "https://uor.foundation/type/ConstrainedType", 16
 );
 typed_primitive!(
     /// Signed 256-bit integer (32 bytes at `WittLevel::W8`).
-    I256, "https://uor.foundation/type/I256", 32
+    I256, "https://uor.foundation/type/ConstrainedType", 32
 );
 
 // IEEE 754 floating-point — IEEE well-formedness (NaN, subnormal
@@ -364,12 +406,12 @@ typed_primitive!(
     /// IEEE 754 binary32 floating-point (4 bytes at `WittLevel::W8`).
     /// Well-formedness (NaN, subnormal, and infinity policy) is enforced
     /// host-side by the application's `Grounding` impl.
-    F32, "https://uor.foundation/type/F32", 4
+    F32, "https://uor.foundation/type/ConstrainedType", 4
 );
 typed_primitive!(
     /// IEEE 754 binary64 floating-point (8 bytes at `WittLevel::W8`).
     /// Well-formedness is enforced host-side.
-    F64, "https://uor.foundation/type/F64", 8
+    F64, "https://uor.foundation/type/ConstrainedType", 8
 );
 
 // Boolean — value-in-{0, 1} contract is enforced host-side; the
@@ -379,7 +421,7 @@ typed_primitive!(
     /// is enforced host-side by the application's `Grounding` impl;
     /// the distinct IRI separates `Bool` from `U8` at the content-address
     /// level.
-    Bool, "https://uor.foundation/type/Bool", 1
+    Bool, "https://uor.foundation/type/ConstrainedType", 1
 );
 
 // Character — UTF-32 codepoint width; Unicode validity is host-side.
@@ -387,5 +429,5 @@ typed_primitive!(
     /// Unicode codepoint (4 bytes at `WittLevel::W8`, UTF-32 width).
     /// Unicode validity (codepoint range, surrogate exclusion) is
     /// enforced host-side by the application's `Grounding` impl.
-    Char, "https://uor.foundation/type/Char", 4
+    Char, "https://uor.foundation/type/ConstrainedType", 4
 );
