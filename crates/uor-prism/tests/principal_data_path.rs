@@ -18,9 +18,7 @@ use prism::pipeline::run;
 use prism::replay::certify_from_trace;
 use prism::seal::Validated;
 use prism::std_types::ConstrainedTypeInput;
-use prism::vocabulary::{
-    CompileUnitBuilder, Hasher, VerificationDomain, WittLevel, FINGERPRINT_MAX_BYTES,
-};
+use prism::vocabulary::{CompileUnitBuilder, Hasher, VerificationDomain, WittLevel};
 
 /// A minimal 16-byte FNV-1a substrate hasher: two 64-bit lanes.
 ///
@@ -52,8 +50,11 @@ impl Hasher for Fnv1a16 {
         self
     }
 
-    fn finalize(self) -> [u8; FINGERPRINT_MAX_BYTES] {
-        let mut buf = [0u8; FINGERPRINT_MAX_BYTES];
+    // `Hasher` is `Hasher<const FP_MAX: usize = 32>` in foundation 0.3.1;
+    // the default `FP_MAX = 32` matches `<DefaultHostBounds as
+    // HostBounds>::FINGERPRINT_MAX_BYTES`.
+    fn finalize(self) -> [u8; 32] {
+        let mut buf = [0u8; 32];
         buf[..8].copy_from_slice(&self.a.to_be_bytes());
         buf[8..16].copy_from_slice(&self.b.to_be_bytes());
         buf
@@ -82,9 +83,11 @@ fn pipeline_run_then_replay_roundtrip() {
     // substrate, producing a sealed `Grounded<T>`.
     let grounded = run::<ConstrainedTypeInput, _, Fnv1a16>(unit).expect("pipeline admits");
 
-    // And: the grounded value's derivation is replayed into a `Trace`,
+    // And: the grounded value's derivation is replayed into a `Trace`
+    // at the foundation's default `HostBounds` capacity
+    // (`<DefaultHostBounds as HostBounds>::TRACE_MAX_EVENTS == 256`),
     // and the trace alone is fed through `prism::replay::certify_from_trace`.
-    let trace = grounded.derivation().replay();
+    let trace: prism::replay::Trace = grounded.derivation().replay();
     let recertified = certify_from_trace(&trace).expect("trace is well-formed");
 
     // Then: the re-certified fingerprint matches the source grounded
@@ -108,10 +111,11 @@ fn pipeline_run_then_replay_roundtrip() {
 
 #[test]
 fn empty_trace_is_rejected_with_typed_error() {
-    use prism::vocabulary::{ReplayError, Trace};
+    use prism::replay::{ReplayError, Trace};
 
-    // Given: the simplest deterministic input — an empty trace.
-    let trace = Trace::empty();
+    // Given: the simplest deterministic input — an empty trace at the
+    // foundation's default `HostBounds` capacity (`Trace<256>`).
+    let trace: Trace = Trace::empty();
 
     // When: certify_from_trace runs structural validation.
     let outcome = certify_from_trace(&trace);

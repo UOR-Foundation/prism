@@ -40,13 +40,15 @@
 //!
 //! ```rust
 //! // Given: the curated vocabulary surface
-//! // When:  the constants describing wire-format and trace bounds are read
+//! // When:  the wire-format version and the canonical `HostBounds`
+//! //        defaults are read
 //! // Then:  they match the foundation's normative values verbatim
-//! use prism::vocabulary as v;
-//! assert_eq!(v::FINGERPRINT_MIN_BYTES, 16);
-//! assert_eq!(v::FINGERPRINT_MAX_BYTES, 32);
-//! assert_eq!(v::TRACE_MAX_EVENTS, 256);
-//! assert_eq!(v::TRACE_REPLAY_FORMAT_VERSION, 2);
+//! use prism::vocabulary::{DefaultHostBounds, HostBounds, TRACE_REPLAY_FORMAT_VERSION};
+//! assert_eq!(<DefaultHostBounds as HostBounds>::FINGERPRINT_MIN_BYTES, 16);
+//! assert_eq!(<DefaultHostBounds as HostBounds>::FINGERPRINT_MAX_BYTES, 32);
+//! assert_eq!(<DefaultHostBounds as HostBounds>::TRACE_MAX_EVENTS, 256);
+//! assert_eq!(<DefaultHostBounds as HostBounds>::WITT_LEVEL_MAX_BITS, 64);
+//! assert_eq!(TRACE_REPLAY_FORMAT_VERSION, 2);
 //! ```
 //!
 //! [05-prism]: https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism
@@ -54,8 +56,13 @@
 // UOR-domain sealed types (the foundation's "Layer 1: Opaque witnesses").
 pub use uor_foundation::enforcement::{Datum, FreeRank, Triad};
 
-// Substitution-axis traits (HostTypes is one of the three axes per ADR-007).
-pub use uor_foundation::{DefaultHostTypes, HostTypes};
+// Substitution-axis traits — two of the three axes named in ADR-007.
+// `HostTypes` carries the three host-side type slots; `HostBounds` carries
+// the four capacity bounds (`FINGERPRINT_MIN_BYTES`, `FINGERPRINT_MAX_BYTES`,
+// `TRACE_MAX_EVENTS`, `WITT_LEVEL_MAX_BITS`) the principal data path
+// const-generic instantiations resolve against. The third axis,
+// `Hasher`, is below in the substrate-hasher block.
+pub use uor_foundation::{DefaultHostBounds, DefaultHostTypes, HostBounds, HostTypes};
 
 // Builders, declarations, and validation results.
 pub use uor_foundation::{
@@ -77,13 +84,17 @@ pub use uor_foundation::{LandauerBudget, Nanos, UorTime};
 // Trace wire format (the verifier's input).
 pub use uor_foundation::{Trace, TraceEvent};
 
-// Errors.
+// Errors and impossibility witnesses (Error Model § of wiki page 08).
+pub use uor_foundation::enforcement::GenericImpossibilityWitness;
 pub use uor_foundation::{Derivation, ReplayError, ShapeViolation};
 
-// Normative constants of the wire formats and bounded structures.
-pub use uor_foundation::{
-    FINGERPRINT_MAX_BYTES, FINGERPRINT_MIN_BYTES, TRACE_MAX_EVENTS, TRACE_REPLAY_FORMAT_VERSION,
-};
+// Wire-format version constant. The capacity constants
+// (`FINGERPRINT_MIN_BYTES`, `FINGERPRINT_MAX_BYTES`, `TRACE_MAX_EVENTS`)
+// are no longer free — they are associated consts on `HostBounds`,
+// reachable as `<DefaultHostBounds as HostBounds>::FINGERPRINT_MAX_BYTES`
+// and so on. Selecting a different `HostBounds` impl rescales them
+// without code changes.
+pub use uor_foundation::TRACE_REPLAY_FORMAT_VERSION;
 
 // Foundation-owned closed enums and ordinals: the Witt-level family and
 // the verification-domain family are part of the bilateral compile-time

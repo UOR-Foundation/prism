@@ -51,11 +51,12 @@
 //! # Behavior
 //!
 //! ```rust
-//! // Given: an empty trace (the simplest deterministic input)
+//! // Given: an empty trace (the simplest deterministic input) at the
+//! // foundation's default capacity
 //! // When:  certify_from_trace is invoked on it
 //! // Then:  the structural validator rejects it with EmptyTrace
 //! use prism::replay::{certify_from_trace, ReplayError, Trace};
-//! let trace = Trace::empty();
+//! let trace: Trace = Trace::empty();
 //! let result = certify_from_trace(&trace);
 //! assert!(matches!(result, Err(ReplayError::EmptyTrace)));
 //! ```

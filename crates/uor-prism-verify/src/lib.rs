@@ -60,7 +60,7 @@
 //! //        proving that the façade's certify_from_trace, ReplayError,
 //! //        and Trace re-exports are wired correctly together
 //! use prism_verify::{certify_from_trace, ReplayError, Trace};
-//! let trace = Trace::empty();
+//! let trace: Trace = Trace::empty();
 //! assert!(matches!(certify_from_trace(&trace), Err(ReplayError::EmptyTrace)));
 //! ```
 //!
@@ -77,10 +77,14 @@ pub use uor_foundation;
 pub use prism::replay::certify_from_trace;
 pub use prism::seal::Certified;
 
-// Wire-format types the verifier consumes and emits.
+// Wire-format types the verifier consumes and emits, plus the
+// substitution axes a verifier instantiates them at. `HostBounds`
+// carries the capacity constants that used to be free `pub const`s in
+// foundation 0.3.0 (`TRACE_MAX_EVENTS` is now
+// `<B as HostBounds>::TRACE_MAX_EVENTS`).
 pub use uor_foundation::{
-    ContentFingerprint, GroundingCertificate, ReplayError, Trace, TraceEvent, TRACE_MAX_EVENTS,
-    TRACE_REPLAY_FORMAT_VERSION,
+    ContentFingerprint, DefaultHostBounds, GroundingCertificate, HostBounds, ReplayError, Trace,
+    TraceEvent, TRACE_REPLAY_FORMAT_VERSION,
 };
 
 /// Canonical URL of the UOR-Framework wiki, the normative source for the

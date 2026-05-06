@@ -102,3 +102,32 @@ pub use uor_foundation::enforcement::{GroundedCoord, GroundedShape, GroundedTupl
 // standard type library has to a "prelude" type and is the canonical
 // example used in the trace-replay round-trip scenario.
 pub use uor_foundation::enforcement::ConstrainedTypeInput;
+
+// `CartesianProductShape` is the foundation's canonical
+// `ConstrainedTypeShape` for products of two component shapes (added in
+// uor-foundation 0.3.1). It routes nerve-Betti computation through
+// Künneth composition of component Betti profiles rather than flat
+// pair-enumeration. Selecting it in a `result_type::<P>()` call admits
+// a CartesianPartitionProduct unit through the principal data path.
+pub use uor_foundation::pipeline::kunneth_compose;
+pub use uor_foundation::pipeline::CartesianProductShape;
+
+// Partition-algebra evidence, witness, and mint-input families. These
+// are the cross-crate construction inputs and outputs for product,
+// coproduct, and Cartesian-product partitions added by foundation
+// 0.3.1's Product/Coproduct Completion Amendment. `PartitionResolver`,
+// `PartitionRecord`, `PartitionHandle`, and `NullPartition` are the
+// runtime-side carriers; `*Evidence`, `*Witness`, and `*MintInputs`
+// classify the verified-mint bundles.
+pub use uor_foundation::enforcement::{
+    CartesianProductEvidence, CartesianProductMintInputs, CartesianProductWitness, NullPartition,
+    PartitionCoproductEvidence, PartitionCoproductMintInputs, PartitionCoproductWitness,
+    PartitionHandle, PartitionProductEvidence, PartitionProductMintInputs, PartitionProductWitness,
+    PartitionRecord, PartitionResolver, VerifiedMint,
+};
+
+// `OntologyVerifiedMint` is the sealed mint trait introduced in 0.3.1
+// for ontology-derived Path-2 witnesses. It carries a `HostTypes`-
+// parameterized GAT `Inputs<H>` so witness inputs can hold
+// host-decimal and handle fields without leaking concrete types.
+pub use uor_foundation::OntologyVerifiedMint;

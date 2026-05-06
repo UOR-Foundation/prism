@@ -33,7 +33,7 @@ fn missing_root_term_is_typed_missing() {
         .result_type::<ConstrainedTypeInput>();
 
     // When: the const validator runs.
-    let err =
+    let err: prism::pipeline::ShapeViolation =
         validate_compile_unit_const(&builder).expect_err("missing root_term must be rejected");
 
     // Then: the typed error names the missing property by its ontology IRI.

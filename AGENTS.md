@@ -81,11 +81,10 @@ Substitution axes (the only permitted variation points): `HostTypes`,
 ## 4. Toolchain
 
 - **Rust edition**: 2021
-- **MSRV**: 1.83 (the *effective* requirement of `uor-foundation` v0.3.0;
-  its declared `rust-version = "1.81"` is stale because the published
-  source uses `const_mut_refs`, stabilized in 1.83). Pinned via
-  `rust-toolchain.toml`, which the Rust toolchain enforces on every
-  cargo invocation in this workspace.
+- **MSRV**: 1.83 (matches `uor-foundation` v0.3.1's declared
+  `rust-version`, which corrects v0.3.0's stale 1.81 declaration).
+  Pinned via `rust-toolchain.toml`, which the Rust toolchain enforces
+  on every cargo invocation in this workspace.
 - **`uor-foundation`**: `^0.3`, `default-features = false`, `no_std`-clean
 - **Workspace resolver**: `"2"`
 - **Release profile** (per QS-01): `opt-level = 3`, `lto = true`, `codegen-units = 1`
