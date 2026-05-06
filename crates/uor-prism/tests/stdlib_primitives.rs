@@ -23,7 +23,7 @@ use prism::std_types::{
     U64, U8,
 };
 
-const NS: &str = "uor.foundation/prism/std_types/";
+const NS: &str = "https://uor.foundation/type/";
 
 #[test]
 fn integer_byte_widths_match_catalog() {

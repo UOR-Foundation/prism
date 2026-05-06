@@ -84,7 +84,11 @@ Substitution axes (the only permitted variation points): `HostTypes`,
 - **MSRV**: 1.83 (matches `uor-foundation` v0.3.1's declared
   `rust-version`, which corrects v0.3.0's stale 1.81 declaration).
   Pinned via `rust-toolchain.toml`, which the Rust toolchain enforces
-  on every cargo invocation in this workspace.
+  on every cargo invocation in this workspace. Per
+  [TR-09](https://github.com/UOR-Foundation/UOR-Framework/wiki/11-Technical-Risks#tr-09--prism-version-pin-lag-against-uor-foundation),
+  `prism`'s pin on `uor-foundation` may lag the latest published
+  version; updates to this repo are demand-driven (a needed surface
+  change) rather than calendar-driven.
 - **`uor-foundation`**: `^0.3`, `default-features = false`, `no_std`-clean
 - **Workspace resolver**: `"2"`
 - **Release profile** (per QS-01): `opt-level = 3`, `lto = true`, `codegen-units = 1`
@@ -301,11 +305,23 @@ The following are explicitly out of scope and remain downstream concerns:
 ### 11.3 IRI namespace
 
 Every `prism::std_types` type owns an IRI under
-`uor.foundation/prism/std_types/<TypeName>`. The IRI identifies the
-*shape family*; instance identity (parameter values for generic shapes)
-is carried by the `(SITE_COUNT, CONSTRAINTS)` pair, not by the IRI. Two
-distinct generic instantiations share an IRI but produce distinct
-content-addresses through their differing `(SITE_COUNT, CONSTRAINTS)`.
+`https://uor.foundation/type/<TypeName>` — the same root the foundation
+uses for its own `ConstrainedTypeShape` impls (`type/ConstrainedType`,
+`type/CompletenessWitness`, etc.). This is required by ADR-017's
+**rejected alternative 1**: prism does **not** claim a separate
+namespace such as `urn:uor:prism:…` or `https://uor.foundation/prism/…`,
+because closure under `uor-foundation` (ADR-013) makes IRIs
+content-deterministic relative to the foundation's vocabulary, not
+relative to a parallel namespace.
+
+The IRI identifies the *shape family*; instance identity (parameter
+values for generic shapes) is carried by the
+`(SITE_COUNT, CONSTRAINTS)` pair, not by the IRI. Two distinct generic
+instantiations share an IRI but produce distinct content-addresses
+through their differing `(SITE_COUNT, CONSTRAINTS)`. Authors who
+hand-declare a shape with constraints identical to a stdlib type and
+use the same IRI obtain the same UOR address, per ADR-017's closure
+clause.
 
 ### 11.4 Growth policy
 
@@ -377,7 +393,8 @@ impl<…> ConstrainedTypeShape for <TypeName><…> {
 ### 11.6 Catalog
 
 Baseline primitives. Every type below has a stable IRI under
-`uor.foundation/prism/std_types/<TypeName>`, empty `CONSTRAINTS`
+`https://uor.foundation/type/<TypeName>` (per § 11.3 — the foundation's
+ontology root, not a prism-claimed namespace), empty `CONSTRAINTS`
 (value-level invariants such as IEEE 754 well-formedness, UTF-32
 codepoint validity, or `Bool ∈ {0, 1}` are host-side decisions
 enforced by the application's `Grounding` impl), and `SITE_COUNT` set

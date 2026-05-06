@@ -32,9 +32,16 @@
 //! their structural form follows the Hasher trait's normative example
 //! and exists solely to vary `OUTPUT_BYTES` along the scaling axis.
 //!
+//! Per [TR-05][11-tr-05] (hasher selection mismatch produces verification
+//! failure indistinguishable from data corruption), the spread also
+//! exercises the foundation's normative width-tag invariant on
+//! `ContentFingerprint`: differing `OUTPUT_BYTES` widths must yield
+//! distinguishable certificates even when the leading bytes coincide.
+//!
 //! [02-axes]: https://github.com/UOR-Foundation/UOR-Framework/wiki/02-Architecture-Constraints
 //! [10-qs]: https://github.com/UOR-Foundation/UOR-Framework/wiki/10-Quality-Requirements#quality-scenarios
 //! [06-scenario-2]: https://github.com/UOR-Foundation/UOR-Framework/wiki/06-Runtime-View#scenario-2-trace-replay-verification
+//! [11-tr-05]: https://github.com/UOR-Foundation/UOR-Framework/wiki/11-Technical-Risks#tr-05--hasher-selection-mismatch-produces-verification-failure-indistinguishable-from-data-corruption
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 

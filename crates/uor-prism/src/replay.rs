@@ -40,6 +40,10 @@
 //! - **ADR-008**, **ADR-009** — the trace and certificate wire formats
 //!   are normative; this façade does not introduce any wire-format
 //!   variation
+//! - **TR-06** — trace format evolution requires version coordination
+//!   across producers and verifiers; the foundation's
+//!   `TRACE_REPLAY_FORMAT_VERSION` constant is the version-coordination
+//!   marker re-exported from [`crate::vocabulary`]
 //!
 //! # C4 placement
 //!

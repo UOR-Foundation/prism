@@ -44,7 +44,7 @@ fn iri_is_shared_across_instantiations() {
     );
     assert_eq!(
         <FixedSites<32> as ConstrainedTypeShape>::IRI,
-        "uor.foundation/prism/std_types/FixedSites",
+        "https://uor.foundation/type/FixedSites",
     );
 }
 

@@ -60,8 +60,11 @@ pub use uor_foundation::enforcement::{Datum, FreeRank, Triad};
 // `HostTypes` carries the three host-side type slots; `HostBounds` carries
 // the four capacity bounds (`FINGERPRINT_MIN_BYTES`, `FINGERPRINT_MAX_BYTES`,
 // `TRACE_MAX_EVENTS`, `WITT_LEVEL_MAX_BITS`) the principal data path
-// const-generic instantiations resolve against. The third axis,
-// `Hasher`, is below in the substrate-hasher block.
+// const-generic instantiations resolve against. ADR-018 ratified
+// `HostBounds` as a first-class substitution axis (capacity completeness),
+// so the (HostTypes, HostBounds, Hasher) triple is now the full
+// substitution-axis surface. The third axis, `Hasher`, is below in the
+// substrate-hasher block.
 pub use uor_foundation::{DefaultHostBounds, DefaultHostTypes, HostBounds, HostTypes};
 
 // Builders, declarations, and validation results.
