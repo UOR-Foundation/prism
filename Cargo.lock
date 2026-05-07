@@ -10,9 +10,9 @@ checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
 name = "uor-foundation"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d8a9e84d3b8136747767cf665fa550b6efb9696b4612dc8d5c9d6ae2c53df6e"
+checksum = "03bd371ec136cfcbe2e5ffddd09c45a3bbd528fe4db3431ad5ea1c6b641e7b63"
 dependencies = [
  "libm",
 ]

@@ -29,6 +29,7 @@
 //! - [Wiki: 09 Architecture Decisions](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
 //! - [Wiki: 10 Quality Requirements § Quality Scenarios](https://github.com/UOR-Foundation/UOR-Framework/wiki/10-Quality-Requirements#quality-scenarios)
 //! - [Wiki: 12 Glossary](https://github.com/UOR-Foundation/UOR-Framework/wiki/12-Glossary)
+//! - [Wiki: Conceptual Model](https://github.com/UOR-Foundation/UOR-Framework/wiki/Conceptual-Model) — OPM (ISO 19450) statement of Prism's structure (SD0) and runtime scenarios (SD1–SD5)
 //!
 //! # Constraints
 //!
@@ -46,9 +47,20 @@
 //!
 //! Substitution axes are restricted to `HostTypes`, `HostBounds`, and
 //! `Hasher` (ADR-007). `HostTypes` and `Hasher` are foundation-defined
-//! traits; `HostBounds` is realized through the const generics on
-//! [`pipeline::ConstrainedTypeShape`] implementations chosen by the
-//! application author.
+//! traits; `HostBounds` is the foundation-defined trait introduced by
+//! ADR-018 carrying the four capacity bounds.
+//!
+//! Additionally:
+//!
+//! - **ADR-019** — `uor-foundation`'s vocabulary is the signature
+//!   category, `Term` is its initial algebra, [`pipeline::run`] is the
+//!   catamorphism. The categorical machinery underwrites TC-01 + ADR-013
+//!   as one theorem rather than two separate properties.
+//! - **ADR-020** — application authors declare a Prism application by
+//!   implementing the sealed [`pipeline::PrismModel`] trait; the
+//!   `prism_model!` macro from `uor-foundation-sdk` derives `forward`'s
+//!   body via initiality of `Term`. This is the typed-iso surface the
+//!   wiki commits to as the developer's contract.
 //!
 //! # C4 placement
 //!

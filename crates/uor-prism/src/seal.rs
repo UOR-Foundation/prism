@@ -21,6 +21,7 @@
 //! - [Wiki: 08 Concepts § Sealing Discipline](https://github.com/UOR-Foundation/UOR-Framework/wiki/08-Concepts#sealing-discipline)
 //! - [Wiki: 09 Architecture Decisions § ADR-011](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
 //! - [Wiki: 12 Glossary § Term Definitions](https://github.com/UOR-Foundation/UOR-Framework/wiki/12-Glossary#term-definitions)
+//! - [Wiki: Conceptual Model § SD4 UORassembly Enforcement](https://github.com/UOR-Foundation/UOR-Framework/wiki/Conceptual-Model#sd4-uorassembly-enforcement)
 //!
 //! # Constraints
 //!
@@ -28,6 +29,11 @@
 //!   type system; no runtime sentinel is involved
 //! - **TC-03** — `Grounded<T>` has exactly one constructor: `pipeline::run`
 //! - **ADR-011** — sealing is `pub(crate)`, no tokens, no runtime checks
+//! - **ADR-019** — the three Prism-mechanism sealed types are
+//!   **fixed points** of the typed pipeline endofunctor; sealing is the
+//!   architectural statement that the fixed-point inhabitants are
+//!   reachable only via the catamorphism's image (`pipeline::run`) or
+//!   the anamorphism's witness (replay)
 //!
 //! # C4 placement
 //!

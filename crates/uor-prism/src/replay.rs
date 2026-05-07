@@ -26,6 +26,7 @@
 //! - [Wiki: 06 Runtime View § Scenario 2: Trace-Replay Verification][06-scenario-2]
 //! - [Wiki: 08 Concepts § Trace Wire Format](https://github.com/UOR-Foundation/UOR-Framework/wiki/08-Concepts#trace-wire-format)
 //! - [Wiki: 09 Architecture Decisions § ADR-003](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
+//! - [Wiki: Conceptual Model § SD3 Verification](https://github.com/UOR-Foundation/UOR-Framework/wiki/Conceptual-Model#sd3-verification)
 //!
 //! # Constraints
 //!
@@ -40,6 +41,10 @@
 //! - **ADR-008**, **ADR-009** — the trace and certificate wire formats
 //!   are normative; this façade does not introduce any wire-format
 //!   variation
+//! - **ADR-019** — the replay surface is the **anamorphism** the trace
+//!   witnesses; replay is the categorical dual of `pipeline::run`'s
+//!   catamorphism, and `certify_from_trace` is the unique map back from
+//!   the trace into the certificate carrier
 //! - **TR-06** — trace format evolution requires version coordination
 //!   across producers and verifiers; the foundation's
 //!   `TRACE_REPLAY_FORMAT_VERSION` constant is the version-coordination
