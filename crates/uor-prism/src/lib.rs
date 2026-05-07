@@ -29,7 +29,8 @@
 //! - [Wiki: 09 Architecture Decisions](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
 //! - [Wiki: 10 Quality Requirements § Quality Scenarios](https://github.com/UOR-Foundation/UOR-Framework/wiki/10-Quality-Requirements#quality-scenarios)
 //! - [Wiki: 12 Glossary](https://github.com/UOR-Foundation/UOR-Framework/wiki/12-Glossary)
-//! - [Wiki: Conceptual Model](https://github.com/UOR-Foundation/UOR-Framework/wiki/Conceptual-Model) — OPM (ISO 19450) statement of Prism's structure (SD0) and runtime scenarios (SD1–SD5)
+//! - [Wiki: Conceptual Model § SD](https://github.com/UOR-Foundation/UOR-Framework/wiki/Conceptual-Model#sd) — OPM (ISO 19450) overall system diagram naming the three actors and Prism as the system-of-interest
+//! - [Wiki: Conceptual Model § SD1 Prism Structure](https://github.com/UOR-Foundation/UOR-Framework/wiki/Conceptual-Model#sd1-prism-structure) — OPM decomposition of Prism into Substrate, Runtime, and Replay Surface (the three-crate model in OPM vocabulary)
 //!
 //! # Constraints
 //!
@@ -44,6 +45,9 @@
 //! - **TC-05** — replayability without invoking author deciders or hash
 //!   functions; surfaced through [`replay::certify_from_trace`]
 //! - **TC-06** — no application-author infrastructure at runtime
+//! - **ADR-006** — UORassembly is enforced bilaterally at compile time
+//!   through the Rust type system; this is the architectural commitment
+//!   that makes TC-04 enforceable rather than aspirational
 //!
 //! Substitution axes are restricted to `HostTypes`, `HostBounds`, and
 //! `Hasher` (ADR-007). `HostTypes` and `Hasher` are foundation-defined

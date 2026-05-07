@@ -375,7 +375,12 @@ requires:
 
 1. **Demonstrated need.** At least one downstream consumer that would
    author the same boilerplate from first principles in its absence.
-   Speculation alone is not sufficient.
+   Speculation alone is not sufficient. Per
+   [TR-08](https://github.com/UOR-Foundation/UOR-Framework/wiki/11-Technical-Risks#tr-08--vocabulary-insufficiency-in-uor-foundation-forces-cross-repo-amendment-cadence),
+   if the demand exposes a vocabulary insufficiency in `uor-foundation`
+   itself (e.g., a needed `ConstraintRef` variant the foundation does
+   not yet ship), file the gap upstream rather than papering over it
+   with a prism-side workaround.
 2. **Inclusion criteria satisfied** (§ 11.1).
 3. **PR contents:** the new type with the five-block doc structure
    (§ 5.1), an integration test exercising the type end-to-end through

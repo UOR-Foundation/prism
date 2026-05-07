@@ -37,8 +37,15 @@
 //! exercises the foundation's normative width-tag invariant on
 //! `ContentFingerprint`: differing `OUTPUT_BYTES` widths must yield
 //! distinguishable certificates even when the leading bytes coincide.
+//! The `Hasher` contract under exercise — determinism, fixed width,
+//! idempotence under truncation — is normative per [ADR-010][09-adr-010];
+//! these tests are the conformance witness for it under the
+//! V&V framework alignment of [ADR-021][09-adr-021] (the round-trip is
+//! the hylomorphism's verifiable closure).
 //!
 //! [02-axes]: https://github.com/UOR-Foundation/UOR-Framework/wiki/02-Architecture-Constraints
+//! [09-adr-010]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
+//! [09-adr-021]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 //! [10-qs]: https://github.com/UOR-Foundation/UOR-Framework/wiki/10-Quality-Requirements#quality-scenarios
 //! [06-scenario-2]: https://github.com/UOR-Foundation/UOR-Framework/wiki/06-Runtime-View#scenario-2-trace-replay-verification
 //! [11-tr-05]: https://github.com/UOR-Foundation/UOR-Framework/wiki/11-Technical-Risks#tr-05--hasher-selection-mismatch-produces-verification-failure-indistinguishable-from-data-corruption

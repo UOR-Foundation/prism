@@ -26,6 +26,7 @@
 //! - [Wiki: 05 Building Block View § Whitebox `prism-verify`](https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism-verify)
 //! - [Wiki: 06 Runtime View § Scenario 2: Trace-Replay Verification](https://github.com/UOR-Foundation/UOR-Framework/wiki/06-Runtime-View#scenario-2-trace-replay-verification)
 //! - [Wiki: 12 Glossary § Term Definitions](https://github.com/UOR-Foundation/UOR-Framework/wiki/12-Glossary#term-definitions)
+//! - [Wiki: Conceptual Model § SD3 Verification](https://github.com/UOR-Foundation/UOR-Framework/wiki/Conceptual-Model#sd3-verification) — OPM statement of the verification process this façade enacts
 //!
 //! # Constraints
 //!
@@ -42,6 +43,10 @@
 //!   `Trace`
 //! - **QS-05** — replay equivalence: the round-trip produces a
 //!   bit-identical certificate
+//! - **ADR-019** — this façade exposes the **anamorphism** dual to
+//!   `pipeline::run`'s catamorphism. Together the catamorphism +
+//!   anamorphism form Prism's hylomorphism (per ADR-021), and the
+//!   trace is the round-trip witness object
 //!
 //! # C4 placement
 //!
