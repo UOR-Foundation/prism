@@ -13,53 +13,15 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+mod common;
+
+use common::Fnv16;
 use prism::operation::Term;
 use prism::pipeline::run;
 use prism::replay::certify_from_trace;
 use prism::seal::Validated;
 use prism::std_types::ConstrainedTypeInput;
-use prism::vocabulary::{CompileUnitBuilder, Hasher, VerificationDomain, WittLevel};
-
-/// A minimal 16-byte FNV-1a substrate hasher: two 64-bit lanes.
-///
-/// This is the canonical reference implementation surfaced in the
-/// `uor_foundation::enforcement::Hasher` trait documentation. It is
-/// deterministic, side-effect-free, and exposes the full `Hasher`
-/// contract without relying on any external crate.
-#[derive(Clone, Copy)]
-struct Fnv1a16 {
-    a: u64,
-    b: u64,
-}
-
-impl Hasher for Fnv1a16 {
-    const OUTPUT_BYTES: usize = 16;
-
-    fn initial() -> Self {
-        Self {
-            a: 0xcbf2_9ce4_8422_2325,
-            b: 0x8422_2325_cbf2_9ce4,
-        }
-    }
-
-    fn fold_byte(mut self, x: u8) -> Self {
-        self.a ^= u64::from(x);
-        self.a = self.a.wrapping_mul(0x100_0000_01b3);
-        self.b ^= u64::from(x).rotate_left(8);
-        self.b = self.b.wrapping_mul(0x100_0000_01b3);
-        self
-    }
-
-    // `Hasher` is `Hasher<const FP_MAX: usize = 32>` in foundation 0.3.1;
-    // the default `FP_MAX = 32` matches `<DefaultHostBounds as
-    // HostBounds>::FINGERPRINT_MAX_BYTES`.
-    fn finalize(self) -> [u8; 32] {
-        let mut buf = [0u8; 32];
-        buf[..8].copy_from_slice(&self.a.to_be_bytes());
-        buf[8..16].copy_from_slice(&self.b.to_be_bytes());
-        buf
-    }
-}
+use prism::vocabulary::{CompileUnitBuilder, VerificationDomain, WittLevel};
 
 static ROOT_TERMS: &[Term] = &[Term::Literal {
     value: 7,
@@ -81,7 +43,7 @@ fn pipeline_run_then_replay_roundtrip() {
 
     // When: `prism::pipeline::run` consumes the unit with the FNV-1a
     // substrate, producing a sealed `Grounded<T>`.
-    let grounded = run::<ConstrainedTypeInput, _, Fnv1a16>(unit).expect("pipeline admits");
+    let grounded = run::<ConstrainedTypeInput, _, Fnv16>(unit).expect("pipeline admits");
 
     // And: the grounded value's derivation is replayed into a `Trace`
     // at the foundation's default `HostBounds` capacity

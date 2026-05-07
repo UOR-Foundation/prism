@@ -1,4 +1,8 @@
-//! End-to-end tests for the v0.1 stdlib seed `prism::std_types::FixedSites<N>`.
+//! End-to-end tests for `prism::std_types::FixedSites<N>` — the structural
+//! parametric building block under every other empty-constraint stdlib
+//! shape (Bytes<N>, U8 … I256, F32, F64, Bool, Char). The broader
+//! baseline catalog is covered by `tests/stdlib_primitives.rs`; this
+//! file pins the FixedSites-specific contract.
 //!
 //! Exercises the contract laid out in
 //! [AGENTS.md § 11](../../../AGENTS.md#11-standard-type-library-policy)

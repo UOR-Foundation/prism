@@ -288,10 +288,14 @@ following hold:
    downstream applications. No type carries a single domain's
    assumptions (cryptocurrency, JSON-RPC, an organization's internal
    protocol, etc.).
-3. **Content-addressed.** `IRI` is unique within the namespace
-   `uor.foundation/prism/std_types/<TypeName>` and the
-   `(IRI, SITE_COUNT, CONSTRAINTS)` triple deterministically encodes the
-   shape's identity per ADR-017.
+3. **Content-addressed per closure (ADR-017 + § 11.3).** The
+   `(IRI, SITE_COUNT, CONSTRAINTS)` triple deterministically encodes
+   the shape's identity. Empty-`CONSTRAINTS` baseline types share the
+   foundation's `https://uor.foundation/type/ConstrainedType` class IRI
+   per the closure rule; future types with non-empty constraint
+   declarations adopt the IRI dictated by their constraint structure
+   under the same rule (never a prism-claimed sub-namespace, never
+   derived from the Rust type name).
 4. **Compile-time stable.** All admission decisions resolve at compile
    time via the const path (`validate_compile_unit_const`,
    `validate_constrained_type_const`); no runtime allocation, no runtime
@@ -384,7 +388,10 @@ period.
 
 ### 11.5 Implementation pattern
 
-Every stdlib type follows this shape:
+Every stdlib type follows this shape (the `typed_primitive!` macro in
+`std_types.rs` expands the unit-struct + impl pair for the byte-aligned
+baseline; generic shapes like `FixedSites<const N: usize>` and
+`Bytes<const N: usize>` are written longhand for the same reason):
 
 ```rust
 /// `<TypeName>` admits …  (one-line brief)
@@ -395,22 +402,23 @@ Every stdlib type follows this shape:
 ///
 /// # Constraints
 /// - **TC-01**, **TC-04** (always)
-/// - **ADR-017** (always)
+/// - **ADR-013**, **ADR-017** (always)
 /// - other applicable IDs
-///
-/// # C4 placement
-/// Component `standard type library` (Level 3) inside container `prism`.
 ///
 /// # Behavior
 /// ```rust
 /// // Given/When/Then exercise of the shape's identity
 /// ```
-pub struct <TypeName><…> { _private: () }
+pub struct <TypeName>;  // unit struct; or `<const N: usize>` for parametric
 
-impl<…> ConstrainedTypeShape for <TypeName><…> {
-    const IRI: &'static str = "uor.foundation/prism/std_types/<TypeName>";
+impl ConstrainedTypeShape for <TypeName> {
+    // Empty-CONSTRAINTS baseline types use the foundation's class IRI
+    // (closure rule, § 11.3). Types with non-empty CONSTRAINTS adopt
+    // an IRI dictated by their constraint declaration under the same
+    // rule — never a prism-claimed sub-namespace.
+    const IRI: &'static str = "https://uor.foundation/type/ConstrainedType";
     const SITE_COUNT: usize = …;
-    const CONSTRAINTS: &'static [ConstraintRef] = …;
+    const CONSTRAINTS: &'static [ConstraintRef] = &[];
 }
 ```
 
