@@ -27,6 +27,7 @@
 //! - [Wiki: 08 Concepts § Trace Wire Format](https://github.com/UOR-Foundation/UOR-Framework/wiki/08-Concepts#trace-wire-format)
 //! - [Wiki: 09 Architecture Decisions § ADR-003](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
 //! - [Wiki: Conceptual Model § SD3 Verification](https://github.com/UOR-Foundation/UOR-Framework/wiki/Conceptual-Model#sd3-verification)
+//! - [Wiki: Conceptual Model § SD5 Distribute And Run](https://github.com/UOR-Foundation/UOR-Framework/wiki/Conceptual-Model#sd5-distribute-and-run) — same `Verification` process viewed from the user's distribute-and-run perspective; `certify_from_trace` is what runs to consume a `Trace` per the SD5 OPL `Verification yields Certified Output`
 //!
 //! # Constraints
 //!

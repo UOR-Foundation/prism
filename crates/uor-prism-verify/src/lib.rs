@@ -27,6 +27,7 @@
 //! - [Wiki: 06 Runtime View § Scenario 2: Trace-Replay Verification](https://github.com/UOR-Foundation/UOR-Framework/wiki/06-Runtime-View#scenario-2-trace-replay-verification)
 //! - [Wiki: 12 Glossary § Term Definitions](https://github.com/UOR-Foundation/UOR-Framework/wiki/12-Glossary#term-definitions)
 //! - [Wiki: Conceptual Model § SD3 Verification](https://github.com/UOR-Foundation/UOR-Framework/wiki/Conceptual-Model#sd3-verification) — OPM statement of the verification process this façade enacts
+//! - [Wiki: Conceptual Model § SD5 Distribute And Run](https://github.com/UOR-Foundation/UOR-Framework/wiki/Conceptual-Model#sd5-distribute-and-run) — `Verification` is the second of the two user-handled processes in SD5 (after `Execution`); this façade is the user-side surface that realizes it
 //!
 //! # Constraints
 //!

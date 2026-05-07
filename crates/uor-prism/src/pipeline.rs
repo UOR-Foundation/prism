@@ -50,6 +50,10 @@
 //! - [Wiki: 08 Concepts § Hashing Substrate Contract](https://github.com/UOR-Foundation/UOR-Framework/wiki/08-Concepts#hashing-substrate-contract)
 //! - [Wiki: 09 Architecture Decisions § ADR-012](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
 //! - [Wiki: Conceptual Model § SD2 Principal Data Path][cm-sd2]
+//! - [Wiki: Conceptual Model § SD5 Distribute And Run][cm-sd5] — same
+//!   `Execution` process viewed from the user's distribute-and-run
+//!   perspective; `pipeline::run` is what runs inside the user's
+//!   compiled executable per the SD5 OPL `Execution yields Trace`
 //!
 //! # Constraints
 //!
@@ -106,6 +110,7 @@
 //! [05-pipeline]: https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism-pipeline--staged-transitions
 //! [06-scenario-1]: https://github.com/UOR-Foundation/UOR-Framework/wiki/06-Runtime-View#scenario-1-principal-data-path-execution
 //! [cm-sd2]: https://github.com/UOR-Foundation/UOR-Framework/wiki/Conceptual-Model#sd2-principal-data-path
+//! [cm-sd5]: https://github.com/UOR-Foundation/UOR-Framework/wiki/Conceptual-Model#sd5-distribute-and-run
 
 pub use uor_foundation::pipeline::{
     run, validate_compile_unit_const, validate_constrained_type, validate_constrained_type_const,
