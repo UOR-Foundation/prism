@@ -47,7 +47,12 @@
 //!         | PrimitiveOp::Mul
 //!         | PrimitiveOp::Xor
 //!         | PrimitiveOp::And
-//!         | PrimitiveOp::Or => "binary",
+//!         | PrimitiveOp::Or
+//!         | PrimitiveOp::Le
+//!         | PrimitiveOp::Lt
+//!         | PrimitiveOp::Ge
+//!         | PrimitiveOp::Gt
+//!         | PrimitiveOp::Concat => "binary",
 //!     }
 //! }
 //! assert_eq!(_arity_class(PrimitiveOp::Add), "binary");

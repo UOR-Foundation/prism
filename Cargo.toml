@@ -17,7 +17,7 @@ homepage = "https://github.com/UOR-Foundation/UOR-Framework/wiki"
 readme = "README.md"
 
 [workspace.dependencies]
-uor-foundation = { version = "0.3", default-features = false }
+uor-foundation = { version = "0.4", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

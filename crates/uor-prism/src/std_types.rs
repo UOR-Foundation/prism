@@ -241,6 +241,17 @@ impl<const N: usize> ConstrainedTypeShape for FixedSites<N> {
     const IRI: &'static str = "https://uor.foundation/type/ConstrainedType";
     const SITE_COUNT: usize = N;
     const CONSTRAINTS: &'static [ConstraintRef] = &[];
+    // ADR-032: cardinality of the value-set under the discrete-clock
+    // model. Empty-constraint shapes at W8 semantics carry 256 values
+    // per site; `cartesian_product_shape` (homogeneous power) raises
+    // the per-site cycle to `SITE_COUNT` saturating. `FixedSites<0>`
+    // collapses to the identity (`CYCLE_SIZE = 1`), matching
+    // `ConstrainedTypeInput` and the foundation convention. The
+    // truncation of `N: usize` to `u32` is harmless: SITE_COUNT values
+    // that approach `u32::MAX` would already overflow `u64` and
+    // saturate to `u64::MAX` long before the cast loses information.
+    #[allow(clippy::cast_possible_truncation)]
+    const CYCLE_SIZE: u64 = 256u64.saturating_pow(N as u32);
 }
 
 /// `Bytes<N>` — byte-buffer admission intent of width `N`.
@@ -287,6 +298,10 @@ impl<const N: usize> ConstrainedTypeShape for Bytes<N> {
     const IRI: &'static str = "https://uor.foundation/type/ConstrainedType";
     const SITE_COUNT: usize = N;
     const CONSTRAINTS: &'static [ConstraintRef] = &[];
+    // ADR-032: per closure, identical to `FixedSites<N>`. Truncation
+    // bounded as in `FixedSites<N>` above.
+    #[allow(clippy::cast_possible_truncation)]
+    const CYCLE_SIZE: u64 = 256u64.saturating_pow(N as u32);
 }
 
 // ---- Typed primitives (baseline per AGENTS.md § 11.4) ----
@@ -341,6 +356,8 @@ macro_rules! typed_primitive {
             const IRI: &'static str = $iri;
             const SITE_COUNT: usize = $sites;
             const CONSTRAINTS: &'static [ConstraintRef] = &[];
+            // ADR-032: 256-per-site at W8 raised to SITE_COUNT, saturating.
+            const CYCLE_SIZE: u64 = 256u64.saturating_pow($sites as u32);
         }
     };
 }

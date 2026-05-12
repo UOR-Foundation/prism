@@ -36,7 +36,7 @@ implementation. Code in this repository must satisfy:
   bilateral compile-time enforcement, replayability without deciders or
   hashing, no application-author infrastructure) — see wiki page 02
 - **Quality scenarios** QS-01 through QS-05 — see wiki page 10
-- **Architecture decision records** ADR-001 through ADR-023 —
+- **Architecture decision records** ADR-001 through ADR-036 —
   see wiki page 09. The most architecturally load-bearing recent
   additions: **ADR-018** (`HostBounds` capacity completeness — third
   substitution axis); **ADR-019** (foundation is a closed signature
@@ -46,8 +46,16 @@ implementation. Code in this repository must satisfy:
   `prism_model!` macro from `uor-foundation-sdk`); **ADR-022**
   (`PrismModel` implementation surface decisions, including `run_route`
   as the canonical model-execution entry point); **ADR-023**
-  (`M::Input` value flow into the `CompileUnit` binding table via
-  `IntoBindingValue`).
+  (`M::Input`/`M::Output` value flow into the `CompileUnit` binding
+  table via `IntoBindingValue`); **ADR-032** (`CYCLE_SIZE` associated
+  const on `ConstrainedTypeShape` for compile-time domain-cardinality
+  introspection); **ADR-035** (canonical ψ-pipeline plus ψ-chain
+  `Term` variants and ψ-residuals discipline); **ADR-036**
+  (`ResolverTuple` substrate parameter on `PrismModel`/`run_route`
+  carrying the eight categorical-machinery resolvers — Nerve,
+  ChainComplex, HomologyGroup, CochainComplex, CohomologyGroup,
+  Postnikov, HomotopyGroup, KInvariant — with `NullResolverTuple` as
+  the default).
 
 Substitution axes (the only permitted variation points): `HostTypes`,
 `HostBounds`, `Hasher`.
@@ -99,10 +107,13 @@ Substitution axes (the only permitted variation points): `HostTypes`,
   `prism`'s pin on `uor-foundation` may lag the latest published
   version; updates to this repo are demand-driven (a needed surface
   change) rather than calendar-driven.
-- **`uor-foundation`**: `^0.3` (effective floor 0.3.2 — required for
-  `PrismModel`/`run_route`/`FoundationClosed`/`IntoBindingValue` per
-  ADR-020 + ADR-022 + ADR-023), `default-features = false`,
-  `no_std`-clean
+- **`uor-foundation`**: `^0.4` (effective floor 0.4.3 — required for
+  `CYCLE_SIZE` on `ConstrainedTypeShape` per ADR-032; the
+  `R: ResolverTuple` substrate parameter on `PrismModel`/`run_route`
+  per ADR-035/036; the four new `PrimitiveOp::{Le, Lt, Ge, Gt, Concat}`
+  variants per ADR-026; the `Output: IntoBindingValue` bound on
+  `PrismModel` per ADR-023's value-flow expansion). `default-features
+  = false`, `no_std`-clean.
 - **Workspace resolver**: `"2"`
 - **Release profile** (per QS-01): `opt-level = 3`, `lto = true`, `codegen-units = 1`
 - **`#![no_std]` posture**: default for both crates; `std` and `alloc`

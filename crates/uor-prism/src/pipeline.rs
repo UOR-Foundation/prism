@@ -120,16 +120,51 @@ pub use uor_foundation::ViolationKind;
 pub use uor_foundation::{PipelineFailure, ShapeViolation};
 
 // `PrismModel` is the developer-facing contract introduced in
-// foundation 0.3.2 per wiki ADR-020: the sealed trait an application
-// author implements (via the `prism_model!` macro from
+// foundation 0.3.2 per wiki ADR-020 and extended in 0.4 per ADR-035/036
+// with the `R: ResolverTuple` substrate parameter: the sealed trait an
+// application author implements (via the `prism_model!` macro from
 // `uor-foundation-sdk`) to declare a typed route from `Input` to
 // `Output`. `run_route` is the higher-level catamorphism entry point
 // (ADR-022 D5) — the canonical model-execution surface; the
 // macro-emitted `forward` body delegates to it. `FoundationClosed`
 // (the type-level closure witness on `Route`) and `IntoBindingValue`
-// (the serialization contract on `Input`, per ADR-023) are the sealed
-// supertraits the macro emits alongside.
+// (the serialization contract on `Input` and `Output`, per ADR-023)
+// are the sealed supertraits the macro emits alongside.
 pub use uor_foundation::pipeline::{run_route, FoundationClosed, IntoBindingValue, PrismModel};
+
+// ADR-035/036 substrate axes: `AxisTuple` (axis-substrate parameter for
+// `PrismModel::A`, blanket-impl'd for any `H: Hasher` so existing
+// `H: Hasher` bounds keep resolving) and `ResolverTuple` (the
+// eight-categorical-machinery resolvers carried in the model's `R`
+// parameter, default `NullResolverTuple`). The `Has*Resolver` family
+// names which resolver categories a tuple satisfies; each null
+// implementation raises `RESOLVER_ABSENT` so applications that don't
+// declare real resolvers fail loudly at the appropriate stage.
+pub use uor_foundation::pipeline::{
+    AxisExtension, AxisTuple, HasChainComplexResolver, HasCochainComplexResolver,
+    HasCohomologyGroupResolver, HasHomologyGroupResolver, HasHomotopyGroupResolver,
+    HasKInvariantResolver, HasNerveResolver, HasPostnikovResolver, NullResolverTuple,
+    ResolverCategory, ResolverTuple,
+};
+pub use uor_foundation::pipeline::{
+    ChainComplexResolver, CochainComplexResolver, CohomologyGroupResolver, HomologyGroupResolver,
+    HomotopyGroupResolver, KInvariantResolver, NerveResolver, PostnikovResolver,
+};
+pub use uor_foundation::pipeline::{
+    NullChainComplexResolver, NullCochainComplexResolver, NullCohomologyGroupResolver,
+    NullHomologyGroupResolver, NullHomotopyGroupResolver, NullKInvariantResolver,
+    NullNerveResolver, NullPostnikovResolver,
+};
+
+// ADR-033 G20: partition-product factor-field directory machinery —
+// types that admit themselves as cartesian products carry these traits
+// so the closure body can locate factor fields by index.
+pub use uor_foundation::pipeline::{PartitionProductFactor, PartitionProductFields};
+
+// ADR-035 leaf-constraint refinement of `ConstraintRef` for ψ-chain
+// `Term::Closure` body grammar (G16); referenced from
+// `partition_product` factor declarations.
+pub use uor_foundation::pipeline::LeafConstraintRef;
 
 // `TimingPolicy` is the foundation-sealed trait the application author
 // references to declare timing budgets that participate in preflight

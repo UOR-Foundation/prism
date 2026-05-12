@@ -26,7 +26,10 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use prism::pipeline::{
-    ConstrainedTypeShape, FoundationClosed, IntoBindingValue, PipelineFailure, PrismModel,
+    ConstrainedTypeShape, FoundationClosed, HasChainComplexResolver, HasCochainComplexResolver,
+    HasCohomologyGroupResolver, HasHomologyGroupResolver, HasHomotopyGroupResolver,
+    HasKInvariantResolver, HasNerveResolver, HasPostnikovResolver, IntoBindingValue,
+    NullResolverTuple, PipelineFailure, PrismModel, ResolverTuple,
 };
 use prism::seal::Grounded;
 use prism::std_types::{ConstrainedTypeInput, GroundedShape};
@@ -44,6 +47,11 @@ where
     H: Hasher,
     M: PrismModel<DefaultHostTypes, DefaultHostBounds, H>,
 {
+    // `PrismModel`'s fourth generic `R` defaults to `NullResolverTuple`
+    // per ADR-035/036; the 3-param form below uses that default. Foundation
+    // 0.4.3 ships a blanket `impl<H: Hasher> AxisTuple for H`, so the
+    // `A: AxisTuple + Hasher` bound on the trait is satisfied transitively
+    // from `H: Hasher`.
 }
 
 #[allow(dead_code)]
@@ -52,21 +60,55 @@ where
     H: Hasher,
     M: PrismModel<DefaultHostTypes, DefaultHostBounds, H>,
     M::Input: ConstrainedTypeShape + IntoBindingValue,
-    M::Output: ConstrainedTypeShape + GroundedShape,
+    // ADR-035: `Output` now additionally requires `IntoBindingValue` so
+    // the runtime can lower the grounded output back into a binding
+    // value for downstream composition.
+    M::Output: ConstrainedTypeShape + GroundedShape + IntoBindingValue,
     M::Route: FoundationClosed,
 {
 }
 
 #[allow(dead_code)]
-fn _run_route_signature<H, M>(input: M::Input) -> Result<Grounded<M::Output>, PipelineFailure>
+fn _run_route_signature<H, M, R>(
+    input: M::Input,
+    resolvers: &R,
+) -> Result<Grounded<M::Output>, PipelineFailure>
 where
     H: Hasher,
-    M: PrismModel<DefaultHostTypes, DefaultHostBounds, H>,
+    M: PrismModel<DefaultHostTypes, DefaultHostBounds, H, R>,
+    // ADR-035/036: `R: ResolverTuple` is the substrate parameter for
+    // the eight categorical-machinery resolvers (Nerve, ChainComplex,
+    // HomologyGroup, CochainComplex, CohomologyGroup, Postnikov,
+    // HomotopyGroup, KInvariant). `NullResolverTuple` satisfies the
+    // arity (=0) but each `Has*Resolver` bound delegates to a null
+    // implementation that raises `RESOLVER_ABSENT` when invoked —
+    // the default mode for applications that don't supply real resolvers.
+    R: ResolverTuple
+        + HasNerveResolver<H>
+        + HasChainComplexResolver<H>
+        + HasHomologyGroupResolver<H>
+        + HasCochainComplexResolver<H>
+        + HasCohomologyGroupResolver<H>
+        + HasPostnikovResolver<H>
+        + HasHomotopyGroupResolver<H>
+        + HasKInvariantResolver<H>,
 {
     // Body is the canonical ADR-022 D5 form; the macro-emitted
-    // `PrismModel::forward` expands to exactly this call.
-    prism::pipeline::run_route::<DefaultHostTypes, DefaultHostBounds, H, M>(input)
+    // `PrismModel::forward` expands to exactly this call with R defaulting
+    // to `NullResolverTuple` when the model declares no resolver use.
+    prism::pipeline::run_route::<DefaultHostTypes, DefaultHostBounds, H, M, R>(input, resolvers)
 }
+
+/// Compile-time witness that `NullResolverTuple` impls `ResolverTuple`
+/// — the default `R` for `PrismModel`/`run_route`. Declaring the
+/// function with this bound resolves the impl at definition time;
+/// the const below names a concrete instantiation so the bound is
+/// checked against `NullResolverTuple` specifically.
+#[allow(dead_code)]
+fn accepts_resolver_tuple<R: ResolverTuple>() {}
+
+#[allow(dead_code)]
+const NULL_RESOLVER_TUPLE_IS_REACHABLE: fn() = accepts_resolver_tuple::<NullResolverTuple>;
 
 // ---- Runtime checks against foundation-supplied impls ----
 
