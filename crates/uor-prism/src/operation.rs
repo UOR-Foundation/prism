@@ -5,11 +5,17 @@
 //! and its arena ([`TermArena`]), the [`TermList`] container, and the
 //! ten-element closed set of [`PrimitiveOp`] discriminants.
 //!
-//! Per ADR-014, `prism` provides the *vocabulary* — `prism` does not
-//! ship pre-implemented operation libraries. The author selects which
-//! primitives to assemble; the foundation guarantees the closed set is
-//! exhaustive (the v0.2.2 conformance suite enforces W4: kind-typed
-//! discriminants with no proc-macro back-doors).
+//! Per ADR-014, `prism`'s `operation` module surfaces the *primitive
+//! operation vocabulary* — the closed `PrimitiveOp` set that the
+//! catamorphism's per-variant fold-rules evaluate. Application-author
+//! operation *libraries* are declared at Layer 3 via the SDK macros
+//! `verb!` (ADR-024 — named compositions of prism operators) and
+//! `axis!` (ADR-030 — substrate-extension vocabularies); the
+//! standard-library Layer-3 sub-crates published from this repository
+//! (`prism::{crypto, numerics, tensor, fhe}` per ADR-031) ship the
+//! canonical reference impls. The foundation guarantees the closed
+//! `PrimitiveOp` set is exhaustive — kind-typed discriminants with no
+//! proc-macro back-doors per the substrate's W4 conformance check.
 //!
 //! # See also
 //!
@@ -23,8 +29,11 @@
 //!   runtime dispatch is generated for the declared primitives
 //! - **TC-04** — the closed set of primitives is part of the
 //!   bilateral compile-time UORassembly contract
-//! - **ADR-014** — `prism` declares the vocabulary; it does not ship
-//!   pre-implemented libraries
+//! - **ADR-014** — `prism`'s `operation` module declares the
+//!   `PrimitiveOp` vocabulary; operation libraries (verb declarations
+//!   per ADR-024 + axis declarations per ADR-030) are Layer-3 surfaces
+//!   the standard-library sub-crates per ADR-031 supply canonical
+//!   impls for
 //!
 //! # C4 placement
 //!

@@ -319,14 +319,25 @@ dedicated CI gate.
 
 ## 8. Release pipeline (`.github/workflows/release.yml`)
 
-Tag-driven on `v*`. Steps, in order:
+Tag-driven on `v*`. Steps, in order (per wiki ADR-031's layered
+dependency graph: leaf sub-crates first, then `prism-tensor`
+which depends on `prism-numerics`, then the `prism` façade which
+depends on every sub-crate, finally `prism-verify` which depends
+on `prism`):
 
 1. Re-run the full CI matrix; any failure aborts publish.
-2. `cargo publish --dry-run -p uor-prism`
-3. `cargo publish --dry-run -p uor-prism-verify`
-4. `cargo publish -p uor-prism`
-5. Wait for crates.io index propagation.
-6. `cargo publish -p uor-prism-verify` (depends on #4)
+2. Dry-run publish each crate (the non-leaf entries pass
+   `--no-verify` since their workspace-path deps aren't yet on
+   the registry; the real publish does the verify pass).
+3. `cargo publish -p uor-prism-numerics`
+4. `cargo publish -p uor-prism-crypto`
+5. `cargo publish -p uor-prism-fhe`
+6. Wait for leaf sub-crates to appear on crates.io index.
+7. `cargo publish -p uor-prism-tensor`
+8. Wait for index propagation.
+9. `cargo publish -p uor-prism`
+10. Wait for index propagation.
+11. `cargo publish -p uor-prism-verify`
 
 Secrets required: `CRATES_IO_TOKEN`.
 
@@ -353,8 +364,21 @@ On push to `main`:
 
 ## 11. Standard type library policy
 
-`prism::std_types` realizes the wiki's
-[Building Block View § Whitebox `prism`](https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism)
+Per wiki ADR-031, the **Prism standard library** is realized as the
+`prism` façade plus the Layer-3 sub-crates published from this
+repository (`uor-prism-crypto`, `uor-prism-numerics`,
+`uor-prism-tensor`, `uor-prism-fhe`). Each sub-crate's conformance
+discipline is governed by ADR-031 itself (application-neutral within
+domain, built on foundation primitives + lower sub-crates,
+content-addressed per ADR-017, conformance-tested against canonical
+reference vectors, compile-time stable, `#![no_std]`-clean) — that
+discipline is enforced by the `axis!` SDK macro at proc-macro
+expansion and the conformance test suites in each sub-crate's
+`tests/conformance.rs`.
+
+This section §11 covers a narrower sub-policy: the **baseline
+primitive type catalog** in `prism::std_types`, which realizes the
+wiki's [Building Block View § Whitebox `prism`](https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism)
 component named "standard type library". Per ADR-017 the catalog is
 content-addressed and evolves *operationally* — the wiki defines the
 catalog's purpose and identity rules, not its specific contents. The

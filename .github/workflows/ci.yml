@@ -51,6 +51,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build -p uor-prism --target thumbv7em-none-eabihf --no-default-features
       - run: cargo build -p uor-prism-verify --target thumbv7em-none-eabihf --no-default-features
+      - run: cargo build -p uor-prism-crypto --target thumbv7em-none-eabihf --no-default-features
+      - run: cargo build -p uor-prism-numerics --target thumbv7em-none-eabihf --no-default-features
+      - run: cargo build -p uor-prism-tensor --target thumbv7em-none-eabihf --no-default-features
+      - run: cargo build -p uor-prism-fhe --target thumbv7em-none-eabihf --no-default-features
 
   doc:
     name: cargo doc
