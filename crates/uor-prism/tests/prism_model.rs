@@ -26,10 +26,11 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use prism::pipeline::{
-    ConstrainedTypeShape, FoundationClosed, HasChainComplexResolver, HasCochainComplexResolver,
-    HasCohomologyGroupResolver, HasHomologyGroupResolver, HasHomotopyGroupResolver,
-    HasKInvariantResolver, HasNerveResolver, HasPostnikovResolver, IntoBindingValue,
-    NullResolverTuple, PipelineFailure, PrismModel, ResolverTuple,
+    ConstrainedTypeShape, EmptyCommitment, FoundationClosed, HasChainComplexResolver,
+    HasCochainComplexResolver, HasCohomologyGroupResolver, HasHomologyGroupResolver,
+    HasHomotopyGroupResolver, HasKInvariantResolver, HasNerveResolver, HasPostnikovResolver,
+    IntoBindingValue, NullResolverTuple, PipelineFailure, PrismModel, ResolverTuple,
+    TypedCommitment,
 };
 use prism::seal::Grounded;
 use prism::std_types::{ConstrainedTypeInput, GroundedShape};
@@ -69,13 +70,14 @@ where
 }
 
 #[allow(dead_code)]
-fn _run_route_signature<H, M, R>(
+fn _run_route_signature<H, M, R, C>(
     input: M::Input,
     resolvers: &R,
+    commitment: &C,
 ) -> Result<Grounded<M::Output>, PipelineFailure>
 where
     H: Hasher,
-    M: PrismModel<DefaultHostTypes, DefaultHostBounds, H, R>,
+    M: PrismModel<DefaultHostTypes, DefaultHostBounds, H, R, C>,
     // ADR-035/036: `R: ResolverTuple` is the substrate parameter for
     // the eight categorical-machinery resolvers (Nerve, ChainComplex,
     // HomologyGroup, CochainComplex, CohomologyGroup, Postnikov,
@@ -92,23 +94,37 @@ where
         + HasPostnikovResolver<H>
         + HasHomotopyGroupResolver<H>
         + HasKInvariantResolver<H>,
+    // ADR-048: `C: TypedCommitment` is the 5th model-declaration
+    // parameter — the cost-model commitment surface. The catamorphism
+    // evaluates `commitment.evaluate(kappa_label)` after the
+    // resolver-bound κ-label is emitted. `EmptyCommitment` is the
+    // default and satisfies the bound trivially (it commits to nothing).
+    C: TypedCommitment,
 {
     // Body is the canonical ADR-022 D5 form; the macro-emitted
-    // `PrismModel::forward` expands to exactly this call with R defaulting
-    // to `NullResolverTuple` when the model declares no resolver use.
-    prism::pipeline::run_route::<DefaultHostTypes, DefaultHostBounds, H, M, R>(input, resolvers)
+    // `PrismModel::forward` expands to exactly this call with R / C
+    // defaulting to `NullResolverTuple` / `EmptyCommitment` when the
+    // model declares neither resolver use nor a typed commitment.
+    prism::pipeline::run_route::<DefaultHostTypes, DefaultHostBounds, H, M, R, C>(
+        input, resolvers, commitment,
+    )
 }
 
 /// Compile-time witness that `NullResolverTuple` impls `ResolverTuple`
-/// — the default `R` for `PrismModel`/`run_route`. Declaring the
-/// function with this bound resolves the impl at definition time;
-/// the const below names a concrete instantiation so the bound is
-/// checked against `NullResolverTuple` specifically.
+/// and `EmptyCommitment` impls `TypedCommitment` — the defaults for
+/// `PrismModel`/`run_route`'s 4th and 5th parameters. Declaring the
+/// functions with these bounds resolves the impls at definition time.
 #[allow(dead_code)]
 fn accepts_resolver_tuple<R: ResolverTuple>() {}
 
 #[allow(dead_code)]
+fn accepts_typed_commitment<C: TypedCommitment>() {}
+
+#[allow(dead_code)]
 const NULL_RESOLVER_TUPLE_IS_REACHABLE: fn() = accepts_resolver_tuple::<NullResolverTuple>;
+
+#[allow(dead_code)]
+const EMPTY_COMMITMENT_IS_REACHABLE: fn() = accepts_typed_commitment::<EmptyCommitment>;
 
 // ---- Runtime checks against foundation-supplied impls ----
 

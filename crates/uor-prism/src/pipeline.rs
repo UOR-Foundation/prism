@@ -166,6 +166,17 @@ pub use uor_foundation::pipeline::{PartitionProductFactor, PartitionProductField
 // `partition_product` factor declarations.
 pub use uor_foundation::pipeline::LeafConstraintRef;
 
+// ADR-048 typed-commitment substrate: the 5th model-declaration
+// parameter `C: TypedCommitment` (default `EmptyCommitment`) and the
+// 6th runtime argument to `run_route`. The catamorphism evaluates
+// `commitment.evaluate(kappa_label)` after the resolver-bound κ-label
+// is emitted, giving zero-cost typed-bandwidth admission composition.
+pub use uor_foundation::pipeline::{EmptyCommitment, TypedCommitment};
+
+// ADR-043 witness-tuple source: the substrate for resolver-internal
+// bounded-search convergence/exhaustion accounting.
+pub use uor_foundation::pipeline::WitnessTupleSource;
+
 // `TimingPolicy` is the foundation-sealed trait the application author
 // references to declare timing budgets that participate in preflight
 // and runtime timing checks of the principal data path. It is part of
