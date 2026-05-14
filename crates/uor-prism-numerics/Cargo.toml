@@ -1,0 +1,33 @@
+[package]
+name = "uor-prism-numerics"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+description = "Prism standard-library numerics sub-crate (wiki ADR-031): declares BigIntAxis, FixedPointAxis, FieldAxis, RingAxis under the `axis!` SDK macro with canonical impls for fixed-width modular arithmetic, Q-format fixed-point, prime fields, and GF(2) rings."
+documentation = "https://docs.rs/uor-prism-numerics"
+categories = ["mathematics", "no-std"]
+keywords = ["prism", "uor", "numerics", "bignum", "no-std"]
+
+[lib]
+name = "prism_numerics"
+
+[dependencies]
+uor-foundation = { workspace = true }
+uor-foundation-sdk = { workspace = true }
+
+[features]
+default = []
+alloc = ["uor-foundation/alloc"]
+std = ["alloc", "uor-foundation/std"]
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

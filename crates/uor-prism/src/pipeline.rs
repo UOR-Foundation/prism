@@ -205,3 +205,18 @@ pub use uor_foundation::pipeline::{
 // honored by `preflight_budget_solvency`. Surfacing it here keeps the
 // pipeline contract self-contained.
 pub use uor_foundation::pipeline::WITT_MAX_BITS;
+
+// ADR-030 capacity caps and substitution-axis machinery for application
+// authors who declare their own axes via `axis!`.
+pub use uor_foundation::pipeline::{AXIS_OUTPUT_BYTES_CEILING, MAX_AXIS_TUPLE_ARITY};
+
+// Wiki ADR-031 façade commitment: the SDK macros declared by
+// `uor-foundation-sdk` are re-exported through `prism::pipeline` so a
+// single import path reaches the canonical application-author surface.
+// The macros expand to items that depend on foundation-sealed traits;
+// because `prism` re-exports those traits as well, applications never
+// need to depend on `uor-foundation-sdk` or `uor-foundation` directly.
+pub use uor_foundation_sdk::{
+    axis, cartesian_product_shape, coproduct_shape, output_shape, partition_coproduct,
+    partition_product, prism_model, product_shape, resolver, use_verbs, verb,
+};

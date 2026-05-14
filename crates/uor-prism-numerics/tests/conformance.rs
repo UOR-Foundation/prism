@@ -1,0 +1,181 @@
+//! Conformance vectors for prism-numerics' axes per ADR-031.
+//!
+//! Each kernel is checked against canonical input-output pairs:
+//!
+//! - **BigInt256Numeric** — modular arithmetic mod 2^256 by inspection.
+//! - **FixedPointQ32_32Numeric** — Q32.32 arithmetic with hand-computed vectors.
+//! - **PrimeFieldNumericSecp256k1** — secp256k1 base-field operations
+//!   `p = 2^256 - 2^32 - 977` per SEC 2 §2.4.1.
+//! - **Gf2NumericAxis** — bitwise XOR/AND vectors.
+
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::needless_range_loop)]
+
+use prism_numerics::{
+    BigInt256Numeric, BigIntAxis, FieldAxis, FixedPointAxis, FixedPointQ32_32Numeric,
+    Gf2NumericAxis, PrimeFieldNumericSecp256k1, RingAxis,
+};
+
+fn be_from_u64(value: u64) -> [u8; 32] {
+    let mut out = [0u8; 32];
+    out[24..].copy_from_slice(&value.to_be_bytes());
+    out
+}
+
+// ---- BigInt256Numeric ----
+
+#[test]
+fn bigint_add_simple() {
+    let a = be_from_u64(7);
+    let b = be_from_u64(35);
+    let mut input = [0u8; 64];
+    input[..32].copy_from_slice(&a);
+    input[32..].copy_from_slice(&b);
+    let mut out = [0u8; 32];
+    BigInt256Numeric::add(&input, &mut out).expect("add ok");
+    assert_eq!(out, be_from_u64(42));
+}
+
+#[test]
+fn bigint_sub_with_borrow() {
+    // 10 - 7 = 3.
+    let a = be_from_u64(10);
+    let b = be_from_u64(7);
+    let mut input = [0u8; 64];
+    input[..32].copy_from_slice(&a);
+    input[32..].copy_from_slice(&b);
+    let mut out = [0u8; 32];
+    BigInt256Numeric::sub(&input, &mut out).expect("sub ok");
+    assert_eq!(out, be_from_u64(3));
+}
+
+#[test]
+fn bigint_mul_modular() {
+    let a = be_from_u64(123_456_789);
+    let b = be_from_u64(987_654_321);
+    let mut input = [0u8; 64];
+    input[..32].copy_from_slice(&a);
+    input[32..].copy_from_slice(&b);
+    let mut out = [0u8; 32];
+    BigInt256Numeric::mul(&input, &mut out).expect("mul ok");
+    // 123456789 * 987654321 = 121932631112635269.
+    let expected = be_from_u64(121_932_631_112_635_269_u64);
+    assert_eq!(out, expected);
+}
+
+#[test]
+fn bigint_input_arity_rejection() {
+    let input = [0u8; 32]; // wrong length: expects 64
+    let mut out = [0u8; 32];
+    let err = BigInt256Numeric::add(&input, &mut out).unwrap_err();
+    assert_eq!(
+        err.constraint_iri,
+        "https://uor.foundation/axis/NumericAxisShape/operandPair"
+    );
+}
+
+// ---- FixedPointQ32_32Numeric ----
+
+fn q32_32(value: i64) -> [u8; 8] {
+    value.to_be_bytes()
+}
+
+#[test]
+fn fixed_point_add() {
+    // 1.0 in Q32.32 = 1 << 32. 2.0 = 2 << 32. Sum = 3 << 32.
+    let one: i64 = 1 << 32;
+    let two: i64 = 2 << 32;
+    let mut input = [0u8; 16];
+    input[..8].copy_from_slice(&q32_32(one));
+    input[8..].copy_from_slice(&q32_32(two));
+    let mut out = [0u8; 8];
+    FixedPointQ32_32Numeric::add(&input, &mut out).expect("add ok");
+    let result = i64::from_be_bytes(out);
+    assert_eq!(result, 3i64 << 32);
+}
+
+#[test]
+fn fixed_point_mul_scale() {
+    // 2.0 * 3.0 = 6.0. In Q32.32: (2<<32) * (3<<32) >> 32 = 6 << 32.
+    let two: i64 = 2 << 32;
+    let three: i64 = 3 << 32;
+    let mut input = [0u8; 16];
+    input[..8].copy_from_slice(&q32_32(two));
+    input[8..].copy_from_slice(&q32_32(three));
+    let mut out = [0u8; 8];
+    FixedPointQ32_32Numeric::mul(&input, &mut out).expect("mul ok");
+    let result = i64::from_be_bytes(out);
+    assert_eq!(result, 6i64 << 32);
+}
+
+// ---- PrimeFieldNumericSecp256k1 ----
+
+#[test]
+fn prime_field_add_small() {
+    let a = be_from_u64(5);
+    let b = be_from_u64(11);
+    let mut input = [0u8; 64];
+    input[..32].copy_from_slice(&a);
+    input[32..].copy_from_slice(&b);
+    let mut out = [0u8; 32];
+    PrimeFieldNumericSecp256k1::add(&input, &mut out).expect("add ok");
+    assert_eq!(out, be_from_u64(16));
+}
+
+#[test]
+fn prime_field_sub_wraps_through_p() {
+    // 0 - 1 mod p = p - 1 = 2^256 - 2^32 - 978.
+    let zero = [0u8; 32];
+    let one = be_from_u64(1);
+    let mut input = [0u8; 64];
+    input[..32].copy_from_slice(&zero);
+    input[32..].copy_from_slice(&one);
+    let mut out = [0u8; 32];
+    PrimeFieldNumericSecp256k1::sub(&input, &mut out).expect("sub ok");
+    // p - 1 last 4 bytes: 0xfffffc2e
+    assert_eq!(out[28], 0xff);
+    assert_eq!(out[29], 0xff);
+    assert_eq!(out[30], 0xfc);
+    assert_eq!(out[31], 0x2e);
+}
+
+#[test]
+fn prime_field_mul_small() {
+    let a = be_from_u64(7);
+    let b = be_from_u64(11);
+    let mut input = [0u8; 64];
+    input[..32].copy_from_slice(&a);
+    input[32..].copy_from_slice(&b);
+    let mut out = [0u8; 32];
+    PrimeFieldNumericSecp256k1::mul(&input, &mut out).expect("mul ok");
+    assert_eq!(out, be_from_u64(77));
+}
+
+// ---- Gf2NumericAxis ----
+
+#[test]
+fn gf2_add_is_xor() {
+    let mut input = [0u8; 64];
+    for i in 0..32 {
+        input[i] = 0xaa;
+        input[32 + i] = 0x55;
+    }
+    let mut out = [0u8; 32];
+    Gf2NumericAxis::add(&input, &mut out).expect("add ok");
+    for i in 0..32 {
+        assert_eq!(out[i], 0xff);
+    }
+}
+
+#[test]
+fn gf2_mul_is_and() {
+    let mut input = [0u8; 64];
+    for i in 0..32 {
+        input[i] = 0xf0;
+        input[32 + i] = 0x0f;
+    }
+    let mut out = [0u8; 32];
+    Gf2NumericAxis::mul(&input, &mut out).expect("mul ok");
+    for i in 0..32 {
+        assert_eq!(out[i], 0);
+    }
+}

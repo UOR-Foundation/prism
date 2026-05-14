@@ -8,7 +8,7 @@ authors.workspace = true
 repository.workspace = true
 homepage.workspace = true
 readme = "../../README.md"
-description = "The Prism runtime: pipeline, sealed Prism-mechanism types (Validated, Grounded, Certified), replay machinery, and operation vocabulary, per the UOR-Framework architecture specification."
+description = "The Prism standard library (wiki ADR-031): a façade re-exporting uor-foundation's substrate plus the Layer-3 sub-crates (prism-crypto, prism-numerics, prism-tensor, prism-fhe) that contribute built-in axes and built-in types."
 documentation = "https://docs.rs/uor-prism"
 categories = ["compilers", "no-std", "rust-patterns"]
 keywords = ["prism", "uor", "sealed", "verification", "no-std"]
@@ -18,6 +18,11 @@ name = "prism"
 
 [dependencies]
 uor-foundation = { workspace = true }
+uor-foundation-sdk = { workspace = true }
+uor-prism-numerics = { workspace = true }
+uor-prism-crypto = { workspace = true }
+uor-prism-tensor = { workspace = true }
+uor-prism-fhe = { workspace = true }
 
 [features]
 default = []

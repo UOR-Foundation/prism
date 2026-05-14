@@ -3,6 +3,10 @@ resolver = "2"
 members = [
     "crates/uor-prism",
     "crates/uor-prism-verify",
+    "crates/uor-prism-numerics",
+    "crates/uor-prism-crypto",
+    "crates/uor-prism-tensor",
+    "crates/uor-prism-fhe",
     "tools/wiki-link-check",
 ]
 
@@ -17,7 +21,30 @@ homepage = "https://github.com/UOR-Foundation/UOR-Framework/wiki"
 readme = "README.md"
 
 [workspace.dependencies]
+# Per wiki ADR-031, the `prism` standard library and its Layer-3
+# sub-crates close under the foundation substrate (`uor-foundation`) and
+# its SDK macro lane (`uor-foundation-sdk` per ADR-022 / ADR-030 /
+# ADR-036). Both are floored at v0.4 (current 0.4.6).
 uor-foundation = { version = "0.4", default-features = false }
+uor-foundation-sdk = { version = "0.4", default-features = false }
+
+# Standard-library sub-crate cross-deps per ADR-031's layered
+# consumption pattern (numerics → foundation; crypto → foundation +
+# numerics; tensor → foundation + numerics + optionally crypto; fhe →
+# foundation). The `prism` façade depends on all four.
+uor-prism-numerics = { version = "0.1.0", path = "crates/uor-prism-numerics", default-features = false }
+uor-prism-crypto = { version = "0.1.0", path = "crates/uor-prism-crypto", default-features = false }
+uor-prism-tensor = { version = "0.1.0", path = "crates/uor-prism-tensor", default-features = false }
+uor-prism-fhe = { version = "0.1.0", path = "crates/uor-prism-fhe", default-features = false }
+
+# Cryptographic substrate dependencies for `prism-crypto`'s canonical
+# `HashAxis` impls (ADR-031). These are widely-vetted, no_std-clean
+# Rust impls of the canonical hash families the wiki names; they
+# satisfy the conformance-test commitment without the standard library
+# re-implementing primitives from RFCs.
+sha2 = { version = "0.10", default-features = false }
+sha3 = { version = "0.10", default-features = false }
+blake3 = { version = "1", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

@@ -1,0 +1,36 @@
+[package]
+name = "uor-prism-crypto"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+description = "Prism standard-library cryptography sub-crate (wiki ADR-031): declares HashAxis, CurveAxis, SignatureAxis, CommitmentAxis under the `axis!` SDK macro, with canonical impls bound to FIPS-180-4 / FIPS-202 / RFC 7693 reference vectors."
+documentation = "https://docs.rs/uor-prism-crypto"
+categories = ["cryptography", "no-std"]
+keywords = ["prism", "uor", "hash", "crypto", "no-std"]
+
+[lib]
+name = "prism_crypto"
+
+[dependencies]
+uor-foundation = { workspace = true }
+uor-foundation-sdk = { workspace = true }
+sha2 = { workspace = true }
+sha3 = { workspace = true }
+blake3 = { workspace = true }
+
+[features]
+default = []
+alloc = ["uor-foundation/alloc"]
+std = ["alloc", "uor-foundation/std", "sha2/std", "sha3/std", "blake3/std"]
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

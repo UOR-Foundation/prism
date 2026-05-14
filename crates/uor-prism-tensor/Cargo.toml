@@ -1,0 +1,34 @@
+[package]
+name = "uor-prism-tensor"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+description = "Prism standard-library tensor-compute sub-crate (wiki ADR-031): declares TensorAxis and ActivationAxis under the `axis!` SDK macro with CPU integer and fixed-point reference impls preserving bit-determinism per (H, B, A) selection."
+documentation = "https://docs.rs/uor-prism-tensor"
+categories = ["mathematics", "no-std", "science"]
+keywords = ["prism", "uor", "tensor", "matmul", "no-std"]
+
+[lib]
+name = "prism_tensor"
+
+[dependencies]
+uor-foundation = { workspace = true }
+uor-foundation-sdk = { workspace = true }
+uor-prism-numerics = { workspace = true }
+
+[features]
+default = []
+alloc = ["uor-foundation/alloc"]
+std = ["alloc", "uor-foundation/std"]
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

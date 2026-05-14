@@ -6,22 +6,36 @@ anything missing from this file is out of scope.
 
 ## 1. Purpose
 
-This repository is the source and publishing pipeline for two Rust crates
-that together realize the **Prism** system specified by the
-[UOR-Framework wiki][wiki]:
+This repository is the source and publishing pipeline for the **Prism
+standard library** (wiki ADR-031): a façade crate (`uor-prism`) that
+re-exports the `uor-foundation` substrate together with the built-in
+axes and built-in types its Layer-3 sub-crates declare, plus a
+replay-only sibling (`uor-prism-verify`). Together these realize the
+**Prism** system specified by the [UOR-Framework wiki][wiki]:
 
-| Cargo package      | Library (import) name | Role                                                                                         |
-|--------------------|-----------------------|----------------------------------------------------------------------------------------------|
-| `uor-prism`        | `prism`               | Pipeline runtime, three sealed Prism-mechanism types, replay machinery, operation vocabulary |
-| `uor-prism-verify` | `prism_verify`        | Replay façade for verifiers                                                                  |
+| Cargo package         | Library (import) name | Role                                                                                                                 |
+|-----------------------|-----------------------|----------------------------------------------------------------------------------------------------------------------|
+| `uor-prism`           | `prism`               | Standard-library façade. Re-exports foundation substrate + SDK macros + every Layer-3 sub-crate (wiki ADR-031)       |
+| `uor-prism-verify`    | `prism_verify`        | Replay façade for verifiers (wiki ADR-005)                                                                           |
+| `uor-prism-crypto`    | `prism_crypto`        | Layer-3 sub-crate: `HashAxis` + `CurveAxis` + `SignatureAxis` + `CommitmentAxis` per wiki ADR-031                    |
+| `uor-prism-numerics`  | `prism_numerics`      | Layer-3 sub-crate: `BigIntAxis` + `FixedPointAxis` + `FieldAxis` + `RingAxis` per wiki ADR-031                       |
+| `uor-prism-tensor`    | `prism_tensor`        | Layer-3 sub-crate: `TensorAxis` + `ActivationAxis` per wiki ADR-031                                                  |
+| `uor-prism-fhe`       | `prism_fhe`           | Layer-3 sub-crate: `FheAxis` per wiki ADR-031                                                                        |
 
 The `uor-` prefix on the package names is forced because the bare name
 `prism` on crates.io is already occupied by an unrelated crate. Inside
 Rust source, the import path and module names track wiki nomenclature
-exactly: `use prism::pipeline::run;` and `use prism_verify::certify_from_trace;`.
+exactly: `use prism::pipeline::run;`, `use prism::crypto::Sha256Hasher;`,
+`use prism_verify::certify_from_trace;`.
 
-The substrate crate `uor-foundation` is consumed unmodified as a normal
-crates.io dependency. This repository does not fork or vendor it.
+Per wiki ADR-031's façade commitment, application authors depend on
+`uor-prism` alone — the four Layer-3 sub-crates are re-exported through
+`prism::crypto`, `prism::numerics`, `prism::tensor`, `prism::fhe` so
+they reach every standard-library axis without adding additional deps.
+
+The substrate crates `uor-foundation` and `uor-foundation-sdk` are
+consumed unmodified as normal crates.io dependencies. This repository
+does not fork or vendor them.
 
 [wiki]: https://github.com/UOR-Foundation/UOR-Framework/wiki
 
@@ -36,7 +50,7 @@ implementation. Code in this repository must satisfy:
   bilateral compile-time enforcement, replayability without deciders or
   hashing, no application-author infrastructure) — see wiki page 02
 - **Quality scenarios** QS-01 through QS-05 — see wiki page 10
-- **Architecture decision records** ADR-001 through ADR-049 —
+- **Architecture decision records** ADR-001 through ADR-048 —
   see wiki page 09. The most architecturally load-bearing recent
   additions: **ADR-018** (`HostBounds` capacity completeness — third
   substitution axis); **ADR-019** (foundation is a closed signature
@@ -47,8 +61,15 @@ implementation. Code in this repository must satisfy:
   (`PrismModel` implementation surface decisions, including `run_route`
   as the canonical model-execution entry point); **ADR-023**
   (`M::Input`/`M::Output` value flow into the `CompileUnit` binding
-  table via `IntoBindingValue`); **ADR-032** (`CYCLE_SIZE` associated
-  const on `ConstrainedTypeShape` for compile-time domain-cardinality
+  table via `IntoBindingValue`); **ADR-024** (three-layer algebraic
+  closure: substrate, prism, implementation — verbs and axes are the
+  Layer-3 surface); **ADR-030** (the `axis!` SDK macro is the
+  universal substrate-extension declaration mechanism replacing the
+  prior single `Hasher` lane); **ADR-031** (**`prism` IS the
+  standard library** — a façade re-exporting `uor-foundation` plus
+  Layer-3 sub-crates `prism-crypto`, `prism-numerics`, `prism-tensor`,
+  `prism-fhe`); **ADR-032** (`CYCLE_SIZE` associated const on
+  `ConstrainedTypeShape` for compile-time domain-cardinality
   introspection); **ADR-035** (canonical ψ-pipeline plus ψ-chain
   `Term` variants and ψ-residuals discipline); **ADR-036**
   (`ResolverTuple` substrate parameter on `PrismModel`/`run_route`
@@ -57,19 +78,23 @@ implementation. Code in this repository must satisfy:
   Postnikov, HomotopyGroup, KInvariant — with `NullResolverTuple` as
   the default); **ADR-037** (`HostBounds`-parametric capacity bounds
   completing ADR-018's commitment); **ADR-043** (iterative-resolution
-  discipline for resolver-internal bounded-search convergence); **ADR-044**
-  (`PartitionProductFields` trait for product-shape field metadata);
-  **ADR-045** (`Grounded::tag::<NewTag>()` zero-cost re-tagging);
-  **ADR-047** (σ-projection hardening U1–U6 axioms on canonical-hash
-  axes); **ADR-048** (`TypedCommitment` substrate as the 5th
-  model-declaration parameter — zero-cost typed-bandwidth admission
-  composition; `EmptyCommitment` default); **ADR-049** (commitment
-  evaluation point in the catamorphism, after κ-label emission).
+  discipline for resolver-internal bounded-search convergence);
+  **ADR-044** (`PartitionProductFields` trait for product-shape field
+  metadata); **ADR-045** (`Grounded::tag::<NewTag>()` zero-cost
+  re-tagging); **ADR-047** (σ-projection hardening U1–U6 axioms on
+  canonical-hash axes); **ADR-048** (`TypedCommitment` substrate as the
+  5th model-declaration parameter — zero-cost typed-bandwidth
+  admission composition; `EmptyCommitment` default).
 
-Substitution axes (the only permitted variation points): `HostTypes`,
-`HostBounds`, `Hasher`.
+Substitution axes (the only permitted variation points per ADR-007 /
+ADR-030 / ADR-036 / ADR-048): `HostTypes`, `HostBounds`, `AxisTuple`,
+`ResolverTuple`, `TypedCommitment`.
 
 ## 3. Layout
+
+Per wiki ADR-031 (`prism` is the standard library), the `prism`
+façade crate sits alongside the standard-library Layer-3 sub-crates
+that contribute the built-in axes and built-in types it re-exports.
 
 ```
 .
@@ -79,12 +104,28 @@ Substitution axes (the only permitted variation points): `HostTypes`,
 ├── LICENSE                            # MIT
 ├── README.md                          # public-facing overview
 ├── crates
-│   ├── uor-prism
+│   ├── uor-prism                      # the standard-library façade (wiki ADR-031)
 │   │   ├── Cargo.toml                 # package = uor-prism, lib.name = prism
+│   │   └── src/lib.rs                 # re-exports foundation + every Layer-3 sub-crate
+│   ├── uor-prism-verify               # replay-only façade (wiki ADR-005)
+│   │   ├── Cargo.toml                 # package = uor-prism-verify, lib.name = prism_verify
 │   │   └── src/lib.rs
-│   └── uor-prism-verify
-│       ├── Cargo.toml                 # package = uor-prism-verify, lib.name = prism_verify
-│       └── src/lib.rs
+│   ├── uor-prism-crypto               # Layer-3 sub-crate (wiki ADR-031)
+│   │   ├── Cargo.toml                 # package = uor-prism-crypto, lib.name = prism_crypto
+│   │   ├── src/                       # HashAxis + CurveAxis + SignatureAxis + CommitmentAxis
+│   │   └── tests/conformance.rs       # FIPS-180-4 + FIPS-202 + BLAKE3 vectors
+│   ├── uor-prism-numerics             # Layer-3 sub-crate (wiki ADR-031)
+│   │   ├── Cargo.toml                 # package = uor-prism-numerics, lib.name = prism_numerics
+│   │   ├── src/                       # BigIntAxis + FixedPointAxis + FieldAxis + RingAxis
+│   │   └── tests/conformance.rs
+│   ├── uor-prism-tensor               # Layer-3 sub-crate (wiki ADR-031)
+│   │   ├── Cargo.toml                 # package = uor-prism-tensor, lib.name = prism_tensor
+│   │   ├── src/                       # TensorAxis + ActivationAxis
+│   │   └── tests/conformance.rs
+│   └── uor-prism-fhe                  # Layer-3 sub-crate (wiki ADR-031)
+│       ├── Cargo.toml                 # package = uor-prism-fhe, lib.name = prism_fhe
+│       ├── src/                       # FheAxis + reference one-time-pad impl
+│       └── tests/conformance.rs
 ├── tools
 │   └── wiki-link-check                # internal CI binary, publish = false
 │       ├── Cargo.toml
@@ -125,6 +166,19 @@ Substitution axes (the only permitted variation points): `HostTypes`,
   `PrimitiveOp::{Le, Lt, Ge, Gt, Concat}` per ADR-026;
   `Output: IntoBindingValue` per ADR-023 value-flow expansion).
   `default-features = false`, `no_std`-clean.
+- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.6 — required
+  per wiki ADR-031 for the SDK macros `prism_model!`, `verb!`,
+  `axis!`, `resolver!`, `output_shape!`, `use_verbs!`,
+  `product_shape!`, `coproduct_shape!`, `cartesian_product_shape!`,
+  `partition_product!`, `partition_coproduct!`. Re-exported through
+  `prism::pipeline` so application authors reach the canonical SDK
+  macro surface through the single `prism` dep).
+- **Backing crates for standard-library Layer-3 sub-crates** (per
+  ADR-031's `prism-crypto` roster of canonical impls):
+  `sha2 = "0.10"`, `sha3 = "0.10"`, `blake3 = "1.5"` (pinned to
+  the 1.5 line; the 1.8+ line transitively requires
+  `constant_time_eq 0.4` which needs Rust edition 2024 / MSRV 1.85
+  per Cargo.lock).
 - **Workspace resolver**: `"2"`
 - **Release profile** (per QS-01): `opt-level = 3`, `lto = true`, `codegen-units = 1`
 - **`#![no_std]` posture**: default for both crates; `std` and `alloc`
@@ -165,10 +219,22 @@ architectural placement.
 
 Module names mirror the Level 2 components named in
 [wiki page 05 § Whitebox `prism`][05-prism] and
-[wiki page 05 § Whitebox `prism-verify`][05-verify]:
+[wiki page 05 § Whitebox `prism-verify`][05-verify].
+
+In `prism` the modules are:
 `pipeline`, `seal`, `replay`, `operation`, `std_types`,
-`vocabulary` (re-exports). Adding a top-level module that has no
-counterpart in the wiki is forbidden.
+`vocabulary` (foundation re-exports), plus the standard-library
+Layer-3 sub-crate re-exports introduced by wiki ADR-031:
+`crypto`, `numerics`, `tensor`, `fhe`. Adding a top-level module
+that has no counterpart in the wiki is forbidden.
+
+Each Layer-3 sub-crate (`uor-prism-crypto`, `uor-prism-numerics`,
+`uor-prism-tensor`, `uor-prism-fhe`) declares its axis traits via
+the `axis!` SDK macro per ADR-030; the axis trait declaration and
+all its concrete impls live in a single module per Rust's
+proc-macro-emitted `#[macro_export]` constraint (issue rust-lang
+#52234 — companion macros are reachable only at the call site of
+the original `axis!` invocation).
 
 [05-prism]: https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism
 [05-verify]: https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism-verify

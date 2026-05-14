@@ -27,12 +27,17 @@
 //! `R: ResolverTuple` and `C: TypedCommitment` parameters per
 //! ADR-036 + ADR-048 — exercised in `tests/prism_model.rs`, not here.)
 //!
-//! Per the boundary established with `prism-btc`: this test does not
-//! ship reference Hasher implementations of any cryptographic substrate
-//! (BLAKE3, SHA-256, etc.); per ADR-014 prism does not ship operation
-//! libraries. The local `Fnv1a*` impls below are *test fuel only* —
-//! their structural form follows the Hasher trait's normative example
-//! and exists solely to vary `OUTPUT_BYTES` along the scaling axis.
+//! Per ADR-031 (`prism` IS the standard library), the 32-byte `Hasher`
+//! width is exercised through [`prism::crypto::Sha256Hasher`] — the
+//! canonical FIPS-180-4 SHA-256 impl of the [`prism::crypto::HashAxis`]
+//! Layer-3 axis. The 16- and 24-byte widths exercise fixed-width
+//! `Hasher` substitutes (FNV-1a-shaped, in `tests/common/mod.rs`) since
+//! the standard library's [`prism::crypto`] HashAxis impls cover the
+//! published cryptographic digest widths (32-byte SHA-256, SHA-3, BLAKE3,
+//! Keccak; 64-byte SHA-512) — narrower widths are reachable through the
+//! `Hasher::OUTPUT_BYTES` axis but have no canonical cryptographic
+//! primitive at those widths, so they remain test-only stand-ins
+//! purely for axis-width coverage.
 //!
 //! Per [TR-05][11-tr-05] (hasher selection mismatch produces verification
 //! failure indistinguishable from data corruption), the spread also
@@ -56,7 +61,8 @@
 
 mod common;
 
-use common::{Fnv16, Fnv24, Fnv32};
+use common::{Fnv16, Fnv24};
+use prism::crypto::Sha256Hasher;
 use prism::operation::Term;
 use prism::pipeline::run;
 use prism::replay::{certify_from_trace, Trace};
@@ -134,7 +140,8 @@ fn assert_roundtrip<H: Hasher>(witt_ceiling: WittLevel) {
 // Each row pins one `Hasher::OUTPUT_BYTES` value and walks the Witt-level
 // axis; each column does the dual. Together they cover every cell of the
 // (Hasher × WittLevel) sub-matrix that the wiki's substitution-axis
-// contract names.
+// contract names. The 32-byte row exercises the standard-library
+// `prism::crypto::Sha256Hasher` per ADR-031.
 
 #[test]
 fn fnv16_w8() {
@@ -180,23 +187,23 @@ fn fnv24_w64_boundary() {
 }
 
 #[test]
-fn fnv32_w8() {
-    assert_roundtrip::<Fnv32>(WittLevel::W8);
+fn sha256_w8() {
+    assert_roundtrip::<Sha256Hasher>(WittLevel::W8);
 }
 
 #[test]
-fn fnv32_w16() {
-    assert_roundtrip::<Fnv32>(WittLevel::W16);
+fn sha256_w16() {
+    assert_roundtrip::<Sha256Hasher>(WittLevel::W16);
 }
 
 #[test]
-fn fnv32_w32() {
-    assert_roundtrip::<Fnv32>(WittLevel::W32);
+fn sha256_w32() {
+    assert_roundtrip::<Sha256Hasher>(WittLevel::W32);
 }
 
 #[test]
-fn fnv32_w64_boundary() {
-    assert_roundtrip::<Fnv32>(WittLevel::new(64));
+fn sha256_w64_boundary() {
+    assert_roundtrip::<Sha256Hasher>(WittLevel::new(64));
 }
 
 // ---- Cross-axis invariant: different OUTPUT_BYTES at the same Witt
@@ -219,7 +226,7 @@ fn fingerprints_at_different_widths_are_distinguishable() {
 
     let g16 = run::<ConstrainedTypeInput, _, Fnv16>(fresh_unit()).expect("admits");
     let g24 = run::<ConstrainedTypeInput, _, Fnv24>(fresh_unit()).expect("admits");
-    let g32 = run::<ConstrainedTypeInput, _, Fnv32>(fresh_unit()).expect("admits");
+    let g32 = run::<ConstrainedTypeInput, _, Sha256Hasher>(fresh_unit()).expect("admits");
 
     let f16 = g16.content_fingerprint();
     let f24 = g24.content_fingerprint();

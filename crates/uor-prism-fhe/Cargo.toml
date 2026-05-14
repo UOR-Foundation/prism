@@ -1,0 +1,33 @@
+[package]
+name = "uor-prism-fhe"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+description = "Prism standard-library homomorphic-encryption sub-crate (wiki ADR-031): declares FheAxis under the `axis!` SDK macro with a reference XOR-additive scheme suitable for conformance testing."
+documentation = "https://docs.rs/uor-prism-fhe"
+categories = ["cryptography", "no-std"]
+keywords = ["prism", "uor", "fhe", "no-std"]
+
+[lib]
+name = "prism_fhe"
+
+[dependencies]
+uor-foundation = { workspace = true }
+uor-foundation-sdk = { workspace = true }
+
+[features]
+default = []
+alloc = ["uor-foundation/alloc"]
+std = ["alloc", "uor-foundation/std"]
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
