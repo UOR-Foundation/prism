@@ -138,8 +138,15 @@ pub use uor_foundation::pipeline::{run_route, FoundationClosed, IntoBindingValue
 // eight-categorical-machinery resolvers carried in the model's `R`
 // parameter, default `NullResolverTuple`). The `Has*Resolver` family
 // names which resolver categories a tuple satisfies; each null
-// implementation raises `RESOLVER_ABSENT` so applications that don't
-// declare real resolvers fail loudly at the appropriate stage.
+// implementation raises the `RESOLVER_ABSENT` shape violation per
+// TR-15 so applications that don't declare real resolvers fail loudly
+// at evaluation time (the verb body's outer `Term::Try` handler may
+// recover the case per ADR-022 D3 G9; absent that handler the
+// shape-violation propagates as `PipelineFailure::ShapeViolation`).
+// The ψ-residuals discipline of TR-14 is enforced earlier — at
+// proc-macro expansion of `verb!`/`prism_model!` — so resolver-bound
+// ψ-Term variants reach the runtime path only when the macro accepted
+// the verb body as well-formed.
 pub use uor_foundation::pipeline::{
     AxisExtension, AxisTuple, HasChainComplexResolver, HasCochainComplexResolver,
     HasCohomologyGroupResolver, HasHomologyGroupResolver, HasHomotopyGroupResolver,

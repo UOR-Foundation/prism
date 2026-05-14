@@ -108,8 +108,9 @@ Substitution axes (the only permitted variation points): `HostTypes`,
 ## 4. Toolchain
 
 - **Rust edition**: 2021
-- **MSRV**: 1.83 (matches `uor-foundation` v0.3.1's declared
-  `rust-version`, which corrects v0.3.0's stale 1.81 declaration).
+- **MSRV**: 1.83 (matches the `rust-version` declared by every
+  released `uor-foundation` since v0.3.1 — currently still 1.83 in
+  v0.4.6 — which corrected v0.3.0's stale 1.81 declaration).
   Pinned via `rust-toolchain.toml`, which the Rust toolchain enforces
   on every cargo invocation in this workspace. Per
   [TR-09](https://github.com/UOR-Foundation/UOR-Framework/wiki/11-Technical-Risks#tr-09--prism-version-pin-lag-against-uor-foundation),

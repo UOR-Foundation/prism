@@ -17,13 +17,15 @@
 //!   `WITT_LEVEL_MAX_BITS`).
 //!
 //! The third axis named in the wiki — `HostTypes` — is held at
-//! `DefaultHostTypes` because foundation 0.3.1's `pipeline::run` is
-//! parameterized over `<T, P, H>` and inherits `HostTypes` through the
-//! application's own crate-level type alias rather than the call site.
-//! `HostBounds` is similarly held at `DefaultHostBounds` for the same
-//! reason: `Hasher`, `Trace`, and `ContentFingerprint` resolve their
-//! const generics to the default profile when called through the
-//! foundation-supplied `pipeline::run` entry point.
+//! `DefaultHostTypes` because `pipeline::run`'s `<T, P, H>` parameters
+//! inherit `HostTypes` through the application's own crate-level type
+//! alias rather than the call site. `HostBounds` is similarly held at
+//! `DefaultHostBounds` for the same reason: `Hasher`, `Trace`, and
+//! `ContentFingerprint` resolve their const generics to the default
+//! profile when called through the foundation-supplied `pipeline::run`
+//! entry point. (The higher-level `pipeline::run_route` adds the
+//! `R: ResolverTuple` and `C: TypedCommitment` parameters per
+//! ADR-036 + ADR-048 — exercised in `tests/prism_model.rs`, not here.)
 //!
 //! Per the boundary established with `prism-btc`: this test does not
 //! ship reference Hasher implementations of any cryptographic substrate
