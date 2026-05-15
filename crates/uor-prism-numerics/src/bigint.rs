@@ -236,8 +236,11 @@ impl<const BYTES: usize> IntoBindingValue for BigIntShape<BYTES> {
 
 // ADR-033 G20 leaf-shape PartitionProductFields impl: an empty fields
 // list signals "atomic byte-sequence carrier — no further projection
-// possible." `partition_product!`-built containers compose these leaf
-// shapes via their byte counts.
+// possible." Matches foundation's pattern for `ConstrainedTypeInput`
+// and the `witt_domain::W*` types. Required for use as a leaf factor
+// in `partition_product!` compositions (without this, depth-1 field
+// access on a `partition_product(BigInt32, _)` parent fails the
+// `PartitionProductFields` bound check at macro expansion).
 impl<const BYTES: usize> uor_foundation::pipeline::PartitionProductFields for BigIntShape<BYTES> {
     const FIELDS: &'static [(u32, u32)] = &[];
     const FIELD_NAMES: &'static [&'static str] = &[];

@@ -373,18 +373,25 @@ fn verb_pred_twice_dual() {
 
 #[test]
 fn substrate_term_arithmetic_verb_arenas_terminate_in_application() {
-    // Per ADR-054 (4), the substrate-Term canonical bodies of
-    // `BigIntAxis::{add, sub, mul}` and `Gf2NumericAxisN::{add, mul}`
-    // at W256 are emitted as Term arenas terminating in an
-    // `Application` node carrying the substrate `PrimitiveOp`. The
+    // Per ADR-054 (4) + ADR-055, the substrate-Term canonical bodies
+    // of all thirteen in-grammar `PrimitiveOp` 2-arg arithmetic +
+    // hypercube ops at W256 are emitted as Term arenas terminating in
+    // an `Application` node carrying the substrate `PrimitiveOp`. The
     // exact node count depends on the `partition_product!` macro's
     // intermediate emission of projection chains; the structural
     // witness is the terminating Application + non-empty arena.
+    //
+    // Foundation-sdk 0.4.9 adds `div`/`r#mod`/`pow` to the call-form
+    // grammar per ADR-053, so the ring-arithmetic coverage is now
+    // complete at the 2-arg surface (add/sub/mul/div/mod/pow).
     use uor_foundation::Term;
     for arena in [
         prism_numerics::verbs::add_substrate_term_arena(),
         prism_numerics::verbs::sub_substrate_term_arena(),
         prism_numerics::verbs::mul_substrate_term_arena(),
+        prism_numerics::verbs::div_substrate_term_arena(),
+        prism_numerics::verbs::mod_substrate_term_arena(),
+        prism_numerics::verbs::pow_substrate_term_arena(),
         prism_numerics::verbs::gf2_add_substrate_term_arena(),
         prism_numerics::verbs::gf2_mul_substrate_term_arena(),
         prism_numerics::verbs::or_substrate_term_arena(),
