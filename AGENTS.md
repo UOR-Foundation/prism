@@ -604,6 +604,84 @@ to the byte width of the carrier when used at `WittLevel::W8`.
 
 Subsequent additions follow the specialized track of § 11.4.
 
+### 11.7 Layer-3 shape carriers in standard-library sub-crates
+
+Beyond the `prism::std_types` baseline, the four standard-library
+sub-crates per ADR-031 ship parametric shape carriers that downstream
+`prism_model!` declarations consume as `Input` / `Output`:
+
+| Sub-crate | Shape carriers (parametric) |
+|---|---|
+| `prism::numerics` | `BigIntShape<BYTES>`, `FixedPointShape<I, F>`, `FieldElementShape<BYTES>`, `Gf2RingShape<BYTES>`, `PolynomialShape<MAX_DEGREE, COEFF_BYTES>` |
+| `prism::crypto` | `Digest<BYTES>`, `PublicKey<BYTES>`, `Signature<BYTES>`, `MerkleProofShape<MAX_DEPTH, LEAF_BYTES>` |
+| `prism::tensor` | `MatrixShape<ROWS, COLS, ELEM_BYTES>`, `VectorShape<N, ELEM_BYTES>` |
+| `prism::fhe` | `CiphertextShape<BYTES>` |
+
+Each carrier implements `ConstrainedTypeShape` + `GroundedShape` +
+`IntoBindingValue` + `__sdk_seal::Sealed` so they're admissible as
+both `M::Input` and `M::Output` of a `PrismModel`. Per ADR-017's
+closure rule the IRI is the foundation's shared
+`ConstrainedType` class; instance identity flows through
+`(SITE_COUNT, CONSTRAINTS)`.
+
+### 11.8 Layer-3 verbs in standard-library sub-crates
+
+Per ADR-024 the standard-library sub-crates contribute *verbs* (named
+compositions of prism operators applied to substrate primitives) in
+addition to axes. The architectural witness lives in
+`prism::numerics::verbs` (`succ_twice`, `pred_twice`) — these
+demonstrate the `verb!` SDK macro emission, the verb-closure check at
+proc-macro expansion, the `inline_verb_fragment` const-fn splicing
+into a host `prism_model!` route arena, and the re-export path
+through the prism façade.
+
+The wiki's [ADR-031 § The standard-library sub-crate roster][09-adr-031]
+names a richer canonical verb roster: `modexp_p`, `polyeval`, `gcd`,
+`ext_euclidean`, `horner`, `newton_step`, `fma`, `field_add<P>`,
+`field_sub<P>`, `field_mul<P>`, `field_inv<P>` (prism-numerics);
+HMAC, HKDF, ECDSA-with-RFC6979, Merkle-tree construction
+(prism-crypto); matrix-vector mul, batched matmul,
+softmax-with-cross-entropy, layer-normalization (prism-tensor);
+PBS-based comparison, encrypted lookup tables, polynomial
+evaluation over ciphertexts (prism-fhe). These are *operational
+roster commitments* per ADR-031's "specific sub-crates' versioning,
+methods, and impls are operational policy" carve-out — the
+architecture admits them; each impl is a follow-on
+`verb!`-declaration composing substrate `PrimitiveOp::{Add, Sub,
+Mul, Div, Mod, Pow}` (per ADR-053) over partition-product input
+shapes (per ADR-033).
+
+### 11.9 Layer-3 axis impl roster — operational policy
+
+Per ADR-031 the named canonical axis impl roster — Poseidon (HashAxis),
+Secp256k1 / Ed25519Curve / Bls12_381 / BN254 (CurveAxis);
+Ed25519 / ECDSA / BLS / Schnorr (SignatureAxis); Pedersen / KZG
+(CommitmentAxis); CpuFp32Tensor / CpuFixedPointTensor (TensorAxis);
+TfheBoolean / TfheInteger<N> / BgvLevelled<L> / CkksApproximate
+(FheAxis) — is operational policy. The architecture commits to the
+axis-trait declarations and their `axis!` emission discipline; the
+specific impl roster grows under ADR-031's operational-policy
+clause. Currently shipped (per § 1 above): SHA-256, SHA-512,
+SHA3-256, Keccak-256, BLAKE3 (HashAxis); MerkleRoot<H, LEAF_BYTES>
+(CommitmentAxis); PrimeFieldNumericSecp256k1 (FieldAxis);
+BigIntModularNumeric<BYTES> + FixedPointQNumeric<I, F> +
+Gf2NumericAxisN<BYTES> (legacy modular-arithmetic axes preserved
+alongside the substrate-native PrimitiveOp evaluation path of
+ADR-050); CpuI8MatmulSquare<DIM> + CpuI8VectorActivation<N>
+(Tensor/Activation); OneTimePadFhe<BLOCK_BYTES> (Fhe reference).
+
+Per ADR-050 the ring-axis modular-arithmetic operations
+(`Add`, `Sub`, `Mul`, `Div`, `Mod`, `Pow`) and hypercube-axis
+operations (`Xor`, `And`, `Or`, `Bnot`) are now substrate primitives
+evaluable at full Witt-tower widths through `Term::Application`.
+The prism-numerics axes that previously hand-coded these
+(`BigIntAxis`, `FixedPointAxis`, `RingAxis`) are retained for
+back-compatibility and `AxisTuple` parametricity but the wiki's
+canonical evaluation path for wide arithmetic is the substrate
+PrimitiveOp; only `FieldAxis` retains an axis-kernel necessity per
+ADR-031 (prime-field arithmetic mod-p is not a single
+folding-transformation).
+
 ## 12. Out of scope (explicit)
 
 - Implementing the full Prism runtime. This file defines the *infrastructure*

@@ -75,7 +75,9 @@ use uor_foundation::enforcement::ShapeViolation;
 pub mod bigint;
 pub mod field;
 pub mod fixed_point;
+pub mod polynomial;
 pub mod ring;
+pub mod verbs;
 
 pub use bigint::{
     BigInt128Numeric, BigInt256Numeric, BigInt512Numeric, BigInt64Numeric, BigIntAxis,
@@ -86,6 +88,7 @@ pub use fixed_point::{
     FixedPointAxis, FixedPointQ16_16Numeric, FixedPointQ1_31Numeric, FixedPointQ32_32Numeric,
     FixedPointQ48_16Numeric, FixedPointQNumeric, FixedPointShape,
 };
+pub use polynomial::{Polynomial15Mod256, Polynomial7Mod256, PolynomialShape};
 pub use ring::{
     Gf2NumericAxis, Gf2NumericAxis128, Gf2NumericAxis512, Gf2NumericAxisN, Gf2RingShape, RingAxis,
     MAX_GF2_BYTES,

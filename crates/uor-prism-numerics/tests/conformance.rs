@@ -332,3 +332,39 @@ fn _shapes_are_grounded_shape() {
     check::<FieldElementShape<32>>();
     check::<Gf2RingShape<32>>();
 }
+
+// ---- PolynomialShape & verbs (ADR-031 + ADR-024 architectural witnesses) ----
+
+#[test]
+fn polynomial_shape_site_count() {
+    use prism_numerics::{Polynomial15Mod256, Polynomial7Mod256, PolynomialShape};
+    assert_eq!(
+        <Polynomial7Mod256 as ConstrainedTypeShape>::SITE_COUNT,
+        8 * 32
+    );
+    assert_eq!(
+        <Polynomial15Mod256 as ConstrainedTypeShape>::SITE_COUNT,
+        16 * 32
+    );
+    assert_eq!(
+        <PolynomialShape<3, 8> as ConstrainedTypeShape>::SITE_COUNT,
+        4 * 8
+    );
+}
+
+#[test]
+fn verb_succ_twice_emits_two_application_terms() {
+    // Per ADR-024 the `succ_twice` verb's term-tree arena is
+    // [Variable, Application(Succ, [Variable]), Application(Succ, [Succ(Variable)])]
+    // — three nodes total. The verb-closure check at macro expansion
+    // already guarantees acyclicity; this test asserts the structural
+    // shape.
+    let arena = prism_numerics::verbs::succ_twice_term_arena();
+    assert_eq!(arena.len(), 3, "succ(succ(input)) emits 3 arena nodes");
+}
+
+#[test]
+fn verb_pred_twice_dual() {
+    let arena = prism_numerics::verbs::pred_twice_term_arena();
+    assert_eq!(arena.len(), 3, "pred(pred(input)) emits 3 arena nodes");
+}
