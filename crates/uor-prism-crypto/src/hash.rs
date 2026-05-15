@@ -12,8 +12,9 @@
 //! Per [Wiki ADR-055](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
 //! every `AxisExtension` impl carries a substrate-Term verb body via
 //! the foundation-declared `SubstrateTermBody` supertrait. The
-//! `axis!` companion macro in foundation-sdk 0.4.8 emits a default
-//! empty `body_arena()` for every impl — ADR-055 names this the
+//! `axis!` companion macro in foundation-sdk 0.4.9 emits a default
+//! empty `body_arena()` for every impl that doesn't supply an
+//! explicit `body = |input| { … };` clause — ADR-055 names this the
 //! **primitive-fast-path-equivalent realization**: the kernel-function
 //! dispatch path below is byte-output-equivalent to recursive
 //! fold-fusion through an empty body arena, so the hand-written
@@ -23,20 +24,25 @@
 //! family — compressing 32-/64-byte internal-state blocks via composed
 //! `Add` (mod 2^32 or 2^64), `Xor`, `And`, `Or`, `Bnot`, plus a `rotr`
 //! sub-verb composing `Or(Div(x, 2^k), Mul(x, 2^(width-k)))` per
-//! ADR-054 § Substrate-Term realization examples — is forward work
-//! co-gated on:
+//! ADR-054 § Substrate-Term realization examples — has three
+//! remaining co-gates per AGENTS.md §11.8:
 //!
-//! - foundation-sdk's `axis!` `body` clause grammar (described in
-//!   ADR-055 as forthcoming);
-//! - verb-body call-form admissions for `div`/`mod`/`pow`/`concat`
-//!   (foundation-sdk 0.4.8's `emit_term_for_call` lines 3222-3260
-//!   admits only `add/sub/mul/xor/and/or/neg/bnot/succ/pred`; `div`
-//!   added to `PrimitiveOp` by ADR-053 is not yet a call form, and
-//!   `concat` is rejected per ADR-035 ψ-residuals).
+//! - **Multi-method `body` clauses** — foundation-sdk 0.4.9's `axis!`
+//!   admits one `body` clause per trait declaration; the hash family's
+//!   per-impl bodies (SHA-256 = 64 rounds; SHA-512 = 80 rounds;
+//!   BLAKE3 = Bao-tree fold) need per-impl `body` clause emission, a
+//!   foundation-sdk grammar extension.
+//! - **`concat` for pad-and-finalize** — rejected per ADR-035
+//!   ψ-residuals; an architectural wiki commitment, not a
+//!   foundation-sdk gap.
+//! - **partition-product field access in axis bodies** —
+//!   foundation-sdk 0.4.9 binds the body's `input` as opaque bytes
+//!   with no `route_input_ty` for projection; structurally-typed
+//!   hash inputs need partition-product binding.
 //!
 //! Byte-output equivalence with the canonical reference vectors
 //! (FIPS-180-4, FIPS-202, BLAKE3 spec) is verified by direct vectors
-//! in `tests/conformance.rs`. When the upstream grammar lands, the
+//! in `tests/conformance.rs`. When the upstream gates clear, the
 //! explicit `body` clauses will be added alongside; per ADR-055's
 //! byte-output-equivalence-at-every-input clause the two forms
 //! produce byte-identical outputs.

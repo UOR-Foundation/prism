@@ -11,12 +11,12 @@
 //! `partition_product!`-declared shapes per ADR-033/044; the axis's
 //! role is the fixed-shape atomic primitive.
 //!
-//! # ADR-054 (4) substrate-Term verb body — forward work
+//! # ADR-055 substrate-Term verb body discipline
 //!
 //! Per [Wiki ADR-055](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
 //! every `AxisExtension` impl satisfies the substrate-Term verb body
 //! discipline; the hand-written kernel below uses the default empty
-//! `body_arena()` emitted by foundation-sdk 0.4.8's `axis!` companion
+//! `body_arena()` emitted by foundation-sdk 0.4.9's `axis!` companion
 //! macro (the primitive-fast-path-equivalent realization).
 //!
 //! The richer explicit substrate-Term decomposition of
@@ -26,19 +26,15 @@
 //! Literal(0x80, W8))` to select between `Concat(0x00, operand)` and
 //! `Concat(0xff, operand)`) plus W16 `Mul` + W16 `Add` accumulation
 //! plus saturation via `Match` over `Ge(acc, Literal(0x7fff, W16))` /
-//! `Lt(acc, Literal(0x8000, W16))`. Forward work co-gated on
-//! foundation-sdk admitting `le`/`lt`/`ge`/`gt` and `concat` as
-//! verb-body call forms (currently rejected per ADR-035 ψ-residuals
-//! discipline).
-//!
-//! **Blocked on upstream `uor-foundation-sdk` grammar extension.**
-//! Foundation-sdk 0.4.7's `verb!` body grammar rejects `le`/`lt`/`ge`/`gt`
-//! per ADR-035 ψ-residuals discipline (these comparison primitives are
-//! reserved for the ψ-chain, not verb-body branching) and rejects
-//! `concat` (needed for the byte-prefixing pattern of the sign-extend
-//! sub-verb). Until foundation-sdk extends the grammar to admit a
-//! `match`-able byte-level comparison form for use in tensor-saturation
-//! bodies, the substrate-Term matmul verb cannot be expressed.
+//! `Lt(acc, Literal(0x8000, W16))`. The architectural blocker is the
+//! ADR-035 ψ-residual rejection of `le`/`lt`/`ge`/`gt` and `concat`
+//! in axis bodies — this is a **wiki design constraint**, not a
+//! foundation-sdk gap (the comparison and concat ops exist in
+//! `PrimitiveOp` and the substrate catamorphism evaluates them; only
+//! verb/axis body composition rejects them). Closing the tensor
+//! substrate-Term body needs an ADR-035 amendment admitting
+//! comparison-as-Match + concat-as-sign-extend in axis-body contexts.
+//! AGENTS.md §11.8 names this as Dependency 3.
 //!
 //! The hand-written `for`-loop kernel below is the operational form;
 //! byte-output equivalence with BLAS reference outputs at integer

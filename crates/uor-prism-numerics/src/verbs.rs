@@ -1,12 +1,14 @@
 //! Layer-3 substrate-Term verb bodies per [Wiki ADR-024][09-adr-024] +
-//! [Wiki ADR-031][09-adr-031] + [Wiki ADR-054 decision 4][09-adr-054]
-//! (canonical axis impl body discipline).
+//! [Wiki ADR-031][09-adr-031] + [Wiki ADR-055][09-adr-055] (universal
+//! substrate-Term verb body discipline, supersedes ADR-054 RA2).
 //!
 //! Per ADR-024 a Layer-3 implementation contributes both axes
 //! (substrate-extension vocabularies via `axis!`) AND verbs (named,
 //! reusable compositions of prism operators applied to substrate
-//! primitives via `verb!`). Per ADR-054 (4) every canonical axis impl
-//! in the standard library carries a substrate-Term verb body.
+//! primitives via `verb!`). Per ADR-055 every `AxisExtension` impl
+//! (standard-library AND application-author custom) carries a
+//! substrate-Term verb body via the foundation-declared
+//! `SubstrateTermBody` supertrait.
 //!
 //! # Verbs shipped (expressible in foundation-sdk 0.4.9's verb! grammar)
 //!
@@ -25,7 +27,7 @@
 //!   [`div_substrate`], [`mod_substrate`], [`pow_substrate`] —
 //!   substrate-Term realizations of the six ADR-053 ring-arithmetic
 //!   `PrimitiveOp`s over a `partition_product(BigInt32, BigInt32)`
-//!   input at W256 per ADR-054 (4) + ADR-055. Each verb body is one
+//!   input at W256 per ADR-055 + ADR-055. Each verb body is one
 //!   substrate `PrimitiveOp` application; per ADR-050's
 //!   width-parametric arithmetic the substrate evaluates at the full
 //!   256-bit width without truncation.
@@ -131,7 +133,7 @@ partition_product!(BigIntPair32, BigInt32, BigInt32);
 
 // Substrate-native 256-bit modular arithmetic: `add_substrate` /
 // `sub_substrate` / `mul_substrate` are the substrate-Term realizations
-// per ADR-054 (4) of the corresponding `BigIntAxis` kernel bodies.
+// per ADR-055 of the corresponding `BigIntAxis` kernel bodies.
 // The substrate evaluates `Add`/`Sub`/`Mul` at the full 256-bit operand
 // width per ADR-050's width-parametric fold-rules (low 256 bits of
 // the schoolbook product for `Mul`). The catamorphism walks each
@@ -158,7 +160,7 @@ verb! {
 }
 
 // Substrate-native 256-bit GF(2) hypercube arithmetic — substrate-Term
-// realizations per ADR-054 (4) of `Gf2NumericAxisN<32>::{add, mul}`.
+// realizations per ADR-055 of `Gf2NumericAxisN<32>::{add, mul}`.
 // Per ADR-050 the substrate evaluates `Xor`/`And` byte-wise at any
 // operand width (trivially width-parametric since they have no carry).
 

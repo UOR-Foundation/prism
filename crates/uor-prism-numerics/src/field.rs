@@ -14,22 +14,30 @@
 //! Per [Wiki ADR-055](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
 //! every `AxisExtension` impl carries a substrate-Term verb body via
 //! the foundation-declared `SubstrateTermBody` supertrait. The
-//! `axis!` companion macro in foundation-sdk 0.4.8 emits a default
-//! empty `body_arena()` (the primitive-fast-path-equivalent
-//! realization); the hand-written kernel below satisfies the
-//! discipline as-shipped.
+//! `axis!` companion macro in foundation-sdk 0.4.9 emits a default
+//! empty `body_arena()` for every impl that doesn't supply an
+//! explicit `body = |input| { … };` clause (the
+//! primitive-fast-path-equivalent realization); the hand-written
+//! kernel below satisfies the discipline as-shipped.
 //!
 //! The richer explicit substrate-Term decomposition for
 //! `PrimeFieldNumericSecp256k1::{add, sub, mul}` is
-//! `Mod(<ring-arithmetic>, P_LITERAL)` at W256, where `P_LITERAL` is
-//! the secp256k1 base-field prime as a
-//! `Term::Literal { value: TermValue, level: WittLevel::new(256) }`
-//! and `<ring-arithmetic>` is `Add`/`Sub`/`Mul` over the
-//! partition-product of two `FieldElementShape<32>` operands. Forward
-//! work co-gated on foundation-sdk admitting `mod` as a verb-body
-//! call form (foundation-sdk 0.4.8's `emit_term_for_call` lines
-//! 3222-3260 do not yet admit `PrimitiveOp::Mod` though ADR-053 added
-//! it to the substrate catalog).
+//! `r#mod(<ring-arithmetic>(input.0, input.1), P_LITERAL)` at W256,
+//! where `<ring-arithmetic>` is `add`/`sub`/`mul` and the input is a
+//! `partition_product(FieldElementShape<32>, FieldElementShape<32>)`.
+//! With foundation-sdk 0.4.9's `div`/`r#mod`/`pow` admissions and
+//! the `body` clause grammar in scope, this is now syntactically
+//! expressible per the in-grammar surface — the remaining co-gate is
+//! the wide-Witt-level `TermValue` literal embedding mechanism for
+//! `P_LITERAL` (the secp256k1 base-field prime is a 256-bit
+//! constant; ADR-051's wide `TermValue` carrier exists at the
+//! substrate level but isn't yet surfaced as a verb/axis-body
+//! literal-expr form). AGENTS.md §11.8 names this as Dependency 2.
+//!
+//! See `prism::numerics::verbs::field_add_substrate` for the
+//! intermediate substrate-Term form (three-operand `(a, b, p)`
+//! partition-product) blocked separately on Dependency 1 — depth-2
+//! field access in `verb!`-macro const-eval.
 //!
 //! Byte-output equivalence with the SEC 2 §2.4.1 vectors is verified
 //! by direct vectors in `tests/conformance.rs`.
