@@ -50,7 +50,7 @@ implementation. Code in this repository must satisfy:
   bilateral compile-time enforcement, replayability without deciders or
   hashing, no application-author infrastructure) — see wiki page 02
 - **Quality scenarios** QS-01 through QS-05 — see wiki page 10
-- **Architecture decision records** ADR-001 through ADR-054 —
+- **Architecture decision records** ADR-001 through ADR-055 —
   see wiki page 09. The most architecturally load-bearing recent
   additions: **ADR-018** (`HostBounds` capacity completeness — third
   substitution axis); **ADR-019** (foundation is a closed signature
@@ -99,7 +99,16 @@ implementation. Code in this repository must satisfy:
   the doctest in [`prism::operation`] for the updated
   exhaustive-match); **ADR-054** (the Fold-Fusion Principle — every
   prism transformation is a folding operation; the catamorphism
-  fuses composed folds by universal property).
+  fuses composed folds by universal property); **ADR-055**
+  (universal substrate-Term verb body discipline — the
+  foundation-declared `SubstrateTermBody` supertrait on
+  `AxisExtension` makes the substrate-Term verb body discipline
+  apply to every axis impl, not just standard-library canonical
+  impls per the previous ADR-054 RA2 carve-out; foundation-sdk's
+  `axis!` companion macro emits a default empty `body_arena()` that
+  signals the primitive-fast-path-equivalent realization — the
+  explicit `body` clause grammar is forthcoming in a future
+  foundation-sdk release).
 
 Substitution axes (the only permitted variation points per ADR-007 /
 ADR-030 / ADR-036 / ADR-048): `HostTypes`, `HostBounds`, `AxisTuple`,
@@ -173,26 +182,31 @@ that contribute the built-in axes and built-in types it re-exports.
   `prism`'s pin on `uor-foundation` may lag the latest published
   version; updates to this repo are demand-driven (a needed surface
   change) rather than calendar-driven.
-- **`uor-foundation`**: `^0.4` (effective floor 0.4.7 — required for
-  width-parametric arithmetic fold-rules per ADR-050, wide-value
-  carrier on `Term::Literal` per ADR-051, `PrimitiveOp::{Div, Mod,
-  Pow}` per ADR-053). Earlier floors: `C: TypedCommitment` on
+- **`uor-foundation`**: `^0.4` (effective floor 0.4.8 — required for
+  the `SubstrateTermBody` supertrait on `AxisExtension` per ADR-055
+  universal substrate-Term verb body discipline). Earlier floors:
+  width-parametric arithmetic fold-rules per ADR-050; wide-value
+  carrier on `Term::Literal` per ADR-051; `PrimitiveOp::{Div, Mod,
+  Pow}` per ADR-053; `C: TypedCommitment` on
   `PrismModel`/`run_route` per ADR-048; `CYCLE_SIZE` on
   `ConstrainedTypeShape` per ADR-032; `R: ResolverTuple` substrate
   parameter per ADR-035/036; new
   `PrimitiveOp::{Le, Lt, Ge, Gt, Concat}` per ADR-026;
   `Output: IntoBindingValue` per ADR-023 value-flow expansion.
   `default-features = false`, `no_std`-clean.
-- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.7 — required
-  for the `axis!` macro's `@generic` companion-emission form per
-  ADR-052, replacing the hand-written `AxisExtension` impls in every
-  parametric Layer-3 axis). Earlier floors: per wiki ADR-031 for the
-  SDK macros `prism_model!`, `verb!`, `axis!`, `resolver!`,
+- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.8 — required
+  for the `axis!` companion macro emitting the
+  `SubstrateTermBody` impl alongside `AxisExtension` per ADR-055;
+  current 0.4.8 emits a default empty `body_arena()` for the
+  primitive-fast-path interpretation, and a normative `body` clause
+  grammar is forthcoming in a future release). Earlier floors: the
+  `axis!` macro's `@generic` companion-emission form per ADR-052;
+  the SDK macros `prism_model!`, `verb!`, `axis!`, `resolver!`,
   `output_shape!`, `use_verbs!`, `product_shape!`, `coproduct_shape!`,
   `cartesian_product_shape!`, `partition_product!`,
-  `partition_coproduct!`. Re-exported through `prism::pipeline` so
-  application authors reach the canonical SDK macro surface through
-  the single `prism` dep.
+  `partition_coproduct!` per ADR-031. Re-exported through
+  `prism::pipeline` so application authors reach the canonical SDK
+  macro surface through the single `prism` dep.
 - **Backing crates for standard-library Layer-3 sub-crates** (per
   ADR-031's `prism-crypto` roster of canonical impls):
   `sha2 = "0.10"`, `sha3 = "0.10"`, `blake3 = "1.5"` (pinned to
@@ -624,38 +638,63 @@ closure rule the IRI is the foundation's shared
 `ConstrainedType` class; instance identity flows through
 `(SITE_COUNT, CONSTRAINTS)`.
 
-### 11.8 Layer-3 verbs in standard-library sub-crates — ADR-054 (4) substrate-Term canonical body discipline
+### 11.8 Substrate-Term verb body discipline — ADR-055 universal commitment
 
 Per ADR-024 the standard-library sub-crates contribute *verbs* (named
 compositions of prism operators applied to substrate primitives) in
-addition to axes. Per [ADR-054 § Decision 4][09-adr-054] every
-canonical axis impl in the standard library carries a
-**substrate-Term verb body** — the catamorphism's fold-fusion reach
-extends into the impl body structurally, with no opaque axis-kernel
-boundary inside the substrate's structural reach.
+addition to axes. Per [ADR-055](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions) (universal substrate-Term
+verb body discipline, supersedes ADR-054 RA2) **every** `AxisExtension`
+impl — standard-library AND application-author custom — carries a
+substrate-Term verb body. Foundation 0.4.8 declares the
+`SubstrateTermBody` supertrait on `AxisExtension`; the `axis!`
+companion macro emits a default `body_arena()` returning the empty
+slice `&[]`, which ADR-055 names as the
+**primitive-fast-path-equivalent realization** (the kernel-function
+dispatch path is byte-output-equivalent to recursive fold-fusion
+through an empty body arena). Axis impls whose explicit substrate-Term
+composition expresses the kernel's structural decomposition gain
+**recursive fold-fusion through the axis body**; impls relying on the
+default empty `body_arena()` use the primitive-fast-path
+interpretation. Both forms are architecturally conforming under
+ADR-055.
 
-**Substrate-Term verb bodies shipped** (per the in-grammar scope of
-foundation-sdk 0.4.7):
+The explicit `body` clause grammar on the `axis!` macro is forthcoming
+in a future foundation-sdk release per ADR-055's "the macro's
+forthcoming body-clause grammar" framing. Until that lands, the
+default empty `body_arena()` (emitted by 0.4.8's companion macro) is
+the conformant form. Recursive-fold-fusion bodies are forward work
+co-gated on the upstream body-clause grammar and the verb-body
+call-form admissions (`div`/`mod`/`pow`/`concat`) ADR-053 added to the
+PrimitiveOp catalog.
+
+**Architectural-witness verbs shipped** (in-grammar
+substrate-Term verbs that demonstrate the path):
 
 | Sub-crate | Verb | Substrate composition | Realizes |
 |---|---|---|---|
 | `prism::numerics::verbs` | `succ_twice`, `pred_twice` | `succ(succ(input))` / `pred(pred(input))` | witness for the `verb!` emission path |
 | `prism::numerics::verbs` | `square` | `mul(input, input)` | single-input self-multiplication |
-| `prism::numerics::verbs` | `add_substrate`, `sub_substrate`, `mul_substrate` | `add(input.0, input.1)` etc. at W256 over a `partition_product(BigInt32, BigInt32)` input | canonical body of `BigIntAxis::{add, sub, mul}` per ADR-054 (4) |
-| `prism::numerics::verbs` | `gf2_add_substrate`, `gf2_mul_substrate`, `or_substrate` | `xor(input.0, input.1)`, `and(input.0, input.1)`, `or(input.0, input.1)` at W256 | canonical body of `Gf2NumericAxisN<32>::{add, mul}` per ADR-054 (4) |
-| `prism::fhe::verbs` | `add_ciphertexts_verb` | `xor(input.0, input.1)` over `partition_product(Ciphertext32, Ciphertext32)` | canonical body of `OneTimePadFhe<32>::add_ciphertexts` per ADR-054 (4) |
+| `prism::numerics::verbs` | `add_substrate`, `sub_substrate`, `mul_substrate` | `add(input.0, input.1)` etc. at W256 over a `partition_product(BigInt32, BigInt32)` input | recursive-fold-fusion body for `BigIntAxis::{add, sub, mul}` per ADR-055 |
+| `prism::numerics::verbs` | `gf2_add_substrate`, `gf2_mul_substrate`, `or_substrate` | `xor(input.0, input.1)`, `and(input.0, input.1)`, `or(input.0, input.1)` at W256 | recursive-fold-fusion body for `Gf2NumericAxisN<32>::{add, mul}` per ADR-055 |
+| `prism::fhe::verbs` | `add_ciphertexts_verb` | `xor(input.0, input.1)` over `partition_product(Ciphertext32, Ciphertext32)` | recursive-fold-fusion body for `OneTimePadFhe<32>::add_ciphertexts` per ADR-055 |
 
-**Upstream blocker: `uor-foundation-sdk` verb-body grammar
-extension.** ADR-054 (4) commits substrate-Term verb bodies for the
-full canonical roster: SHA-256/SHA-512/SHA3-256/Keccak-256/BLAKE3
-(prism-crypto's `HashAxis`), `PrimeFieldNumericSecp256k1::{add, sub,
-mul}` (prism-numerics' `FieldAxis`), `CpuI8MatmulSquare`/
-`CpuI8VectorActivation` (prism-tensor), plus the compound-verb
-roster (`modexp_p`, `gcd`, `ext_euclidean`, HMAC, HKDF, ECDSA,
-Merkle-tree, etc.).
+**Forward work: richer substrate-Term canonical bodies.** ADR-055's
+universal discipline applies to the wiki's full canonical roster:
+SHA-256/SHA-512/SHA3-256/Keccak-256/BLAKE3 (prism-crypto's `HashAxis`),
+`PrimeFieldNumericSecp256k1::{add, sub, mul}` (prism-numerics'
+`FieldAxis`), `CpuI8MatmulSquare`/`CpuI8VectorActivation`
+(prism-tensor), plus the compound-verb roster (`modexp_p`, `gcd`,
+`ext_euclidean`, HMAC, HKDF, ECDSA, Merkle-tree, etc.). The default
+empty `body_arena()` ADR-055 ships satisfies the discipline for every
+existing axis impl; explicit substrate-Term decompositions are
+forward work co-gated on (1) foundation-sdk's forthcoming `body`
+clause grammar on the `axis!` macro and (2) the verb-body
+call-form admissions ADR-053 added to the PrimitiveOp catalog.
 
-These bodies compose substrate primitives whose verb-body call form
-foundation-sdk 0.4.7 does not yet admit:
+Specifically, the closure-body grammar in foundation-sdk 0.4.8
+(`emit_term_for_call` at lines 3222-3260) admits only
+`add/sub/mul/xor/and/or/neg/bnot/succ/pred` as PrimitiveOp call forms
+and does not yet admit:
 
 - `div`, `mod`, `pow` — added to the `PrimitiveOp` catalog by
   ADR-053 but not yet emitted as call forms in foundation-sdk's
@@ -678,23 +717,26 @@ foundation-sdk 0.4.7 does not yet admit:
 The hand-written kernel bodies in the canonical axis impls (delegating
 to `sha2`/`sha3`/`blake3` crates, or to hand-rolled long-arithmetic
 for `PrimeFieldNumericSecp256k1`, or to integer-Rust `for`-loops for
-`CpuI8MatmulSquare`) are the operational form. Each canonical-impl
-docstring carries an "ADR-054 (4) substrate-Term verb body — forward
-work" section citing the specific upstream grammar dependency.
-Byte-output equivalence with the canonical reference vectors
-(FIPS-180-4, FIPS-202, BLAKE3 spec, SEC 2 §2.4.1, BLAS reference
-outputs) is verified by direct vectors in each sub-crate's
-`tests/conformance.rs`; per ADR-054's by-construction equivalence
-clause, the substrate-Term forms — once foundation-sdk extends the
-verb-body grammar to admit `div`/`mod`/`pow`/`concat`/`hash`-in-resolver-context
-— will produce byte-identical outputs.
+`CpuI8MatmulSquare`) are the operational form. Per ADR-055 these
+satisfy the universal discipline via the default empty `body_arena()`
+(primitive-fast-path-equivalent realization). Each canonical-impl
+docstring carries an "ADR-055 substrate-Term verb body — forward
+work" section citing the specific upstream grammar dependency for
+the richer explicit decomposition. Byte-output equivalence with the
+canonical reference vectors (FIPS-180-4, FIPS-202, BLAKE3 spec,
+SEC 2 §2.4.1, BLAS reference outputs) is verified by direct vectors
+in each sub-crate's `tests/conformance.rs`; per ADR-055's
+byte-output-equivalence-at-every-input clause, the substrate-Term
+forms — once foundation-sdk's `body` clause grammar admits
+`div`/`mod`/`pow`/`concat` and resolves the `hash`-in-axis-body
+question — will produce byte-identical outputs.
 
-Closing ADR-054 (4) at the standard-library canonical surface is
-forward work split between this repo (substrate-Term verb bodies for
-the operations that become expressible) and upstream `uor-foundation`
-+ `uor-foundation-sdk` (the verb-body grammar extensions admitting
-`div`/`mod`/`pow`/`concat` as call forms and resolving the `hash`-in-verb
-question against ADR-036's resolver-only-consumption rule).
+Closing the richer ADR-055 explicit-body decomposition at the
+standard-library canonical surface is forward work split between this
+repo (substrate-Term verb bodies for the operations that become
+expressible) and upstream `uor-foundation` + `uor-foundation-sdk`
+(the `axis!` `body` clause grammar plus the verb-body call-form
+admissions for `div`/`mod`/`pow`/`concat`).
 
 ### 11.9 Layer-3 axis impl roster — operational policy
 

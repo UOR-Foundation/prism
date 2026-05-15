@@ -9,30 +9,30 @@
 //! Mersenne prime declares its own `FieldAxis` impl alongside the
 //! standard library's secp256k1 impl through its `AxisTuple`.
 //!
-//! # ADR-054 (4) substrate-Term verb body — forward work
+//! # ADR-055 substrate-Term verb body discipline
 //!
-//! Per [Wiki ADR-054 § Decision 4][09-adr-054], the canonical body of
-//! `PrimeFieldNumericSecp256k1::{add, sub, mul}` is a `verb!`-emitted
-//! substrate-Term composition `Mod(<ring-arithmetic>, P_LITERAL)`
-//! at W256, where `P_LITERAL` is the secp256k1 base-field prime as a
+//! Per [Wiki ADR-055](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
+//! every `AxisExtension` impl carries a substrate-Term verb body via
+//! the foundation-declared `SubstrateTermBody` supertrait. The
+//! `axis!` companion macro in foundation-sdk 0.4.8 emits a default
+//! empty `body_arena()` (the primitive-fast-path-equivalent
+//! realization); the hand-written kernel below satisfies the
+//! discipline as-shipped.
+//!
+//! The richer explicit substrate-Term decomposition for
+//! `PrimeFieldNumericSecp256k1::{add, sub, mul}` is
+//! `Mod(<ring-arithmetic>, P_LITERAL)` at W256, where `P_LITERAL` is
+//! the secp256k1 base-field prime as a
 //! `Term::Literal { value: TermValue, level: WittLevel::new(256) }`
 //! and `<ring-arithmetic>` is `Add`/`Sub`/`Mul` over the
-//! partition-product of two `FieldElementShape<32>` operands.
+//! partition-product of two `FieldElementShape<32>` operands. Forward
+//! work co-gated on foundation-sdk admitting `mod` as a verb-body
+//! call form (foundation-sdk 0.4.8's `emit_term_for_call` lines
+//! 3222-3260 do not yet admit `PrimitiveOp::Mod` though ADR-053 added
+//! it to the substrate catalog).
 //!
-//! **Blocked on upstream `uor-foundation-sdk` grammar extension.**
-//! Foundation-sdk 0.4.7's `verb!` closure-body grammar
-//! (`emit_term_for_call` lines 3222-3260) admits `add`/`sub`/`mul`
-//! as call forms but not `mod` — `PrimitiveOp::Mod` was added to
-//! the substrate catalog by ADR-053 but the verb-body grammar
-//! does not yet admit it. Until foundation-sdk extends the grammar,
-//! the prime-field substrate-Term verb body cannot be expressed.
-//!
-//! The hand-written kernel below (schoolbook multiplication followed
-//! by Barrett-style long-division reduction against the P literal) is
-//! the operational form. Byte-output equivalence with the
-//! SEC 2 §2.4.1 vectors is checked at `tests/conformance.rs`.
-//!
-//! [09-adr-054]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
+//! Byte-output equivalence with the SEC 2 §2.4.1 vectors is verified
+//! by direct vectors in `tests/conformance.rs`.
 
 #![allow(missing_docs)]
 

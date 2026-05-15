@@ -13,14 +13,23 @@
 //!
 //! # ADR-054 (4) substrate-Term verb body — forward work
 //!
-//! Per [Wiki ADR-054 § Decision 4][09-adr-054], the canonical body of
-//! `CpuI8MatmulSquare<DIM>::matmul` is a `verb!`-emitted substrate-Term
-//! composition: `fold_n(DIM, ...)` over rows × `fold_n(DIM, ...)` over
-//! columns × `fold_n(DIM, ...)` over reductions, with a `sign_extend`
-//! sub-verb (matching `Ge(operand, Literal(0x80, W8))` to select between
-//! `Concat(0x00, operand)` and `Concat(0xff, operand)`) plus W16 `Mul` +
-//! W16 `Add` accumulation plus saturation via `Match` over
-//! `Ge(acc, Literal(0x7fff, W16))` / `Lt(acc, Literal(0x8000, W16))`.
+//! Per [Wiki ADR-055](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
+//! every `AxisExtension` impl satisfies the substrate-Term verb body
+//! discipline; the hand-written kernel below uses the default empty
+//! `body_arena()` emitted by foundation-sdk 0.4.8's `axis!` companion
+//! macro (the primitive-fast-path-equivalent realization).
+//!
+//! The richer explicit substrate-Term decomposition of
+//! `CpuI8MatmulSquare<DIM>::matmul` is `fold_n(DIM, ...)` over rows ×
+//! `fold_n(DIM, ...)` over columns × `fold_n(DIM, ...)` over
+//! reductions, with a `sign_extend` sub-verb (matching `Ge(operand,
+//! Literal(0x80, W8))` to select between `Concat(0x00, operand)` and
+//! `Concat(0xff, operand)`) plus W16 `Mul` + W16 `Add` accumulation
+//! plus saturation via `Match` over `Ge(acc, Literal(0x7fff, W16))` /
+//! `Lt(acc, Literal(0x8000, W16))`. Forward work co-gated on
+//! foundation-sdk admitting `le`/`lt`/`ge`/`gt` and `concat` as
+//! verb-body call forms (currently rejected per ADR-035 ψ-residuals
+//! discipline).
 //!
 //! **Blocked on upstream `uor-foundation-sdk` grammar extension.**
 //! Foundation-sdk 0.4.7's `verb!` body grammar rejects `le`/`lt`/`ge`/`gt`
