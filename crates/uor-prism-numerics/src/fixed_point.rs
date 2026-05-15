@@ -143,33 +143,12 @@ impl<const INT_BITS: u32, const FRAC_BITS: u32> FixedPointAxis
     }
 }
 
-impl<const INT_BITS: u32, const FRAC_BITS: u32> AxisExtension
-    for FixedPointQNumeric<INT_BITS, FRAC_BITS>
-{
-    const AXIS_ADDRESS: &'static str = <Self as FixedPointAxis>::AXIS_ADDRESS;
-    const MAX_OUTPUT_BYTES: usize = <Self as FixedPointAxis>::MAX_OUTPUT_BYTES;
-
-    fn dispatch_kernel(
-        kernel_id: u32,
-        input: &[u8],
-        out: &mut [u8],
-    ) -> Result<usize, ShapeViolation> {
-        match kernel_id {
-            KERNEL_ADD => <Self as FixedPointAxis>::add(input, out),
-            KERNEL_SUB => <Self as FixedPointAxis>::sub(input, out),
-            KERNEL_MUL => <Self as FixedPointAxis>::mul(input, out),
-            _ => Err(ShapeViolation {
-                shape_iri: "https://uor.foundation/axis/AxisExtensionShape",
-                constraint_iri: "https://uor.foundation/axis/AxisExtensionShape/kernelId",
-                property_iri: "https://uor.foundation/axis/kernelId",
-                expected_range: "https://uor.foundation/axis/RecognisedKernelId",
-                min_count: 0,
-                max_count: 0,
-                kind: uor_foundation::ViolationKind::ValueCheck,
-            }),
-        }
-    }
-}
+// ADR-052 generic-form companion: parametric impl inherits the
+// dispatch body from the `axis!` emission.
+axis_extension_impl_for_fixed_point_axis!(
+    @generic FixedPointQNumeric<INT_BITS, FRAC_BITS>,
+    [const INT_BITS: u32, const FRAC_BITS: u32]
+);
 
 /// Q32.32 — 32 integer bits, 32 fraction bits.
 pub type FixedPointQ32_32Numeric = FixedPointQNumeric<32, 32>;

@@ -75,7 +75,7 @@ use prism::vocabulary::{
 // ---- Generic round-trip property ----
 
 static ROOT_TERMS: &[Term] = &[Term::Literal {
-    value: 7,
+    value: prism::operation::TermValue::from_u64_be(7, 1),
     level: WittLevel::W8,
 }];
 static DOMAINS: &[VerificationDomain] = &[VerificationDomain::Enumerative];

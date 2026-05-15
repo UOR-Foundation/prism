@@ -92,29 +92,8 @@ impl<const BLOCK_BYTES: usize> FheAxis for OneTimePadFhe<BLOCK_BYTES> {
     }
 }
 
-impl<const BLOCK_BYTES: usize> AxisExtension for OneTimePadFhe<BLOCK_BYTES> {
-    const AXIS_ADDRESS: &'static str = <Self as FheAxis>::AXIS_ADDRESS;
-    const MAX_OUTPUT_BYTES: usize = <Self as FheAxis>::MAX_OUTPUT_BYTES;
-
-    fn dispatch_kernel(
-        kernel_id: u32,
-        input: &[u8],
-        out: &mut [u8],
-    ) -> Result<usize, ShapeViolation> {
-        match kernel_id {
-            KERNEL_ADD_CIPHERTEXTS => <Self as FheAxis>::add_ciphertexts(input, out),
-            _ => Err(ShapeViolation {
-                shape_iri: "https://uor.foundation/axis/AxisExtensionShape",
-                constraint_iri: "https://uor.foundation/axis/AxisExtensionShape/kernelId",
-                property_iri: "https://uor.foundation/axis/kernelId",
-                expected_range: "https://uor.foundation/axis/RecognisedKernelId",
-                min_count: 0,
-                max_count: 0,
-                kind: uor_foundation::ViolationKind::ValueCheck,
-            }),
-        }
-    }
-}
+// ADR-052 generic-form companion.
+axis_extension_impl_for_fhe_axis!(@generic OneTimePadFhe<BLOCK_BYTES>, [const BLOCK_BYTES: usize]);
 
 /// 32-byte one-time-pad FHE (canonical block width).
 pub type OneTimePadFheAxis = OneTimePadFhe<32>;

@@ -3,7 +3,11 @@
 //! `operation` exposes the closed primitive vocabulary the application
 //! author composes when declaring a constrained type: the [`Term`] AST
 //! and its arena ([`TermArena`]), the [`TermList`] container, and the
-//! ten-element closed set of [`PrimitiveOp`] discriminants.
+//! eighteen-element closed set of [`PrimitiveOp`] discriminants (the
+//! original fifteen plus `Div`/`Mod`/`Pow` per ADR-053). The
+//! [`TermValue`] byte-sequence carrier on `Term::Literal` per ADR-051
+//! lets wide-Witt-level literals (up to `TERM_VALUE_MAX_BYTES`) sit
+//! directly in the AST.
 //!
 //! Per ADR-014, `prism`'s `operation` module surfaces the *primitive
 //! operation vocabulary* — the closed `PrimitiveOp` set that the
@@ -61,7 +65,10 @@
 //!         | PrimitiveOp::Lt
 //!         | PrimitiveOp::Ge
 //!         | PrimitiveOp::Gt
-//!         | PrimitiveOp::Concat => "binary",
+//!         | PrimitiveOp::Concat
+//!         | PrimitiveOp::Div
+//!         | PrimitiveOp::Mod
+//!         | PrimitiveOp::Pow => "binary",
 //!     }
 //! }
 //! assert_eq!(_arity_class(PrimitiveOp::Add), "binary");
@@ -75,6 +82,7 @@
 //! fn _accepts_sinking<S: Sinking>() {}
 //! ```
 
+pub use uor_foundation::pipeline::TermValue;
 pub use uor_foundation::PrimitiveOp;
 pub use uor_foundation::{Term, TermArena, TermList};
 

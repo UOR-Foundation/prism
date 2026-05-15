@@ -135,29 +135,11 @@ impl<H: HashAxis, const LEAF_BYTES: usize> CommitmentAxis for MerkleRoot<H, LEAF
     }
 }
 
-impl<H: HashAxis, const LEAF_BYTES: usize> AxisExtension for MerkleRoot<H, LEAF_BYTES> {
-    const AXIS_ADDRESS: &'static str = <Self as CommitmentAxis>::AXIS_ADDRESS;
-    const MAX_OUTPUT_BYTES: usize = <Self as CommitmentAxis>::MAX_OUTPUT_BYTES;
-
-    fn dispatch_kernel(
-        kernel_id: u32,
-        input: &[u8],
-        out: &mut [u8],
-    ) -> Result<usize, ShapeViolation> {
-        match kernel_id {
-            KERNEL_COMMIT => <Self as CommitmentAxis>::commit(input, out),
-            _ => Err(ShapeViolation {
-                shape_iri: "https://uor.foundation/axis/AxisExtensionShape",
-                constraint_iri: "https://uor.foundation/axis/AxisExtensionShape/kernelId",
-                property_iri: "https://uor.foundation/axis/kernelId",
-                expected_range: "https://uor.foundation/axis/RecognisedKernelId",
-                min_count: 0,
-                max_count: 0,
-                kind: uor_foundation::ViolationKind::ValueCheck,
-            }),
-        }
-    }
-}
+// ADR-052 generic-form companion.
+axis_extension_impl_for_commitment_axis!(
+    @generic MerkleRoot<H, LEAF_BYTES>,
+    [H: HashAxis, const LEAF_BYTES: usize]
+);
 
 /// SHA-256 Merkle root — the canonical default per ADR-031.
 pub type MerkleRootCommitment = MerkleRoot<Sha256Hasher, SHA256_BYTES>;

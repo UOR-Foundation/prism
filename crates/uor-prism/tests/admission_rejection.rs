@@ -18,7 +18,7 @@ use prism::std_types::ConstrainedTypeInput;
 use prism::vocabulary::{CompileUnitBuilder, VerificationDomain, WittLevel};
 
 static SENTINEL_TERMS: &[Term] = &[Term::Literal {
-    value: 1,
+    value: prism::operation::TermValue::from_u64_be(1, 1),
     level: WittLevel::W8,
 }];
 static SENTINEL_DOMAINS: &[VerificationDomain] = &[VerificationDomain::Enumerative];

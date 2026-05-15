@@ -50,7 +50,7 @@ implementation. Code in this repository must satisfy:
   bilateral compile-time enforcement, replayability without deciders or
   hashing, no application-author infrastructure) — see wiki page 02
 - **Quality scenarios** QS-01 through QS-05 — see wiki page 10
-- **Architecture decision records** ADR-001 through ADR-048 —
+- **Architecture decision records** ADR-001 through ADR-054 —
   see wiki page 09. The most architecturally load-bearing recent
   additions: **ADR-018** (`HostBounds` capacity completeness — third
   substitution axis); **ADR-019** (foundation is a closed signature
@@ -84,7 +84,22 @@ implementation. Code in this repository must satisfy:
   re-tagging); **ADR-047** (σ-projection hardening U1–U6 axioms on
   canonical-hash axes); **ADR-048** (`TypedCommitment` substrate as the
   5th model-declaration parameter — zero-cost typed-bandwidth
-  admission composition; `EmptyCommitment` default).
+  admission composition; `EmptyCommitment` default); **ADR-050**
+  (width-parametric arithmetic fold-rules — the catamorphism
+  evaluates `PrimitiveOp::{Add, Sub, Mul, Neg, Bnot, Succ, Pred, Xor,
+  And, Or, Div, Mod, Pow}` at the full Witt tower, no longer
+  truncating wide operands to u64); **ADR-051** (`Term::Literal`
+  `value` is now a `TermValue` byte-sequence per wide-Witt-level
+  literals — see [`prism::operation::TermValue::from_u64_be`]);
+  **ADR-052** (the `axis!` SDK macro emits a `@generic` companion
+  form, so parametric Layer-3 axes inherit the
+  `AxisExtension::dispatch_kernel` body from the macro instead of
+  duplicating it as hand-written impls); **ADR-053** (`PrimitiveOp`
+  catalog gains `Div`, `Mod`, `Pow` as substrate primitives — see
+  the doctest in [`prism::operation`] for the updated
+  exhaustive-match); **ADR-054** (the Fold-Fusion Principle — every
+  prism transformation is a folding operation; the catamorphism
+  fuses composed folds by universal property).
 
 Substitution axes (the only permitted variation points per ADR-007 /
 ADR-030 / ADR-036 / ADR-048): `HostTypes`, `HostBounds`, `AxisTuple`,
@@ -158,21 +173,26 @@ that contribute the built-in axes and built-in types it re-exports.
   `prism`'s pin on `uor-foundation` may lag the latest published
   version; updates to this repo are demand-driven (a needed surface
   change) rather than calendar-driven.
-- **`uor-foundation`**: `^0.4` (effective floor 0.4.6 — required for
-  the `C: TypedCommitment` parameter on `PrismModel`/`run_route` per
-  ADR-048 (cost-model commitment surface; `EmptyCommitment` default).
-  Earlier floors: `CYCLE_SIZE` on `ConstrainedTypeShape` per ADR-032;
-  `R: ResolverTuple` substrate parameter per ADR-035/036; new
+- **`uor-foundation`**: `^0.4` (effective floor 0.4.7 — required for
+  width-parametric arithmetic fold-rules per ADR-050, wide-value
+  carrier on `Term::Literal` per ADR-051, `PrimitiveOp::{Div, Mod,
+  Pow}` per ADR-053). Earlier floors: `C: TypedCommitment` on
+  `PrismModel`/`run_route` per ADR-048; `CYCLE_SIZE` on
+  `ConstrainedTypeShape` per ADR-032; `R: ResolverTuple` substrate
+  parameter per ADR-035/036; new
   `PrimitiveOp::{Le, Lt, Ge, Gt, Concat}` per ADR-026;
-  `Output: IntoBindingValue` per ADR-023 value-flow expansion).
+  `Output: IntoBindingValue` per ADR-023 value-flow expansion.
   `default-features = false`, `no_std`-clean.
-- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.6 — required
-  per wiki ADR-031 for the SDK macros `prism_model!`, `verb!`,
-  `axis!`, `resolver!`, `output_shape!`, `use_verbs!`,
-  `product_shape!`, `coproduct_shape!`, `cartesian_product_shape!`,
-  `partition_product!`, `partition_coproduct!`. Re-exported through
-  `prism::pipeline` so application authors reach the canonical SDK
-  macro surface through the single `prism` dep).
+- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.7 — required
+  for the `axis!` macro's `@generic` companion-emission form per
+  ADR-052, replacing the hand-written `AxisExtension` impls in every
+  parametric Layer-3 axis). Earlier floors: per wiki ADR-031 for the
+  SDK macros `prism_model!`, `verb!`, `axis!`, `resolver!`,
+  `output_shape!`, `use_verbs!`, `product_shape!`, `coproduct_shape!`,
+  `cartesian_product_shape!`, `partition_product!`,
+  `partition_coproduct!`. Re-exported through `prism::pipeline` so
+  application authors reach the canonical SDK macro surface through
+  the single `prism` dep.
 - **Backing crates for standard-library Layer-3 sub-crates** (per
   ADR-031's `prism-crypto` roster of canonical impls):
   `sha2 = "0.10"`, `sha3 = "0.10"`, `blake3 = "1.5"` (pinned to

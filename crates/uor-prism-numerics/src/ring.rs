@@ -106,30 +106,8 @@ impl<const BYTES: usize> RingAxis for Gf2NumericAxisN<BYTES> {
     }
 }
 
-impl<const BYTES: usize> AxisExtension for Gf2NumericAxisN<BYTES> {
-    const AXIS_ADDRESS: &'static str = <Self as RingAxis>::AXIS_ADDRESS;
-    const MAX_OUTPUT_BYTES: usize = <Self as RingAxis>::MAX_OUTPUT_BYTES;
-
-    fn dispatch_kernel(
-        kernel_id: u32,
-        input: &[u8],
-        out: &mut [u8],
-    ) -> Result<usize, ShapeViolation> {
-        match kernel_id {
-            KERNEL_ADD => <Self as RingAxis>::add(input, out),
-            KERNEL_MUL => <Self as RingAxis>::mul(input, out),
-            _ => Err(ShapeViolation {
-                shape_iri: "https://uor.foundation/axis/AxisExtensionShape",
-                constraint_iri: "https://uor.foundation/axis/AxisExtensionShape/kernelId",
-                property_iri: "https://uor.foundation/axis/kernelId",
-                expected_range: "https://uor.foundation/axis/RecognisedKernelId",
-                min_count: 0,
-                max_count: 0,
-                kind: uor_foundation::ViolationKind::ValueCheck,
-            }),
-        }
-    }
-}
+// ADR-052 generic-form companion.
+axis_extension_impl_for_ring_axis!(@generic Gf2NumericAxisN<BYTES>, [const BYTES: usize]);
 
 /// 256-bit GF(2) ring (canonical 32-byte width).
 pub type Gf2NumericAxis = Gf2NumericAxisN<32>;

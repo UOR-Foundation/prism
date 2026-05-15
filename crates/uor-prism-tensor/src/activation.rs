@@ -126,30 +126,8 @@ impl<const N: usize> ActivationAxis for CpuI8VectorActivation<N> {
     }
 }
 
-impl<const N: usize> AxisExtension for CpuI8VectorActivation<N> {
-    const AXIS_ADDRESS: &'static str = <Self as ActivationAxis>::AXIS_ADDRESS;
-    const MAX_OUTPUT_BYTES: usize = <Self as ActivationAxis>::MAX_OUTPUT_BYTES;
-
-    fn dispatch_kernel(
-        kernel_id: u32,
-        input: &[u8],
-        out: &mut [u8],
-    ) -> Result<usize, ShapeViolation> {
-        match kernel_id {
-            KERNEL_RELU => <Self as ActivationAxis>::relu(input, out),
-            KERNEL_SIGMOID_Q => <Self as ActivationAxis>::sigmoid_q(input, out),
-            _ => Err(ShapeViolation {
-                shape_iri: "https://uor.foundation/axis/AxisExtensionShape",
-                constraint_iri: "https://uor.foundation/axis/AxisExtensionShape/kernelId",
-                property_iri: "https://uor.foundation/axis/kernelId",
-                expected_range: "https://uor.foundation/axis/RecognisedKernelId",
-                min_count: 0,
-                max_count: 0,
-                kind: uor_foundation::ViolationKind::ValueCheck,
-            }),
-        }
-    }
-}
+// ADR-052 generic-form companion.
+axis_extension_impl_for_activation_axis!(@generic CpuI8VectorActivation<N>, [const N: usize]);
 
 /// 16-element `i8` vector activation (the canonical small-vector reference).
 pub type CpuI8VectorActivation16 = CpuI8VectorActivation<16>;

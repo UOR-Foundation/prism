@@ -175,34 +175,11 @@ impl<const BYTES: usize> BigIntAxis for BigIntModularNumeric<BYTES> {
     }
 }
 
-// Hand-written AxisExtension impl (the `axis!`-emitted companion macro
-// takes `:ident` and cannot be applied to a generic type; we replicate
-// its dispatch arms by hand).
-impl<const BYTES: usize> AxisExtension for BigIntModularNumeric<BYTES> {
-    const AXIS_ADDRESS: &'static str = <Self as BigIntAxis>::AXIS_ADDRESS;
-    const MAX_OUTPUT_BYTES: usize = <Self as BigIntAxis>::MAX_OUTPUT_BYTES;
-
-    fn dispatch_kernel(
-        kernel_id: u32,
-        input: &[u8],
-        out: &mut [u8],
-    ) -> Result<usize, ShapeViolation> {
-        match kernel_id {
-            KERNEL_ADD => <Self as BigIntAxis>::add(input, out),
-            KERNEL_SUB => <Self as BigIntAxis>::sub(input, out),
-            KERNEL_MUL => <Self as BigIntAxis>::mul(input, out),
-            _ => Err(ShapeViolation {
-                shape_iri: "https://uor.foundation/axis/AxisExtensionShape",
-                constraint_iri: "https://uor.foundation/axis/AxisExtensionShape/kernelId",
-                property_iri: "https://uor.foundation/axis/kernelId",
-                expected_range: "https://uor.foundation/axis/RecognisedKernelId",
-                min_count: 0,
-                max_count: 0,
-                kind: uor_foundation::ViolationKind::ValueCheck,
-            }),
-        }
-    }
-}
+// ADR-052 generic-form companion: replaces the hand-written
+// AxisExtension impl. The macro's @generic arm accepts a `:ty` plus a
+// generic parameter list so parametric Layer-3 axes inherit the
+// dispatch body from the `axis!` emission.
+axis_extension_impl_for_big_int_axis!(@generic BigIntModularNumeric<BYTES>, [const BYTES: usize]);
 
 /// 256-bit modular arithmetic (mod `2^256`).
 pub type BigInt256Numeric = BigIntModularNumeric<32>;

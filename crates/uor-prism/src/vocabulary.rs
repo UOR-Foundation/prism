@@ -48,7 +48,7 @@
 //! assert_eq!(<DefaultHostBounds as HostBounds>::FINGERPRINT_MAX_BYTES, 32);
 //! assert_eq!(<DefaultHostBounds as HostBounds>::TRACE_MAX_EVENTS, 256);
 //! assert_eq!(<DefaultHostBounds as HostBounds>::WITT_LEVEL_MAX_BITS, 64);
-//! assert_eq!(TRACE_REPLAY_FORMAT_VERSION, 7);
+//! assert_eq!(TRACE_REPLAY_FORMAT_VERSION, 8);
 //! ```
 //!
 //! [05-prism]: https://github.com/UOR-Foundation/UOR-Framework/wiki/05-Building-Block-View#whitebox-prism

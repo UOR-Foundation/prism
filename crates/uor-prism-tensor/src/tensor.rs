@@ -136,29 +136,8 @@ impl<const DIM: usize> TensorAxis for CpuI8MatmulSquare<DIM> {
     }
 }
 
-impl<const DIM: usize> AxisExtension for CpuI8MatmulSquare<DIM> {
-    const AXIS_ADDRESS: &'static str = <Self as TensorAxis>::AXIS_ADDRESS;
-    const MAX_OUTPUT_BYTES: usize = <Self as TensorAxis>::MAX_OUTPUT_BYTES;
-
-    fn dispatch_kernel(
-        kernel_id: u32,
-        input: &[u8],
-        out: &mut [u8],
-    ) -> Result<usize, ShapeViolation> {
-        match kernel_id {
-            KERNEL_MATMUL => <Self as TensorAxis>::matmul(input, out),
-            _ => Err(ShapeViolation {
-                shape_iri: "https://uor.foundation/axis/AxisExtensionShape",
-                constraint_iri: "https://uor.foundation/axis/AxisExtensionShape/kernelId",
-                property_iri: "https://uor.foundation/axis/kernelId",
-                expected_range: "https://uor.foundation/axis/RecognisedKernelId",
-                min_count: 0,
-                max_count: 0,
-                kind: uor_foundation::ViolationKind::ValueCheck,
-            }),
-        }
-    }
-}
+// ADR-052 generic-form companion.
+axis_extension_impl_for_tensor_axis!(@generic CpuI8MatmulSquare<DIM>, [const DIM: usize]);
 
 /// 4×4 `i8` matmul — the canonical small-tensor reference.
 pub type CpuI8Tensor4x4Matmul = CpuI8MatmulSquare<4>;
