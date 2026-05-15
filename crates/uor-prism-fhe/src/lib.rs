@@ -44,6 +44,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub mod fhe;
+pub mod verbs;
 
 pub use fhe::{
     CiphertextShape, FheAxis, OneTimePadFhe, OneTimePadFhe128, OneTimePadFhe16, OneTimePadFhe64,

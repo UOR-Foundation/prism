@@ -624,32 +624,77 @@ closure rule the IRI is the foundation's shared
 `ConstrainedType` class; instance identity flows through
 `(SITE_COUNT, CONSTRAINTS)`.
 
-### 11.8 Layer-3 verbs in standard-library sub-crates
+### 11.8 Layer-3 verbs in standard-library sub-crates — ADR-054 (4) substrate-Term canonical body discipline
 
 Per ADR-024 the standard-library sub-crates contribute *verbs* (named
 compositions of prism operators applied to substrate primitives) in
-addition to axes. The architectural witness lives in
-`prism::numerics::verbs` (`succ_twice`, `pred_twice`) — these
-demonstrate the `verb!` SDK macro emission, the verb-closure check at
-proc-macro expansion, the `inline_verb_fragment` const-fn splicing
-into a host `prism_model!` route arena, and the re-export path
-through the prism façade.
+addition to axes. Per [ADR-054 § Decision 4][09-adr-054] every
+canonical axis impl in the standard library carries a
+**substrate-Term verb body** — the catamorphism's fold-fusion reach
+extends into the impl body structurally, with no opaque axis-kernel
+boundary inside the substrate's structural reach.
 
-The wiki's [ADR-031 § The standard-library sub-crate roster][09-adr-031]
-names a richer canonical verb roster: `modexp_p`, `polyeval`, `gcd`,
-`ext_euclidean`, `horner`, `newton_step`, `fma`, `field_add<P>`,
-`field_sub<P>`, `field_mul<P>`, `field_inv<P>` (prism-numerics);
-HMAC, HKDF, ECDSA-with-RFC6979, Merkle-tree construction
-(prism-crypto); matrix-vector mul, batched matmul,
-softmax-with-cross-entropy, layer-normalization (prism-tensor);
-PBS-based comparison, encrypted lookup tables, polynomial
-evaluation over ciphertexts (prism-fhe). These are *operational
-roster commitments* per ADR-031's "specific sub-crates' versioning,
-methods, and impls are operational policy" carve-out — the
-architecture admits them; each impl is a follow-on
-`verb!`-declaration composing substrate `PrimitiveOp::{Add, Sub,
-Mul, Div, Mod, Pow}` (per ADR-053) over partition-product input
-shapes (per ADR-033).
+**Substrate-Term verb bodies shipped** (per the in-grammar scope of
+foundation-sdk 0.4.7):
+
+| Sub-crate | Verb | Substrate composition | Realizes |
+|---|---|---|---|
+| `prism::numerics::verbs` | `succ_twice`, `pred_twice` | `succ(succ(input))` / `pred(pred(input))` | witness for the `verb!` emission path |
+| `prism::numerics::verbs` | `square` | `mul(input, input)` | single-input self-multiplication |
+| `prism::numerics::verbs` | `add_substrate`, `sub_substrate`, `mul_substrate` | `add(input.0, input.1)` etc. at W256 over a `partition_product(BigInt32, BigInt32)` input | canonical body of `BigIntAxis::{add, sub, mul}` per ADR-054 (4) |
+| `prism::numerics::verbs` | `gf2_add_substrate`, `gf2_mul_substrate`, `or_substrate` | `xor(input.0, input.1)`, `and(input.0, input.1)`, `or(input.0, input.1)` at W256 | canonical body of `Gf2NumericAxisN<32>::{add, mul}` per ADR-054 (4) |
+| `prism::fhe::verbs` | `add_ciphertexts_verb` | `xor(input.0, input.1)` over `partition_product(Ciphertext32, Ciphertext32)` | canonical body of `OneTimePadFhe<32>::add_ciphertexts` per ADR-054 (4) |
+
+**Upstream blocker: `uor-foundation-sdk` verb-body grammar
+extension.** ADR-054 (4) commits substrate-Term verb bodies for the
+full canonical roster: SHA-256/SHA-512/SHA3-256/Keccak-256/BLAKE3
+(prism-crypto's `HashAxis`), `PrimeFieldNumericSecp256k1::{add, sub,
+mul}` (prism-numerics' `FieldAxis`), `CpuI8MatmulSquare`/
+`CpuI8VectorActivation` (prism-tensor), plus the compound-verb
+roster (`modexp_p`, `gcd`, `ext_euclidean`, HMAC, HKDF, ECDSA,
+Merkle-tree, etc.).
+
+These bodies compose substrate primitives whose verb-body call form
+foundation-sdk 0.4.7 does not yet admit:
+
+- `div`, `mod`, `pow` — added to the `PrimitiveOp` catalog by
+  ADR-053 but not yet emitted as call forms in foundation-sdk's
+  `emit_term_for_call` (lines 3222-3260). Required for SHA's `rotr`
+  composition (`Or(Div(x, 2^k), Mul(x, 2^(width-k)))`), prime-field
+  reduction (`Mod(<ring-arithmetic>, P)`), and modular exponentiation
+  (`Pow(base, exp)` under `mod` semantics).
+- `concat` — rejected per ADR-035 ψ-residuals discipline. Required
+  for SHA's pad-and-finalize composition and for tensor sign-extend
+  (`Concat(0x00, operand)` / `Concat(0xff, operand)`).
+- `hash(...)` — rejected per ADR-035: axis invocation is excluded
+  from verb composition; hashes are consumed by resolvers, not
+  verb bodies. Required for HMAC's `H(K ⊕ opad || H(K ⊕ ipad ||
+  message))` composition and for Merkle-tree's `H(left || right)`
+  reducer.
+- `le`/`lt`/`ge`/`gt` — rejected per ADR-035. Required for tensor
+  saturation (`Match` over `Ge(acc, 0x7fff_W16)`) and `gcd`'s
+  branching predicate.
+
+The hand-written kernel bodies in the canonical axis impls (delegating
+to `sha2`/`sha3`/`blake3` crates, or to hand-rolled long-arithmetic
+for `PrimeFieldNumericSecp256k1`, or to integer-Rust `for`-loops for
+`CpuI8MatmulSquare`) are the operational form. Each canonical-impl
+docstring carries an "ADR-054 (4) substrate-Term verb body — forward
+work" section citing the specific upstream grammar dependency.
+Byte-output equivalence with the canonical reference vectors
+(FIPS-180-4, FIPS-202, BLAKE3 spec, SEC 2 §2.4.1, BLAS reference
+outputs) is verified by direct vectors in each sub-crate's
+`tests/conformance.rs`; per ADR-054's by-construction equivalence
+clause, the substrate-Term forms — once foundation-sdk extends the
+verb-body grammar to admit `div`/`mod`/`pow`/`concat`/`hash`-in-resolver-context
+— will produce byte-identical outputs.
+
+Closing ADR-054 (4) at the standard-library canonical surface is
+forward work split between this repo (substrate-Term verb bodies for
+the operations that become expressible) and upstream `uor-foundation`
++ `uor-foundation-sdk` (the verb-body grammar extensions admitting
+`div`/`mod`/`pow`/`concat` as call forms and resolving the `hash`-in-verb
+question against ADR-036's resolver-only-consumption rule).
 
 ### 11.9 Layer-3 axis impl roster — operational policy
 

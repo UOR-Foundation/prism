@@ -233,3 +233,12 @@ impl<const BYTES: usize> IntoBindingValue for BigIntShape<BYTES> {
         Ok(0)
     }
 }
+
+// ADR-033 G20 leaf-shape PartitionProductFields impl: an empty fields
+// list signals "atomic byte-sequence carrier — no further projection
+// possible." `partition_product!`-built containers compose these leaf
+// shapes via their byte counts.
+impl<const BYTES: usize> uor_foundation::pipeline::PartitionProductFields for BigIntShape<BYTES> {
+    const FIELDS: &'static [(u32, u32)] = &[];
+    const FIELD_NAMES: &'static [&'static str] = &[];
+}

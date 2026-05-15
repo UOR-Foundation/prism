@@ -8,6 +8,31 @@
 //! Ed25519 field (`p = 2^255 - 19`), the BLS12-381 base field, or a
 //! Mersenne prime declares its own `FieldAxis` impl alongside the
 //! standard library's secp256k1 impl through its `AxisTuple`.
+//!
+//! # ADR-054 (4) substrate-Term verb body — forward work
+//!
+//! Per [Wiki ADR-054 § Decision 4][09-adr-054], the canonical body of
+//! `PrimeFieldNumericSecp256k1::{add, sub, mul}` is a `verb!`-emitted
+//! substrate-Term composition `Mod(<ring-arithmetic>, P_LITERAL)`
+//! at W256, where `P_LITERAL` is the secp256k1 base-field prime as a
+//! `Term::Literal { value: TermValue, level: WittLevel::new(256) }`
+//! and `<ring-arithmetic>` is `Add`/`Sub`/`Mul` over the
+//! partition-product of two `FieldElementShape<32>` operands.
+//!
+//! **Blocked on upstream `uor-foundation-sdk` grammar extension.**
+//! Foundation-sdk 0.4.7's `verb!` closure-body grammar
+//! (`emit_term_for_call` lines 3222-3260) admits `add`/`sub`/`mul`
+//! as call forms but not `mod` — `PrimitiveOp::Mod` was added to
+//! the substrate catalog by ADR-053 but the verb-body grammar
+//! does not yet admit it. Until foundation-sdk extends the grammar,
+//! the prime-field substrate-Term verb body cannot be expressed.
+//!
+//! The hand-written kernel below (schoolbook multiplication followed
+//! by Barrett-style long-division reduction against the P literal) is
+//! the operational form. Byte-output equivalence with the
+//! SEC 2 §2.4.1 vectors is checked at `tests/conformance.rs`.
+//!
+//! [09-adr-054]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 
 #![allow(missing_docs)]
 

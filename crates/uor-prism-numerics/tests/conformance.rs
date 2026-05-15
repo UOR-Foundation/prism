@@ -368,3 +368,38 @@ fn verb_pred_twice_dual() {
     let arena = prism_numerics::verbs::pred_twice_term_arena();
     assert_eq!(arena.len(), 3, "pred(pred(input)) emits 3 arena nodes");
 }
+
+// ---- ADR-054 (4) substrate-Term verb bodies ----
+
+#[test]
+fn substrate_term_arithmetic_verb_arenas_terminate_in_application() {
+    // Per ADR-054 (4), the substrate-Term canonical bodies of
+    // `BigIntAxis::{add, sub, mul}` and `Gf2NumericAxisN::{add, mul}`
+    // at W256 are emitted as Term arenas terminating in an
+    // `Application` node carrying the substrate `PrimitiveOp`. The
+    // exact node count depends on the `partition_product!` macro's
+    // intermediate emission of projection chains; the structural
+    // witness is the terminating Application + non-empty arena.
+    use uor_foundation::Term;
+    for arena in [
+        prism_numerics::verbs::add_substrate_term_arena(),
+        prism_numerics::verbs::sub_substrate_term_arena(),
+        prism_numerics::verbs::mul_substrate_term_arena(),
+        prism_numerics::verbs::gf2_add_substrate_term_arena(),
+        prism_numerics::verbs::gf2_mul_substrate_term_arena(),
+        prism_numerics::verbs::or_substrate_term_arena(),
+    ] {
+        assert!(arena.len() >= 4, "substrate-Term verb has ≥4 arena nodes");
+        assert!(matches!(arena.last(), Some(Term::Application { .. })));
+    }
+}
+
+#[test]
+fn substrate_term_square_arena() {
+    let arena = prism_numerics::verbs::square_term_arena();
+    assert!(arena.len() >= 2);
+    assert!(matches!(
+        arena.last(),
+        Some(uor_foundation::Term::Application { .. })
+    ));
+}

@@ -137,3 +137,21 @@ fn _shapes_are_grounded_shape() {
     check::<CiphertextShape<64>>();
     check::<CiphertextShape<128>>();
 }
+
+#[test]
+fn substrate_term_otp_xor_verb_arena_witness() {
+    // Per ADR-054 (4), `add_ciphertexts_verb` is the substrate-Term
+    // canonical body of `OneTimePadFhe<32>::add_ciphertexts`. The
+    // verb arena materializes the partition-product projection chain
+    // plus a single substrate `Xor` application; the exact node count
+    // depends on the `partition_product!` macro's intermediate emission
+    // (Variable refs + per-field ProjectField nodes). The structural
+    // witness is that the arena is non-empty and terminates in an
+    // Application node — both conditions checked below.
+    let arena = prism_fhe::verbs::add_ciphertexts_verb_term_arena();
+    assert!(arena.len() >= 4, "substrate-Term verb has ≥4 arena nodes");
+    assert!(
+        matches!(arena.last(), Some(uor_foundation::Term::Application { .. })),
+        "verb arena terminates in an Application node"
+    );
+}

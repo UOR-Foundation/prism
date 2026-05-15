@@ -6,6 +6,38 @@
 //! modules via either `use crate::<macro>` or bare-name resolution
 //! (Rust issue #52234). Consolidating per-axis impls into one file
 //! keeps the companion-macro call in scope at every invocation site.
+//!
+//! # ADR-054 (4) substrate-Term verb body — forward work
+//!
+//! Per [Wiki ADR-054 § Decision 4][09-adr-054], the canonical body of
+//! every standard-library axis impl is a `verb!`-emitted substrate-Term
+//! composition over `PrimitiveOp`s. For the hash family this means
+//! compressing 32-/64-byte internal-state blocks via composed `Add`
+//! (mod 2^32 or 2^64), `Xor`, `And`, `Or`, `Bnot`, plus a `rotr`
+//! sub-verb composing `Or(Div(x, 2^k), Mul(x, 2^(width-k)))` per
+//! ADR-054 § Substrate-Term realization examples.
+//!
+//! **Blocked on upstream `uor-foundation-sdk` grammar extension.**
+//! Foundation-sdk 0.4.7's `verb!` closure-body grammar
+//! (`emit_term_for_call` lines 3222-3260) admits only
+//! `add/sub/mul/xor/and/or/neg/bnot/succ/pred` as `PrimitiveOp` call
+//! forms. `div` — added to the substrate's `PrimitiveOp` catalog by
+//! ADR-053 — is not yet admitted as a verb-body call form, blocking
+//! `rotr` composition. `concat` (needed for SHA's pad-and-finalize)
+//! is explicitly rejected per ADR-035 ψ-residuals discipline.
+//! Until foundation-sdk extends the verb-body grammar to admit
+//! `div`/`mod`/`pow` per ADR-053, the SHA-2/SHA-3/BLAKE3
+//! substrate-Term verb bodies are not syntactically expressible.
+//!
+//! The hand-written kernel bodies below (delegating to `sha2`,
+//! `sha3`, `blake3` crates) are the operational form. Byte-output
+//! equivalence with the canonical reference vectors (FIPS-180-4,
+//! FIPS-202, BLAKE3 spec) is verified by direct vectors in
+//! `tests/conformance.rs`. When the upstream grammar extension lands,
+//! the substrate-Term verb bodies will be added alongside; per
+//! ADR-054 the two forms produce byte-identical outputs.
+//!
+//! [09-adr-054]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 
 #![allow(missing_docs)]
 
