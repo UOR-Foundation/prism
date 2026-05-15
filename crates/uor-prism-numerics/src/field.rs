@@ -1,9 +1,20 @@
-//! `FieldAxis` declaration and secp256k1 base-field reference impl.
+//! `FieldAxis` declaration, secp256k1 base-field reference impl, and
+//! parametric `FieldElementShape<BYTES>`.
+//!
+//! Prime-field arithmetic depends on the specific modulus, so this
+//! sub-crate ships the secp256k1 base field
+//! (`p = 2^256 - 2^32 - 977`) as the canonical reference. Other primes
+//! are operational policy per ADR-031: an application that needs the
+//! Ed25519 field (`p = 2^255 - 19`), the BLS12-381 base field, or a
+//! Mersenne prime declares its own `FieldAxis` impl alongside the
+//! standard library's secp256k1 impl through its `AxisTuple`.
 
 #![allow(missing_docs)]
 
-use uor_foundation::enforcement::ShapeViolation;
-use uor_foundation::pipeline::AxisExtension;
+use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
+use uor_foundation::pipeline::{
+    AxisExtension, ConstrainedTypeShape, ConstraintRef, IntoBindingValue,
+};
 use uor_foundation_sdk::axis;
 
 use crate::{check_output, split_pair};
@@ -224,3 +235,38 @@ impl FieldAxis for PrimeFieldNumericSecp256k1 {
 }
 
 axis_extension_impl_for_field_axis!(PrimeFieldNumericSecp256k1);
+
+// ---- FieldElementShape: ConstrainedTypeShape carrier ----
+
+/// Parametric ConstrainedTypeShape carrying an `N`-byte field-element
+/// value (big-endian-encoded). Per ADR-031's `FieldElement<P>` shape
+/// commitment — but with the byte-width as the type-level parameter
+/// rather than the prime itself, since the field-element value
+/// occupies exactly `ceil(log_256(p))` bytes for any prime `p` near
+/// `2^(8N)`. The secp256k1 base field uses `BYTES = 32`.
+#[derive(Debug, Clone, Copy)]
+pub struct FieldElementShape<const BYTES: usize>;
+
+impl<const BYTES: usize> Default for FieldElementShape<BYTES> {
+    fn default() -> Self {
+        Self
+    }
+}
+
+impl<const BYTES: usize> ConstrainedTypeShape for FieldElementShape<BYTES> {
+    const IRI: &'static str = "https://uor.foundation/type/ConstrainedType";
+    const SITE_COUNT: usize = BYTES;
+    const CONSTRAINTS: &'static [ConstraintRef] = &[];
+    #[allow(clippy::cast_possible_truncation)]
+    const CYCLE_SIZE: u64 = 256u64.saturating_pow(BYTES as u32);
+}
+
+impl<const BYTES: usize> uor_foundation::pipeline::__sdk_seal::Sealed for FieldElementShape<BYTES> {}
+impl<const BYTES: usize> GroundedShape for FieldElementShape<BYTES> {}
+impl<const BYTES: usize> IntoBindingValue for FieldElementShape<BYTES> {
+    const MAX_BYTES: usize = BYTES;
+
+    fn into_binding_bytes(&self, _out: &mut [u8]) -> Result<usize, ShapeViolation> {
+        Ok(0)
+    }
+}

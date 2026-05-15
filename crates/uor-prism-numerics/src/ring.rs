@@ -1,9 +1,19 @@
-//! `RingAxis` declaration and GF(2)-over-256-bit reference impl.
+//! `RingAxis` declaration + parametric GF(2)-over-N-bytes impl + shape.
+//!
+//! Per [Wiki ADR-031][09-adr-031] the numerics sub-crate exposes
+//! `RingAxis` as the canonical Layer-3 surface for finite-ring
+//! arithmetic. The reference impl [`Gf2NumericAxisN`] is generic over
+//! byte-width: addition is bitwise XOR, multiplication is bitwise AND
+//! (each bit treated as an independent GF(2) element).
+//!
+//! [09-adr-031]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 
 #![allow(missing_docs)]
 
-use uor_foundation::enforcement::ShapeViolation;
-use uor_foundation::pipeline::AxisExtension;
+use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
+use uor_foundation::pipeline::{
+    AxisExtension, ConstrainedTypeShape, ConstraintRef, IntoBindingValue,
+};
 use uor_foundation_sdk::axis;
 
 use crate::{check_output, split_pair};
@@ -11,21 +21,21 @@ use crate::{check_output, split_pair};
 axis! {
     /// Wiki ADR-031 finite-ring arithmetic axis.
     ///
-    /// The reference impl `Gf2NumericAxis` fixes the ring at GF(2) over
-    /// 256-bit operands — addition is XOR, multiplication is AND
-    /// (each bit treated as an independent GF(2) element).
+    /// Addition and multiplication mod a fixed finite ring. The
+    /// reference impl `Gf2NumericAxisN<BYTES>` is GF(2) per byte
+    /// (bitwise XOR / AND).
     pub trait RingAxis: AxisExtension {
         /// ADR-017 content address.
         const AXIS_ADDRESS: &'static str = "https://uor.foundation/axis/RingAxis";
-        /// Operand byte-width.
+        /// Operand byte-width (overridden per impl).
         const MAX_OUTPUT_BYTES: usize = 32;
-        /// Ring addition. Input `a || b` (64 bytes).
+        /// Ring addition. Input `a || b` (`2N` bytes).
         ///
         /// # Errors
         ///
         /// Returns `ShapeViolation` on input/output arity mismatch.
         fn add(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation>;
-        /// Ring multiplication. Input `a || b` (64 bytes).
+        /// Ring multiplication. Input `a || b` (`2N` bytes).
         ///
         /// # Errors
         ///
@@ -34,33 +44,126 @@ axis! {
     }
 }
 
-const WIDTH: usize = 32;
+/// Maximum operand byte-width any `Gf2NumericAxisN<BYTES>`
+/// instantiation supports. GF(2) bitwise ops have no accumulator
+/// cost, but we cap the type-system surface at 128 bytes (1024 bits)
+/// to keep error-path metadata cohesive.
+pub const MAX_GF2_BYTES: usize = 128;
 
-/// GF(2) arithmetic over 256-bit operands — bitwise XOR / AND.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct Gf2NumericAxis;
-
-impl RingAxis for Gf2NumericAxis {
-    const AXIS_ADDRESS: &'static str = "https://uor.foundation/axis/RingAxis/Gf2_256";
-    const MAX_OUTPUT_BYTES: usize = WIDTH;
-
-    fn add(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        let (a, b) = split_pair(input, WIDTH)?;
-        check_output(out, WIDTH)?;
-        for i in 0..WIDTH {
-            out[i] = a[i] ^ b[i];
-        }
-        Ok(WIDTH)
-    }
-
-    fn mul(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        let (a, b) = split_pair(input, WIDTH)?;
-        check_output(out, WIDTH)?;
-        for i in 0..WIDTH {
-            out[i] = a[i] & b[i];
-        }
-        Ok(WIDTH)
+fn width_violation() -> ShapeViolation {
+    ShapeViolation {
+        shape_iri: "https://uor.foundation/axis/RingAxis",
+        constraint_iri: "https://uor.foundation/axis/RingAxis/widthInRange",
+        property_iri: "https://uor.foundation/axis/operandByteWidth",
+        expected_range: "https://uor.foundation/axis/RingAxis/MaxGf2Bytes",
+        min_count: 1,
+        #[allow(clippy::cast_possible_truncation)]
+        max_count: MAX_GF2_BYTES as u32,
+        kind: uor_foundation::ViolationKind::ValueCheck,
     }
 }
 
-axis_extension_impl_for_ring_axis!(Gf2NumericAxis);
+/// GF(2) arithmetic over `N`-byte operands — bitwise XOR / AND.
+///
+/// Each byte position is independently a GF(2)-element under bitwise
+/// XOR (addition) and AND (multiplication). Per-byte
+/// distributivity / commutativity / GF(2) field properties hold.
+#[derive(Debug, Clone, Copy)]
+pub struct Gf2NumericAxisN<const BYTES: usize>;
+
+impl<const BYTES: usize> Default for Gf2NumericAxisN<BYTES> {
+    fn default() -> Self {
+        Self
+    }
+}
+
+impl<const BYTES: usize> RingAxis for Gf2NumericAxisN<BYTES> {
+    const AXIS_ADDRESS: &'static str = "https://uor.foundation/axis/RingAxis/Gf2";
+    const MAX_OUTPUT_BYTES: usize = BYTES;
+
+    fn add(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
+        if BYTES == 0 || BYTES > MAX_GF2_BYTES {
+            return Err(width_violation());
+        }
+        let (a, b) = split_pair(input, BYTES)?;
+        check_output(out, BYTES)?;
+        for i in 0..BYTES {
+            out[i] = a[i] ^ b[i];
+        }
+        Ok(BYTES)
+    }
+
+    fn mul(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
+        if BYTES == 0 || BYTES > MAX_GF2_BYTES {
+            return Err(width_violation());
+        }
+        let (a, b) = split_pair(input, BYTES)?;
+        check_output(out, BYTES)?;
+        for i in 0..BYTES {
+            out[i] = a[i] & b[i];
+        }
+        Ok(BYTES)
+    }
+}
+
+impl<const BYTES: usize> AxisExtension for Gf2NumericAxisN<BYTES> {
+    const AXIS_ADDRESS: &'static str = <Self as RingAxis>::AXIS_ADDRESS;
+    const MAX_OUTPUT_BYTES: usize = <Self as RingAxis>::MAX_OUTPUT_BYTES;
+
+    fn dispatch_kernel(
+        kernel_id: u32,
+        input: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, ShapeViolation> {
+        match kernel_id {
+            KERNEL_ADD => <Self as RingAxis>::add(input, out),
+            KERNEL_MUL => <Self as RingAxis>::mul(input, out),
+            _ => Err(ShapeViolation {
+                shape_iri: "https://uor.foundation/axis/AxisExtensionShape",
+                constraint_iri: "https://uor.foundation/axis/AxisExtensionShape/kernelId",
+                property_iri: "https://uor.foundation/axis/kernelId",
+                expected_range: "https://uor.foundation/axis/RecognisedKernelId",
+                min_count: 0,
+                max_count: 0,
+                kind: uor_foundation::ViolationKind::ValueCheck,
+            }),
+        }
+    }
+}
+
+/// 256-bit GF(2) ring (canonical 32-byte width).
+pub type Gf2NumericAxis = Gf2NumericAxisN<32>;
+/// 128-bit GF(2) ring.
+pub type Gf2NumericAxis128 = Gf2NumericAxisN<16>;
+/// 512-bit GF(2) ring.
+pub type Gf2NumericAxis512 = Gf2NumericAxisN<64>;
+
+// ---- Gf2RingShape: ConstrainedTypeShape carrier ----
+
+/// Parametric ConstrainedTypeShape for an `N`-byte GF(2) ring element.
+#[derive(Debug, Clone, Copy)]
+pub struct Gf2RingShape<const BYTES: usize>;
+
+impl<const BYTES: usize> Default for Gf2RingShape<BYTES> {
+    fn default() -> Self {
+        Self
+    }
+}
+
+impl<const BYTES: usize> ConstrainedTypeShape for Gf2RingShape<BYTES> {
+    const IRI: &'static str = "https://uor.foundation/type/ConstrainedType";
+    const SITE_COUNT: usize = BYTES;
+    const CONSTRAINTS: &'static [ConstraintRef] = &[];
+    #[allow(clippy::cast_possible_truncation)]
+    const CYCLE_SIZE: u64 = 256u64.saturating_pow(BYTES as u32);
+}
+
+impl<const BYTES: usize> uor_foundation::pipeline::__sdk_seal::Sealed for Gf2RingShape<BYTES> {}
+impl<const BYTES: usize> GroundedShape for Gf2RingShape<BYTES> {}
+impl<const BYTES: usize> IntoBindingValue for Gf2RingShape<BYTES> {
+    const MAX_BYTES: usize = BYTES;
+
+    fn into_binding_bytes(&self, _out: &mut [u8]) -> Result<usize, ShapeViolation> {
+        Ok(0)
+    }
+}

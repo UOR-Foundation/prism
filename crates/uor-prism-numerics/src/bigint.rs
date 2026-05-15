@@ -1,9 +1,25 @@
-//! `BigIntAxis` declaration and 256-bit modular arithmetic impl.
+//! `BigIntAxis` declaration + parametric modular-arithmetic impls + shape.
+//!
+//! Per [Wiki ADR-031][09-adr-031] the numerics sub-crate exposes
+//! `BigIntAxis` as the canonical Layer-3 vocabulary for fixed-width
+//! integer arithmetic. The reference impl [`BigIntModularNumeric`] is
+//! generic over operand byte-width per ADR-031's `BigInt<MaxBits>`
+//! shape commitment — every instantiation up to [`MAX_BIG_INT_BYTES`]
+//! (512 bits) is a distinct sealed `AxisExtension` that the
+//! application's `AxisTuple` can select.
+//!
+//! [`BigIntShape`] is the matching `ConstrainedTypeShape` so
+//! application authors can declare `BigInt<N>`-typed inputs and outputs
+//! to their `prism_model!` invocations without re-rolling the shape.
+//!
+//! [09-adr-031]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 
 #![allow(missing_docs)]
 
-use uor_foundation::enforcement::ShapeViolation;
-use uor_foundation::pipeline::AxisExtension;
+use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
+use uor_foundation::pipeline::{
+    AxisExtension, ConstrainedTypeShape, ConstraintRef, IntoBindingValue,
+};
 use uor_foundation_sdk::axis;
 
 use crate::{check_output, split_pair};
@@ -11,28 +27,28 @@ use crate::{check_output, split_pair};
 axis! {
     /// Wiki ADR-031 fixed-width integer arithmetic axis.
     ///
-    /// Each kernel takes input `a || b` (big-endian-encoded operands
-    /// of equal width) and writes the result into `out`. The reference
-    /// impl `BigInt256Numeric` fixes the operand width at 32 bytes
-    /// (256 bits) and computes modular arithmetic mod `2^256`.
+    /// Kernels take input `a || b` (big-endian-encoded equal-width
+    /// operands) and emit modular arithmetic results. The reference
+    /// impl `BigIntModularNumeric<BYTES>` is generic in `BYTES` for
+    /// the full range `[1, MAX_BIG_INT_BYTES]`.
     pub trait BigIntAxis: AxisExtension {
         /// ADR-017 content address.
         const AXIS_ADDRESS: &'static str = "https://uor.foundation/axis/BigIntAxis";
-        /// Maximum operand byte-width (32 bytes = 256 bits).
+        /// Operand byte-width (overridden per impl).
         const MAX_OUTPUT_BYTES: usize = 32;
-        /// `(a + b) mod 2^256` — input is `a || b` (64 bytes).
+        /// `(a + b) mod 2^(8*N)` — input is `a || b` (`2N` bytes).
         ///
         /// # Errors
         ///
         /// Returns `ShapeViolation` on input/output arity mismatch.
         fn add(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation>;
-        /// `(a - b) mod 2^256` — input is `a || b` (64 bytes).
+        /// `(a - b) mod 2^(8*N)` — input is `a || b` (`2N` bytes).
         ///
         /// # Errors
         ///
         /// Returns `ShapeViolation` on input/output arity mismatch.
         fn sub(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation>;
-        /// `(a * b) mod 2^256` — input is `a || b` (64 bytes).
+        /// `(a * b) mod 2^(8*N)` — input is `a || b` (`2N` bytes).
         ///
         /// # Errors
         ///
@@ -41,21 +57,53 @@ axis! {
     }
 }
 
-const WIDTH: usize = 32;
+/// Maximum operand byte-width any `BigIntModularNumeric<BYTES>`
+/// instantiation supports. Driven by the on-stack accumulator size
+/// used by the multiplication kernel (a `2*MAX_BIG_INT_BYTES` `u32`
+/// array — 1 KiB at 64 bytes / 512 bits).
+pub const MAX_BIG_INT_BYTES: usize = 64;
 
-/// 256-bit big-endian unsigned integer modular arithmetic.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct BigInt256Numeric;
+const ACC_CAP: usize = 2 * MAX_BIG_INT_BYTES;
 
-impl BigIntAxis for BigInt256Numeric {
-    const AXIS_ADDRESS: &'static str = "https://uor.foundation/axis/BigIntAxis/Mod256";
-    const MAX_OUTPUT_BYTES: usize = WIDTH;
+fn width_violation() -> ShapeViolation {
+    ShapeViolation {
+        shape_iri: "https://uor.foundation/axis/BigIntAxis",
+        constraint_iri: "https://uor.foundation/axis/BigIntAxis/widthInRange",
+        property_iri: "https://uor.foundation/axis/operandByteWidth",
+        expected_range: "https://uor.foundation/axis/BigIntAxis/MaxBigIntBytes",
+        min_count: 1,
+        #[allow(clippy::cast_possible_truncation)]
+        max_count: MAX_BIG_INT_BYTES as u32,
+        kind: uor_foundation::ViolationKind::ValueCheck,
+    }
+}
+
+/// Parametric `N`-byte modular-arithmetic impl of [`BigIntAxis`].
+///
+/// `BYTES` is the operand width in bytes (`8 * BYTES` bits). Arithmetic
+/// is mod `2^(8 * BYTES)` (wrapping). The supported range is
+/// `[1, MAX_BIG_INT_BYTES]` (512 bits at the upper bound).
+#[derive(Debug, Clone, Copy)]
+pub struct BigIntModularNumeric<const BYTES: usize>;
+
+impl<const BYTES: usize> Default for BigIntModularNumeric<BYTES> {
+    fn default() -> Self {
+        Self
+    }
+}
+
+impl<const BYTES: usize> BigIntAxis for BigIntModularNumeric<BYTES> {
+    const AXIS_ADDRESS: &'static str = "https://uor.foundation/axis/BigIntAxis/Modular";
+    const MAX_OUTPUT_BYTES: usize = BYTES;
 
     fn add(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        let (a, b) = split_pair(input, WIDTH)?;
-        check_output(out, WIDTH)?;
+        if BYTES == 0 || BYTES > MAX_BIG_INT_BYTES {
+            return Err(width_violation());
+        }
+        let (a, b) = split_pair(input, BYTES)?;
+        check_output(out, BYTES)?;
         let mut carry: u16 = 0;
-        for i in (0..WIDTH).rev() {
+        for i in (0..BYTES).rev() {
             let sum = u16::from(a[i]) + u16::from(b[i]) + carry;
             #[allow(clippy::cast_possible_truncation)]
             {
@@ -63,14 +111,17 @@ impl BigIntAxis for BigInt256Numeric {
             }
             carry = sum >> 8;
         }
-        Ok(WIDTH)
+        Ok(BYTES)
     }
 
     fn sub(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        let (a, b) = split_pair(input, WIDTH)?;
-        check_output(out, WIDTH)?;
+        if BYTES == 0 || BYTES > MAX_BIG_INT_BYTES {
+            return Err(width_violation());
+        }
+        let (a, b) = split_pair(input, BYTES)?;
+        check_output(out, BYTES)?;
         let mut borrow: i16 = 0;
-        for i in (0..WIDTH).rev() {
+        for i in (0..BYTES).rev() {
             let diff = i16::from(a[i]) - i16::from(b[i]) - borrow;
             if diff < 0 {
                 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
@@ -86,15 +137,20 @@ impl BigIntAxis for BigInt256Numeric {
                 borrow = 0;
             }
         }
-        Ok(WIDTH)
+        Ok(BYTES)
     }
 
     fn mul(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        let (a, b) = split_pair(input, WIDTH)?;
-        check_output(out, WIDTH)?;
-        let mut acc = [0u32; 2 * WIDTH];
-        for i in (0..WIDTH).rev() {
-            for j in (0..WIDTH).rev() {
+        if BYTES == 0 || BYTES > MAX_BIG_INT_BYTES {
+            return Err(width_violation());
+        }
+        let (a, b) = split_pair(input, BYTES)?;
+        check_output(out, BYTES)?;
+        // Schoolbook product into a fixed-size accumulator sized for
+        // MAX_BIG_INT_BYTES; only the first 2*BYTES positions are used.
+        let mut acc = [0u32; ACC_CAP];
+        for i in (0..BYTES).rev() {
+            for j in (0..BYTES).rev() {
                 let prod = u32::from(a[i]) * u32::from(b[j]);
                 let pos = i + j + 1;
                 let sum = acc[pos] + (prod & 0xff);
@@ -109,14 +165,94 @@ impl BigIntAxis for BigInt256Numeric {
                 }
             }
         }
-        for i in 0..WIDTH {
+        for i in 0..BYTES {
             #[allow(clippy::cast_possible_truncation)]
             {
-                out[i] = (acc[i + WIDTH] & 0xff) as u8;
+                out[i] = (acc[i + BYTES] & 0xff) as u8;
             }
         }
-        Ok(WIDTH)
+        Ok(BYTES)
     }
 }
 
-axis_extension_impl_for_big_int_axis!(BigInt256Numeric);
+// Hand-written AxisExtension impl (the `axis!`-emitted companion macro
+// takes `:ident` and cannot be applied to a generic type; we replicate
+// its dispatch arms by hand).
+impl<const BYTES: usize> AxisExtension for BigIntModularNumeric<BYTES> {
+    const AXIS_ADDRESS: &'static str = <Self as BigIntAxis>::AXIS_ADDRESS;
+    const MAX_OUTPUT_BYTES: usize = <Self as BigIntAxis>::MAX_OUTPUT_BYTES;
+
+    fn dispatch_kernel(
+        kernel_id: u32,
+        input: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, ShapeViolation> {
+        match kernel_id {
+            KERNEL_ADD => <Self as BigIntAxis>::add(input, out),
+            KERNEL_SUB => <Self as BigIntAxis>::sub(input, out),
+            KERNEL_MUL => <Self as BigIntAxis>::mul(input, out),
+            _ => Err(ShapeViolation {
+                shape_iri: "https://uor.foundation/axis/AxisExtensionShape",
+                constraint_iri: "https://uor.foundation/axis/AxisExtensionShape/kernelId",
+                property_iri: "https://uor.foundation/axis/kernelId",
+                expected_range: "https://uor.foundation/axis/RecognisedKernelId",
+                min_count: 0,
+                max_count: 0,
+                kind: uor_foundation::ViolationKind::ValueCheck,
+            }),
+        }
+    }
+}
+
+/// 256-bit modular arithmetic (mod `2^256`).
+pub type BigInt256Numeric = BigIntModularNumeric<32>;
+/// 512-bit modular arithmetic (mod `2^512`).
+pub type BigInt512Numeric = BigIntModularNumeric<64>;
+/// 128-bit modular arithmetic (mod `2^128`).
+pub type BigInt128Numeric = BigIntModularNumeric<16>;
+/// 64-bit modular arithmetic (mod `2^64`) — matches `u64` wrapping.
+pub type BigInt64Numeric = BigIntModularNumeric<8>;
+
+// ---- BigIntShape: ConstrainedTypeShape carrier for BigInt<N> -----------
+
+/// Parametric ConstrainedTypeShape: an `N`-byte big-endian integer.
+///
+/// Per ADR-031 this is the canonical Layer-3 shape downstream
+/// `prism_model!` invocations use to type their `Input` / `Output` as
+/// big-integer values. The shape carries `BYTES` sites with no
+/// admission constraints; admission discipline (range bounds, modulus,
+/// etc.) is the consumer's responsibility through additional
+/// constraint refs.
+///
+/// Per ADR-017's closure rule the IRI is the foundation's shared
+/// `ConstrainedType` class; instance identity flows through
+/// `(SITE_COUNT, CONSTRAINTS)`.
+#[derive(Debug, Clone, Copy)]
+pub struct BigIntShape<const BYTES: usize>;
+
+impl<const BYTES: usize> Default for BigIntShape<BYTES> {
+    fn default() -> Self {
+        Self
+    }
+}
+
+impl<const BYTES: usize> ConstrainedTypeShape for BigIntShape<BYTES> {
+    const IRI: &'static str = "https://uor.foundation/type/ConstrainedType";
+    const SITE_COUNT: usize = BYTES;
+    const CONSTRAINTS: &'static [ConstraintRef] = &[];
+    #[allow(clippy::cast_possible_truncation)]
+    const CYCLE_SIZE: u64 = 256u64.saturating_pow(BYTES as u32);
+}
+
+impl<const BYTES: usize> uor_foundation::pipeline::__sdk_seal::Sealed for BigIntShape<BYTES> {}
+impl<const BYTES: usize> GroundedShape for BigIntShape<BYTES> {}
+impl<const BYTES: usize> IntoBindingValue for BigIntShape<BYTES> {
+    const MAX_BYTES: usize = BYTES;
+
+    fn into_binding_bytes(&self, _out: &mut [u8]) -> Result<usize, ShapeViolation> {
+        // The shape is a phantom carrier; downstream impls that want to
+        // bind an actual N-byte big-int value wrap this shape in a
+        // newtype carrying the data + a bespoke `into_binding_bytes`.
+        Ok(0)
+    }
+}

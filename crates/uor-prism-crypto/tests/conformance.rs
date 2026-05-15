@@ -10,13 +10,19 @@
 //! - **Keccak-256** — original (pre-FIPS) Keccak Test Vectors
 //! - **BLAKE3** — the canonical BLAKE3 specification test vectors
 
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::cast_possible_truncation
+)]
 
 use prism_crypto::CommitmentAxis;
 use prism_crypto::{
-    Blake3Hasher, HashAxis, Keccak256Hasher, MerkleRootCommitment, Sha256Hasher, Sha3_256Hasher,
-    Sha512Hasher,
+    Blake3Hasher, Digest, HashAxis, Keccak256Hasher, MerkleProofShape, MerkleRoot,
+    MerkleRootCommitment, PublicKey, Sha256Hasher, Sha3_256Hasher, Sha512Hasher, Signature,
 };
+use uor_foundation::pipeline::ConstrainedTypeShape;
 
 fn hex_decode(s: &str) -> Vec<u8> {
     let bytes = s.as_bytes();
@@ -234,4 +240,119 @@ fn merkle_root_rejects_misaligned_leaves() {
 fn hex_roundtrip() {
     let bytes = [0x12, 0x34, 0xab, 0xcd];
     assert_eq!(hex_decode(&hex_encode(&bytes)), bytes);
+}
+
+// ---- Parametricity: Merkle over alternate hashers ----
+
+#[test]
+fn merkle_root_with_blake3_hasher() {
+    // Same input as merkle_root_two_leaves but using BLAKE3 as the
+    // hasher. Verifies the parametric MerkleRoot<H, LEAF_BYTES>
+    // composition: switching H switches the digest at every layer.
+    type MerkleBlake3 = MerkleRoot<Blake3Hasher, 32>;
+    let leaves = [0u8; 64];
+    let mut out = [0u8; 32];
+    let n = MerkleBlake3::commit(&leaves, &mut out).expect("commit ok");
+    assert_eq!(n, 32);
+    let mut expected = [0u8; 32];
+    Blake3Hasher::hash(&leaves, &mut expected).expect("blake3 ok");
+    assert_eq!(out, expected);
+}
+
+#[test]
+fn merkle_root_with_keccak_hasher() {
+    type MerkleKeccak = MerkleRoot<Keccak256Hasher, 32>;
+    let leaves = [0u8; 64];
+    let mut out = [0u8; 32];
+    let n = MerkleKeccak::commit(&leaves, &mut out).expect("commit ok");
+    assert_eq!(n, 32);
+    let mut expected = [0u8; 32];
+    Keccak256Hasher::hash(&leaves, &mut expected).expect("keccak ok");
+    assert_eq!(out, expected);
+}
+
+#[test]
+fn merkle_root_with_sha512_hasher() {
+    type MerkleSha512 = MerkleRoot<Sha512Hasher, 64>;
+    let leaves = [0u8; 128];
+    let mut out = [0u8; 64];
+    let n = MerkleSha512::commit(&leaves, &mut out).expect("commit ok");
+    assert_eq!(n, 64);
+    let mut expected = [0u8; 64];
+    Sha512Hasher::hash(&leaves, &mut expected).expect("sha512 ok");
+    assert_eq!(out, expected);
+}
+
+#[test]
+fn merkle_root_four_leaves() {
+    // Two-layer tree: 4 leaves → 2 pairs → 1 root.
+    // Each leaf is byte i replicated 32 times.
+    let mut leaves = [0u8; 128];
+    for layer in 0..4 {
+        for j in 0..32 {
+            leaves[layer * 32 + j] = layer as u8;
+        }
+    }
+    let mut out = [0u8; 32];
+    MerkleRootCommitment::commit(&leaves, &mut out).expect("commit ok");
+
+    // Manually compute the expected root.
+    let mut pair01 = [0u8; 64];
+    pair01[..32].copy_from_slice(&leaves[..32]);
+    pair01[32..].copy_from_slice(&leaves[32..64]);
+    let mut hash01 = [0u8; 32];
+    Sha256Hasher::hash(&pair01, &mut hash01).expect("sha256 ok");
+
+    let mut pair23 = [0u8; 64];
+    pair23[..32].copy_from_slice(&leaves[64..96]);
+    pair23[32..].copy_from_slice(&leaves[96..128]);
+    let mut hash23 = [0u8; 32];
+    Sha256Hasher::hash(&pair23, &mut hash23).expect("sha256 ok");
+
+    let mut top = [0u8; 64];
+    top[..32].copy_from_slice(&hash01);
+    top[32..].copy_from_slice(&hash23);
+    let mut expected = [0u8; 32];
+    Sha256Hasher::hash(&top, &mut expected).expect("sha256 ok");
+
+    assert_eq!(out, expected);
+}
+
+// ---- Parametric shape introspection ----
+
+#[test]
+fn digest_shape_site_counts() {
+    assert_eq!(<Digest<32> as ConstrainedTypeShape>::SITE_COUNT, 32);
+    assert_eq!(<Digest<48> as ConstrainedTypeShape>::SITE_COUNT, 48);
+    assert_eq!(<Digest<64> as ConstrainedTypeShape>::SITE_COUNT, 64);
+}
+
+#[test]
+fn pubkey_signature_shapes() {
+    assert_eq!(<PublicKey<32> as ConstrainedTypeShape>::SITE_COUNT, 32);
+    assert_eq!(<PublicKey<48> as ConstrainedTypeShape>::SITE_COUNT, 48);
+    assert_eq!(<Signature<64> as ConstrainedTypeShape>::SITE_COUNT, 64);
+    assert_eq!(<Signature<96> as ConstrainedTypeShape>::SITE_COUNT, 96);
+}
+
+#[test]
+fn merkle_proof_shape_size() {
+    // Depth-6 SHA-256 Merkle proof: 6 sibling-digests + 8-byte leaf-index
+    // = 6 * 32 + 8 = 200 bytes.
+    type Proof6 = MerkleProofShape<6, 32>;
+    assert_eq!(<Proof6 as ConstrainedTypeShape>::SITE_COUNT, 200);
+}
+
+#[test]
+fn shapes_share_constrained_type_iri() {
+    // ADR-017 closure rule: empty-CONSTRAINTS shapes content-address
+    // through (SITE_COUNT, CONSTRAINTS) regardless of Rust name.
+    assert_eq!(
+        <Digest<32> as ConstrainedTypeShape>::IRI,
+        <PublicKey<32> as ConstrainedTypeShape>::IRI,
+    );
+    assert_eq!(
+        <Digest<32> as ConstrainedTypeShape>::IRI,
+        "https://uor.foundation/type/ConstrainedType"
+    );
 }

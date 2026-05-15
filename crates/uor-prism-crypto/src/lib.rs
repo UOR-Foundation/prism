@@ -4,10 +4,8 @@
 //! library named in [Wiki ADR-031][09-adr-031]: it declares the
 //! cryptographic axis traits (`HashAxis`, `CurveAxis`, `SignatureAxis`,
 //! `CommitmentAxis`) through the [`axis!`][09-adr-030] SDK macro and
-//! supplies canonical impls per the wiki's ADR-031 roster. Per ADR-031
-//! the standard library's role is to be the canonical reference for the
-//! axes it declares — two crates that emit structurally-identical
-//! axis traits content-address identically per ADR-017.
+//! supplies canonical impls plus matching `ConstrainedTypeShape`
+//! carriers per the wiki's ADR-031 roster.
 //!
 //! ## Scope
 //!
@@ -17,20 +15,39 @@
 //!   conformance-tested against the relevant standard's published
 //!   vectors (FIPS-180-4 for SHA-2, FIPS-202 for SHA-3, BLAKE3 spec
 //!   for BLAKE3) — see `tests/conformance.rs`.
+//! - **`CommitmentAxis`** — composes any `HashAxis` impl into a
+//!   Merkle-root commitment via [`MerkleRoot<H, LEAF_BYTES>`]. The
+//!   default alias [`MerkleRootCommitment`] is SHA-256. Per ADR-031
+//!   this is the canonical example of standard-library
+//!   cross-sub-crate composition.
 //! - **`CurveAxis`**, **`SignatureAxis`** — declared per ADR-031's
 //!   standard-library roster; concrete reference impls are scoped per
 //!   axis maintenance policy (ADR-031's "operational policy"
 //!   carve-out).
-//! - **`CommitmentAxis`** — declared with reference impl
-//!   [`MerkleRootCommitment`] composing the `HashAxis` SHA-256
-//!   primitive into a binary-tree Merkle root.
+//!
+//! ## ConstrainedTypeShape declarations
+//!
+//! Per ADR-031's shape-declaration commitment, the canonical
+//! cryptographic value-carriers are parametric over byte-width:
+//!
+//! - **[`Digest<N>`]** — hash output. `Digest<32>` for SHA-256 /
+//!   SHA3-256 / Keccak-256 / BLAKE3; `Digest<48>` for SHA-384;
+//!   `Digest<64>` for SHA-512.
+//! - **[`PublicKey<N>`]** — public-key bytes.
+//! - **[`Signature<N>`]** — signature bytes.
+//! - **[`MerkleProofShape<MAX_DEPTH, LEAF_BYTES>`]** — Merkle-inclusion
+//!   proof.
+//!
+//! Each shape is `GroundedShape + IntoBindingValue`-bound for use as
+//! the `Output` of a `prism_model!`-declared application.
 //!
 //! ## Closure under uor-foundation (ADR-013)
 //!
 //! Every axis trait declared here has `::uor_foundation::pipeline::AxisExtension`
-//! as a supertrait — the `axis!` macro enforces this. Every concrete
-//! impl is registered for `AxisExtension` via the companion macro
-//! `axis_extension_impl_for_<axis>!` the macro emits.
+//! as a supertrait — the `axis!` macro enforces this. Concrete impls
+//! that take no type parameters use the companion-macro lane; the
+//! parametric `MerkleRoot<H, LEAF_BYTES>` hand-writes its
+//! `AxisExtension` impl since the companion macro takes `:ident`.
 //!
 //! ## See also
 //!
@@ -50,13 +67,17 @@
 pub mod commitment;
 pub mod curve;
 pub mod hash;
+pub mod shapes;
 pub mod signature;
 
-pub use commitment::{CommitmentAxis, MerkleRootCommitment};
+pub use commitment::{
+    CommitmentAxis, MerkleProofShape, MerkleRoot, MerkleRootCommitment, MAX_MERKLE_LEAVES,
+};
 pub use curve::CurveAxis;
 pub use hash::{
     Blake3Hasher, HashAxis, Keccak256Hasher, Sha256Hasher, Sha3_256Hasher, Sha512Hasher,
 };
+pub use shapes::{Digest, PublicKey, Signature};
 pub use signature::SignatureAxis;
 
 /// Wiki ADR-031 standard-library version banner. Each prism standard-

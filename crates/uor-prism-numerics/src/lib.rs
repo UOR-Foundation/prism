@@ -4,39 +4,65 @@
 //! library named in [Wiki ADR-031][09-adr-031]: it declares the
 //! arithmetic-domain axis traits (`BigIntAxis`, `FixedPointAxis`,
 //! `FieldAxis`, `RingAxis`) through the [`axis!`][09-adr-030] SDK
-//! macro and supplies canonical reference impls per the wiki's
-//! ADR-031 roster.
+//! macro and supplies parametric reference impls plus matching
+//! ConstrainedTypeShape carriers per the wiki's ADR-031 roster.
 //!
 //! ## Scope
 //!
-//! - **`BigIntAxis`** — arbitrary-precision integer arithmetic with
-//!   a foundation-fixed maximum byte width. Reference impl:
-//!   [`BigInt256Numeric`] — 256-bit fixed-width modular arithmetic.
-//! - **`FixedPointAxis`** — Q-format fixed-point arithmetic.
-//!   Reference impl: [`FixedPointQ32_32Numeric`] (Q32.32, 64-bit).
-//! - **`FieldAxis`** — prime-field arithmetic. Reference impl:
-//!   [`PrimeFieldNumericSecp256k1`] — the secp256k1 base field
-//!   (`p = 2^256 - 2^32 - 977`).
-//! - **`RingAxis`** — finite-ring arithmetic. Reference impl:
-//!   [`Gf2NumericAxis`] — the binary field GF(2) (per-bit XOR / AND).
+//! Every axis kernel takes `(input: &[u8], out: &mut [u8])` per
+//! ADR-030's signature contract. Axis impls are generic in their
+//! natural axis (byte-width, Q-format split) so applications can
+//! instantiate the impl their model needs without re-rolling the
+//! kernel body.
 //!
-//! Each axis lives in its own module so the per-method `KERNEL_*` ids
-//! the `axis!` macro emits scope to a single axis (the axes share
-//! method names like `add` / `mul`, which would otherwise collide).
+//! - **`BigIntAxis`** — `(a + b) / (a - b) / (a * b) mod 2^(8*N)`.
+//!   Parametric: [`BigIntModularNumeric<BYTES>`] with `BYTES` in
+//!   `[1, MAX_BIG_INT_BYTES]`. Aliases: [`BigInt64Numeric`],
+//!   [`BigInt128Numeric`], [`BigInt256Numeric`], [`BigInt512Numeric`].
+//!   Shape: [`BigIntShape<BYTES>`].
+//! - **`FixedPointAxis`** — Q-format arithmetic on a 64-bit container.
+//!   Parametric: [`FixedPointQNumeric<INT_BITS, FRAC_BITS>`].
+//!   Aliases: [`FixedPointQ16_16Numeric`], [`FixedPointQ32_32Numeric`],
+//!   [`FixedPointQ1_31Numeric`], [`FixedPointQ48_16Numeric`].
+//!   Shape: [`FixedPointShape<I, F>`].
+//! - **`FieldAxis`** — prime-field arithmetic. The reference impl
+//!   [`PrimeFieldNumericSecp256k1`] fixes the modulus at
+//!   `p = 2^256 - 2^32 - 977`; alternative primes are operational
+//!   policy per ADR-031. Shape: [`FieldElementShape<BYTES>`].
+//! - **`RingAxis`** — finite-ring arithmetic. Parametric:
+//!   [`Gf2NumericAxisN<BYTES>`] for GF(2) over `N` bytes (bitwise
+//!   XOR / AND). Aliases: [`Gf2NumericAxis`], [`Gf2NumericAxis128`],
+//!   [`Gf2NumericAxis512`]. Shape: [`Gf2RingShape<BYTES>`].
+//!
+//! ## ConstrainedTypeShape declarations
+//!
+//! Per ADR-031's shape-declaration commitment (`BigInt<MaxBits>`,
+//! `FixedPoint<I, F>`, `FieldElement<P>`, ...), each axis has a
+//! matching `ConstrainedTypeShape` carrier so downstream
+//! `prism_model!` invocations can use the shape as `Input` / `Output`
+//! through the SDK macros. Every shape is `GroundedShape +
+//! IntoBindingValue`-bound for use as a model `Output` per ADR-027.
+//! Per ADR-017's closure rule, shape identity flows through
+//! `(SITE_COUNT, CONSTRAINTS)` — distinct parametric instantiations
+//! with the same site count content-address identically.
 //!
 //! ## Closure under uor-foundation (ADR-013)
 //!
-//! Every axis trait declared here has `::uor_foundation::pipeline::AxisExtension`
-//! as a supertrait (enforced by `axis!`), and every concrete impl is
-//! registered for `AxisExtension` via the companion macro
-//! `axis_extension_impl_for_<axis>!` per ADR-030.
+//! Every axis trait has `::uor_foundation::pipeline::AxisExtension` as
+//! a supertrait (enforced by `axis!`). Parametric axis impls
+//! hand-write their `AxisExtension` impl since the `axis!`-emitted
+//! companion macro takes `:ident` and cannot apply to generic types
+//! (the hand-written impls replicate the companion macro's dispatch
+//! arms verbatim).
 //!
 //! ## See also
 //!
+//! - [Wiki: 09 Architecture Decisions § ADR-027 — `output_shape!` SDK macro][09-adr-027]
 //! - [Wiki: 09 Architecture Decisions § ADR-030 — `axis!` SDK macro][09-adr-030]
 //! - [Wiki: 09 Architecture Decisions § ADR-031 — `prism` is the standard library][09-adr-031]
 //! - [Wiki: 12 Glossary § Numerics][12-glossary]
 //!
+//! [09-adr-027]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 //! [09-adr-030]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 //! [09-adr-031]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 //! [12-glossary]: https://github.com/UOR-Foundation/UOR-Framework/wiki/12-Glossary
@@ -51,10 +77,19 @@ pub mod field;
 pub mod fixed_point;
 pub mod ring;
 
-pub use bigint::{BigInt256Numeric, BigIntAxis};
-pub use field::{FieldAxis, PrimeFieldNumericSecp256k1};
-pub use fixed_point::{FixedPointAxis, FixedPointQ32_32Numeric};
-pub use ring::{Gf2NumericAxis, RingAxis};
+pub use bigint::{
+    BigInt128Numeric, BigInt256Numeric, BigInt512Numeric, BigInt64Numeric, BigIntAxis,
+    BigIntModularNumeric, BigIntShape, MAX_BIG_INT_BYTES,
+};
+pub use field::{FieldAxis, FieldElementShape, PrimeFieldNumericSecp256k1};
+pub use fixed_point::{
+    FixedPointAxis, FixedPointQ16_16Numeric, FixedPointQ1_31Numeric, FixedPointQ32_32Numeric,
+    FixedPointQ48_16Numeric, FixedPointQNumeric, FixedPointShape,
+};
+pub use ring::{
+    Gf2NumericAxis, Gf2NumericAxis128, Gf2NumericAxis512, Gf2NumericAxisN, Gf2RingShape, RingAxis,
+    MAX_GF2_BYTES,
+};
 
 /// Wiki ADR-031 standard-library version banner.
 pub const STANDARD_LIBRARY_VERSION: &str = env!("CARGO_PKG_VERSION");
