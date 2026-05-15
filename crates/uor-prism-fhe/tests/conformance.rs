@@ -126,3 +126,14 @@ fn ciphertext_shape_iri_closure_rule() {
         "https://uor.foundation/type/ConstrainedType"
     );
 }
+
+// ---- Compile-time bound resolution: shapes are GroundedShape-bound ----
+
+#[allow(dead_code)]
+fn _shapes_are_grounded_shape() {
+    fn check<S: uor_foundation::enforcement::GroundedShape>() {}
+    check::<CiphertextShape<16>>();
+    check::<CiphertextShape<32>>();
+    check::<CiphertextShape<64>>();
+    check::<CiphertextShape<128>>();
+}

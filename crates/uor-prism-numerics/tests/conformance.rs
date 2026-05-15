@@ -318,3 +318,17 @@ fn field_shape_site_count() {
         32
     );
 }
+
+// ---- Compile-time bound resolution: shapes are GroundedShape-bound
+//      so they can be used as `prism_model!::Output` per ADR-027 ----
+
+#[allow(dead_code)]
+fn _shapes_are_grounded_shape() {
+    fn check<S: uor_foundation::enforcement::GroundedShape>() {}
+    check::<BigIntShape<8>>();
+    check::<BigIntShape<32>>();
+    check::<BigIntShape<64>>();
+    check::<FixedPointShape<32, 32>>();
+    check::<FieldElementShape<32>>();
+    check::<Gf2RingShape<32>>();
+}

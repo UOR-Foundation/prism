@@ -19,21 +19,36 @@
 //! # Standard-library Layer-3 sub-crate roster
 //!
 //! Per ADR-031's roster commitment, the standard library publishes
-//! four canonical sub-crates from the Prism repository, each
-//! consumed through the façade re-exports below:
+//! four canonical sub-crates from the Prism repository, each consumed
+//! through the façade re-exports below. Every axis impl is parametric
+//! in its natural axis (byte-width, Q-format split, hasher, dimension)
+//! so application authors instantiate the impl their model needs
+//! without re-rolling the kernel body; canonical type aliases (e.g.,
+//! `Sha256Hasher`, `BigInt256Numeric`, `CpuI8Tensor4x4Matmul`) name
+//! the most common instantiations.
 //!
 //! - **[`crypto`]** — wiki: hashes, curves, signatures, commitments.
 //!   `HashAxis` impls: `Sha256Hasher`, `Sha512Hasher`,
 //!   `Sha3_256Hasher`, `Keccak256Hasher`, `Blake3Hasher`.
-//!   `CommitmentAxis` impl: `MerkleRootCommitment`.
+//!   `CommitmentAxis` impl: `MerkleRoot<H, LEAF_BYTES>` (parametric
+//!   over `HashAxis`), default alias `MerkleRootCommitment` = SHA-256.
+//!   Shapes: `Digest<N>`, `PublicKey<N>`, `Signature<N>`,
+//!   `MerkleProofShape<MAX_DEPTH, LEAF_BYTES>`.
 //! - **[`numerics`]** — wiki: integer, fixed-point, prime-field,
-//!   GF(2) arithmetic. Impls: `BigInt256Numeric`,
-//!   `FixedPointQ32_32Numeric`, `PrimeFieldNumericSecp256k1`,
-//!   `Gf2NumericAxis`.
-//! - **[`tensor`]** — wiki: tensor compute + activations. Impls:
-//!   `CpuI8Tensor4x4Matmul`, `CpuI8VectorActivation16`.
-//! - **[`fhe`]** — wiki: homomorphic encryption. Reference impl:
-//!   `OneTimePadFheAxis`.
+//!   GF(2) arithmetic. Parametric: `BigIntModularNumeric<BYTES>`
+//!   (8..=512 bits), `FixedPointQNumeric<I, F>` (any Q-format split
+//!   ≤ 64 bits total), `Gf2NumericAxisN<BYTES>` (1..=128 bytes).
+//!   Concrete: `PrimeFieldNumericSecp256k1`. Shapes: `BigIntShape<N>`,
+//!   `FixedPointShape<I, F>`, `FieldElementShape<N>`,
+//!   `Gf2RingShape<N>`.
+//! - **[`tensor`]** — wiki: tensor compute + activations. Parametric:
+//!   `CpuI8MatmulSquare<DIM>` (1..=16 square `i8`→`i16` matmul),
+//!   `CpuI8VectorActivation<N>` (1..=256-length `i8` vector ReLU /
+//!   Q1.7 sigmoid). Shapes: `MatrixShape<R, C, ELEM_BYTES>`,
+//!   `VectorShape<N, ELEM_BYTES>`.
+//! - **[`fhe`]** — wiki: homomorphic encryption. Parametric reference
+//!   impl: `OneTimePadFhe<BLOCK_BYTES>` (1..=256). Shape:
+//!   `CiphertextShape<N>`.
 //!
 //! # SDK macros (re-exported)
 //!

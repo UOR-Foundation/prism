@@ -209,3 +209,14 @@ fn matmul_max_output_bytes_scales_with_dim() {
     assert_eq!(<CpuI8MatmulSquare<8> as TensorAxis>::MAX_OUTPUT_BYTES, 128);
     assert_eq!(<CpuI8MatmulSquare<16> as TensorAxis>::MAX_OUTPUT_BYTES, 512);
 }
+
+// ---- Compile-time bound resolution: shapes are GroundedShape-bound ----
+
+#[allow(dead_code)]
+fn _shapes_are_grounded_shape() {
+    fn check<S: uor_foundation::enforcement::GroundedShape>() {}
+    check::<MatrixShape<4, 4, 1>>();
+    check::<MatrixShape<8, 8, 2>>();
+    check::<VectorShape<16, 1>>();
+    check::<VectorShape<32, 4>>();
+}

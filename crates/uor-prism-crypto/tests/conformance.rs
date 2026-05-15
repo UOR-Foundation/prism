@@ -356,3 +356,17 @@ fn shapes_share_constrained_type_iri() {
         "https://uor.foundation/type/ConstrainedType"
     );
 }
+
+// ---- Compile-time bound resolution: shapes are GroundedShape-bound ----
+
+#[allow(dead_code)]
+fn _shapes_are_grounded_shape() {
+    fn check<S: uor_foundation::enforcement::GroundedShape>() {}
+    check::<Digest<32>>();
+    check::<Digest<48>>();
+    check::<Digest<64>>();
+    check::<PublicKey<32>>();
+    check::<Signature<64>>();
+    check::<Signature<96>>();
+    check::<MerkleProofShape<6, 32>>();
+}
