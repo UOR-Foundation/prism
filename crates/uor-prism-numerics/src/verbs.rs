@@ -276,13 +276,51 @@ verb! {
     }
 }
 
-// Depth-2 partition-product field access experiments deferred —
-// reproduced macro quirk with both const-generic `BigIntShape<N>`
-// and hand-rolled non-generic 32-byte leaves; smoke-tested LeafA
-// pattern works in foundation-sdk 0.4.10 but the trigger for the
-// "PartitionProductFields not implemented" trait-bound check at
-// the verb! macro site eludes local reproduction. Forward work
-// upstream in `emit_term_for_field`'s depth-2 projection chain.
-// The `fma(a, b, c)`, `mod_pow(base, exp, m)`, and parametric-prime
-// `field_*<P>(a, b, p)` verbs the wiki names per ADR-031 land
-// once the parity gap closes.
+// ---- Three-operand verbs (depth-2 partition-product field access,
+// closed by foundation-sdk 0.4.11's syn::Type operand admission in
+// `partition_product!` — const-generic leaf shapes like
+// `BigIntShape<32>` can now be used directly without a type-alias
+// indirection that obscured the const-generic instantiation from
+// the macro's projection-chain const-eval lookups).
+
+partition_product!(BigIntTriple32, BigIntPair32, BigIntShape<32>);
+
+// Wiki ADR-031's `fma(a, b, c) = a*b + c` canonical numerics verb —
+// the architectural witness that 0.4.11's verb!-macro depth-2 path
+// now matches prism_model!'s smoke-tested coverage.
+verb! {
+    pub fn fma(input: BigIntTriple32) -> BigInt32 {
+        add(mul(input.0.0, input.0.1), input.1)
+    }
+}
+
+// Wiki ADR-031's `mod_pow(base, exp, m) = (base^exp) mod m` —
+// parametric-modulus modular exponentiation. The wiki's
+// `modexp_p<P>` variant pins P at the verb-body literal level.
+verb! {
+    pub fn mod_pow(input: BigIntTriple32) -> BigInt32 {
+        r#mod(pow(input.0.0, input.0.1), input.1)
+    }
+}
+
+// Wiki ADR-031's parametric prime-field arithmetic — the modulus
+// comes in as an input operand, complementing the secp256k1-pinned
+// forms above (which embed P as a `literal_bytes` constant).
+
+verb! {
+    pub fn field_add(input: BigIntTriple32) -> BigInt32 {
+        r#mod(add(input.0.0, input.0.1), input.1)
+    }
+}
+
+verb! {
+    pub fn field_sub(input: BigIntTriple32) -> BigInt32 {
+        r#mod(sub(input.0.0, input.0.1), input.1)
+    }
+}
+
+verb! {
+    pub fn field_mul(input: BigIntTriple32) -> BigInt32 {
+        r#mod(mul(input.0.0, input.0.1), input.1)
+    }
+}

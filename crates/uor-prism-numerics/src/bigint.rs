@@ -234,12 +234,16 @@ impl<const BYTES: usize> IntoBindingValue for BigIntShape<BYTES> {
     }
 }
 
-// Leaf shapes (BigIntShape<BYTES>) do not implement
-// `PartitionProductFields` per the smoke-test pattern in
-// foundation-sdk (LeafA / LeafB are leaf shapes used as factors in
-// `partition_product!` compositions without explicit
-// `PartitionProductFields` impl). The macro recognizes leaf-factor
-// projection-termination via the absence of the impl; declaring an
-// empty-FIELDS impl on a leaf triggers the const-eval `index out of
-// bounds` failure in depth-2 projections per foundation-sdk's
-// `emit_term_for_field_access` lookup path.
+// ADR-033 G20 leaf-shape PartitionProductFields impl per
+// foundation-sdk 0.4.11's depth-2 verb!-macro projection chain.
+// Foundation-sdk 0.4.11 requires `PartitionProductFields` on every
+// type used as a partition-product factor (including leaves) for
+// the depth-2 chained-field-access trait-bound check to resolve.
+// Empty FIELDS signals "atomic byte-sequence carrier — no further
+// projection possible"; the macro respects the termination marker
+// without indexing into the empty array (the 0.4.10 const-eval
+// panic on empty FIELDS is fixed in 0.4.11).
+impl<const BYTES: usize> uor_foundation::pipeline::PartitionProductFields for BigIntShape<BYTES> {
+    const FIELDS: &'static [(u32, u32)] = &[];
+    const FIELD_NAMES: &'static [&'static str] = &[];
+}

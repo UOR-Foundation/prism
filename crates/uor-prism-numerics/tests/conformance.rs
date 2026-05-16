@@ -410,3 +410,29 @@ fn substrate_term_square_arena() {
         Some(uor_foundation::Term::Application { .. })
     ));
 }
+
+// ---- Three-operand compound verbs (closed by 0.4.11 depth-2 fix) ----
+
+#[test]
+fn three_operand_compound_verbs_emit_application_terminated_arenas() {
+    // Per ADR-031 wiki commitment + ADR-054 (4) substrate-Term canonical
+    // body discipline, the three-operand `fma`/`mod_pow`/`field_*` verbs
+    // emit Term arenas terminating in a substrate `PrimitiveOp::Add` or
+    // `PrimitiveOp::Mod` Application. Validates the 0.4.11 verb!-vs-
+    // prism_model! parity closure on depth-2 partition-product field
+    // access.
+    use uor_foundation::Term;
+    for arena in [
+        prism_numerics::verbs::fma_term_arena(),
+        prism_numerics::verbs::mod_pow_term_arena(),
+        prism_numerics::verbs::field_add_term_arena(),
+        prism_numerics::verbs::field_sub_term_arena(),
+        prism_numerics::verbs::field_mul_term_arena(),
+    ] {
+        assert!(
+            arena.len() >= 4,
+            "three-operand verb has ≥4 Term arena nodes"
+        );
+        assert!(matches!(arena.last(), Some(Term::Application { .. })));
+    }
+}

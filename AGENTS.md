@@ -185,16 +185,17 @@ that contribute the built-in axes and built-in types it re-exports.
   `prism`'s pin on `uor-foundation` may lag the latest published
   version; updates to this repo are demand-driven (a needed surface
   change) rather than calendar-driven.
-- **`uor-foundation`**: `^0.4` (effective floor 0.4.10 — required
-  for the ADR-056 ψ-residuals scope refinement and the closure of
-  Dependencies 1–3 named in the prior version of §11.8: depth-2
-  partition-product field access in verb!-macro const-eval
-  (Dep 1), `literal_u64(<value>, <level>)` and `literal_bytes(<bytes>,
-  <level>)` wide-Witt literal embedding (Dep 2), and verb/axis-body
-  admission of `concat`/`le`/`lt`/`ge`/`gt`/`hash`/`first_admit`
-  per ADR-056 (Dep 3)). Earlier floors: the `axis!` macro's
-  `body = |input| { … };` clause grammar plus `div`/`r#mod`/`pow`
-  as verb-body call forms per ADR-053 + ADR-055 (0.4.9 floor);
+- **`uor-foundation`**: `^0.4` (effective floor 0.4.11 — required
+  for the `partition_product!` macro's `syn::Type` operand admission
+  closing the const-generic-leaf depth-2 verb!-macro projection-
+  chain gap, the last remaining structural blocker for the
+  three-operand canonical numerics roster (`fma`, `mod_pow`,
+  parametric `field_*`)). Earlier floors: 0.4.10 shipped the
+  ADR-056 ψ-residuals scope refinement plus `literal_u64`/`literal_bytes`
+  wide-Witt embedding plus depth-2 partition-product field access
+  for hand-rolled leaves; 0.4.9 admitted `div`/`r#mod`/`pow` as
+  verb-body call forms plus the `axis!` `body = |input| { … };`
+  clause grammar per ADR-053 + ADR-055;
   Earlier floors: the `SubstrateTermBody` supertrait on
   `AxisExtension` per ADR-055 (0.4.8 floor);
   width-parametric arithmetic fold-rules per ADR-050; wide-value
@@ -206,12 +207,15 @@ that contribute the built-in axes and built-in types it re-exports.
   `PrimitiveOp::{Le, Lt, Ge, Gt, Concat}` per ADR-026;
   `Output: IntoBindingValue` per ADR-023 value-flow expansion.
   `default-features = false`, `no_std`-clean.
-- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.10 —
-  required for the ADR-056 ψ-residual scope refinement and the
-  closure of the three Dependencies named in the prior version of
-  §11.8). Earlier floors: 0.4.9 admitted `div`/`r#mod`/`pow` as
-  verb-body call forms plus the `axis!` `body` clause grammar;
-  0.4.8 declared the `SubstrateTermBody` supertrait;
+- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.11 —
+  required for the `partition_product!` macro's `syn::Type` operand
+  admission per the const-generic-leaf depth-2 verb!-macro
+  projection-chain fix). Earlier floors: 0.4.10 shipped the
+  ADR-056 ψ-residual scope refinement and the closure of the three
+  Dependencies named in earlier §11.8 revisions; 0.4.9 admitted
+  `div`/`r#mod`/`pow` as verb-body call forms plus the `axis!`
+  `body` clause grammar; 0.4.8 declared the `SubstrateTermBody`
+  supertrait;
   the `axis!` macro's `@generic` companion-emission form per ADR-052;
   the SDK macros `prism_model!`, `verb!`, `axis!`, `resolver!`,
   `output_shape!`, `use_verbs!`, `product_shape!`, `coproduct_shape!`,
