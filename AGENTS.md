@@ -407,10 +407,13 @@ wait, `CARGO_REGISTRY_TOKEN` secret). Steps, in order:
    - Wait for prism to appear.
    - `cargo publish -p uor-prism-verify` (depends on prism).
 
-Secret required: `CARGO_REGISTRY_TOKEN` (matches foundation's
-naming; the publishing maintainer mints this via `cargo login`
-against an account with publish rights to all six `uor-prism*`
-crates on crates.io).
+Secret: `CARGO_REGISTRY_TOKEN` is provided at the
+`UOR-Foundation` GitHub-org level and inherits into this repo
+automatically. No per-repo secret minting is required — the same
+token that publishes `uor-foundation` and `uor-foundation-sdk`
+also publishes the six `uor-prism*` crates. (Confirm the
+crates.io account behind the token has publish rights to each
+`uor-prism*` crate before the first tag.)
 
 Permissions: `contents: write` on the workflow (required for
 `softprops/action-gh-release@v2` to upload the release notes).
