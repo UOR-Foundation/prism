@@ -24,6 +24,13 @@ jobs:
           components: rustfmt, clippy
           targets: thumbv7em-none-eabihf
 
+      - name: Ensure no_std target is installed
+        # Belt-and-suspenders: explicit `rustup target add` in case
+        # dtolnay/rust-toolchain's `targets:` field doesn't surface
+        # the cross-compile target into `~/.rustup` (observed empty
+        # on initial v0.1.0 release run). Idempotent.
+        run: rustup target add thumbv7em-none-eabihf
+
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
