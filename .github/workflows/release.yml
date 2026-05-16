@@ -139,18 +139,52 @@ jobs:
 
             Built on [`uor-foundation`](https://crates.io/crates/uor-foundation) and [`uor-foundation-sdk`](https://crates.io/crates/uor-foundation-sdk). Architecture documented at the [UOR-Framework wiki](https://github.com/UOR-Foundation/UOR-Framework/wiki).
 
+      # The publish steps below are idempotent: each step skips the
+      # `cargo publish` invocation when the version is already on the
+      # registry. This makes a re-run of a partially-failed release
+      # workflow safe (e.g. when a later publish hits crates.io's
+      # "new-crate" rate limit after the earlier crates already
+      # uploaded; the re-run picks up where it left off).
+
       - name: Publish uor-prism-numerics to crates.io
-        run: cargo publish -p uor-prism-numerics
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          if curl -sSf -H "User-Agent: UOR-Prism-release-workflow" \
+               "https://crates.io/api/v1/crates/uor-prism-numerics/$VERSION" 2>/dev/null \
+               | grep -q "\"num\":\"$VERSION\""; then
+            echo "uor-prism-numerics $VERSION already published; skipping"
+          else
+            cargo publish -p uor-prism-numerics
+          fi
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
       - name: Publish uor-prism-crypto to crates.io
-        run: cargo publish -p uor-prism-crypto
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          if curl -sSf -H "User-Agent: UOR-Prism-release-workflow" \
+               "https://crates.io/api/v1/crates/uor-prism-crypto/$VERSION" 2>/dev/null \
+               | grep -q "\"num\":\"$VERSION\""; then
+            echo "uor-prism-crypto $VERSION already published; skipping"
+          else
+            cargo publish -p uor-prism-crypto
+          fi
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
       - name: Publish uor-prism-fhe to crates.io
-        run: cargo publish -p uor-prism-fhe
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          if curl -sSf -H "User-Agent: UOR-Prism-release-workflow" \
+               "https://crates.io/api/v1/crates/uor-prism-fhe/$VERSION" 2>/dev/null \
+               | grep -q "\"num\":\"$VERSION\""; then
+            echo "uor-prism-fhe $VERSION already published; skipping"
+          else
+            cargo publish -p uor-prism-fhe
+          fi
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -181,7 +215,16 @@ jobs:
           done
 
       - name: Publish uor-prism-tensor to crates.io
-        run: cargo publish -p uor-prism-tensor
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          if curl -sSf -H "User-Agent: UOR-Prism-release-workflow" \
+               "https://crates.io/api/v1/crates/uor-prism-tensor/$VERSION" 2>/dev/null \
+               | grep -q "\"num\":\"$VERSION\""; then
+            echo "uor-prism-tensor $VERSION already published; skipping"
+          else
+            cargo publish -p uor-prism-tensor
+          fi
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -204,7 +247,16 @@ jobs:
           exit 1
 
       - name: Publish uor-prism to crates.io
-        run: cargo publish -p uor-prism
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          if curl -sSf -H "User-Agent: UOR-Prism-release-workflow" \
+               "https://crates.io/api/v1/crates/uor-prism/$VERSION" 2>/dev/null \
+               | grep -q "\"num\":\"$VERSION\""; then
+            echo "uor-prism $VERSION already published; skipping"
+          else
+            cargo publish -p uor-prism
+          fi
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -227,6 +279,15 @@ jobs:
           exit 1
 
       - name: Publish uor-prism-verify to crates.io
-        run: cargo publish -p uor-prism-verify
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          if curl -sSf -H "User-Agent: UOR-Prism-release-workflow" \
+               "https://crates.io/api/v1/crates/uor-prism-verify/$VERSION" 2>/dev/null \
+               | grep -q "\"num\":\"$VERSION\""; then
+            echo "uor-prism-verify $VERSION already published; skipping"
+          else
+            cargo publish -p uor-prism-verify
+          fi
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
