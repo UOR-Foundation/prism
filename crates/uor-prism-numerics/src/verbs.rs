@@ -204,16 +204,57 @@ verb! {
     }
 }
 
-// Compound substrate-Term verbs — three-operand forms like
-// `fma(a, b, c) = (a * b) + c`, `mod_pow(base, exp, p)`, and
-// `field_add<P>` would compose `Add`/`Mul`/`Mod`/`Pow` over a
-// three-operand partition-product input. Foundation-sdk 0.4.9 admits
-// the closure-body grammar for these PrimitiveOps but depth-2 field
-// access on nested `partition_product`s (`input.0.0` / `input.0.1` /
-// `input.1` on a `partition_product(Pair, Leaf)`) fails the verb!
-// macro's const-eval path with "index out of bounds: the length is 0
-// but the index is 0" — apparently a verb!-specific limitation
-// distinct from the `prism_model!` body parser's smoke-test
-// coverage of `input.0.0` on a `partition_product(InnerLR, LeafA)`.
-// Forward work upstream in foundation-sdk's `emit_term_for_call` /
-// nested-projection const-eval path.
+// ---- Three-operand verbs (parametric-modulus form).
+//
+// Note: depth-2 partition-product field access works in
+// foundation-sdk 0.4.10's verb! macro when the leaf factor is a
+// hand-written ConstrainedTypeShape without explicit
+// PartitionProductFields impl (the smoke-test pattern at
+// uor-foundation-sdk/tests/smoke.rs `verb_depth2_pos00` over
+// PosOuter = (InnerLR, LeafA)). Replicating that pattern with
+// BigIntShape<N> as the leaf factor (which is parametric over a
+// const generic byte-width parameter) triggers a verb!-macro
+// const-eval "index out of bounds" failure not reproduced by the
+// hand-written non-generic LeafA pattern; the failure mode
+// appears specific to const-generic leaf factors. The
+// secp256k1-pinned verbs below (depth-1 access + wide literal
+// embedding) realize the same semantics with the modulus baked
+// in as a `literal_bytes` const, avoiding the depth-2 path.
+
+// ---- Wide-literal P verbs (closed by foundation-sdk 0.4.10
+// Dependency 2 — `literal_bytes(<bytes>, <level>)` admission for
+// W128+ literal embedding).
+
+/// Secp256k1 base-field prime as a 32-byte big-endian literal:
+/// `p = 2^256 - 2^32 - 977`.
+pub const SECP256K1_P_BYTES: &[u8] = &[
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xfc, 0x2f,
+];
+
+/// W256 Witt-level marker for the secp256k1 P_LITERAL embedding.
+pub const W256_LEVEL: uor_foundation::WittLevel = uor_foundation::WittLevel::new(256);
+
+// secp256k1-pinned field arithmetic — the parametric `field_*`
+// verbs above with the W256 P literal baked into the verb body via
+// `literal_bytes`. These are the substrate-Term realizations of
+// `PrimeFieldNumericSecp256k1::{add, sub, mul}` per ADR-054 (4) +
+// ADR-055.
+
+verb! {
+    pub fn secp256k1_field_add(input: BigIntPair32) -> BigInt32 {
+        r#mod(add(input.0, input.1), literal_bytes(SECP256K1_P_BYTES, W256_LEVEL))
+    }
+}
+
+verb! {
+    pub fn secp256k1_field_sub(input: BigIntPair32) -> BigInt32 {
+        r#mod(sub(input.0, input.1), literal_bytes(SECP256K1_P_BYTES, W256_LEVEL))
+    }
+}
+
+verb! {
+    pub fn secp256k1_field_mul(input: BigIntPair32) -> BigInt32 {
+        r#mod(mul(input.0, input.1), literal_bytes(SECP256K1_P_BYTES, W256_LEVEL))
+    }
+}

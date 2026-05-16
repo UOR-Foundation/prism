@@ -52,6 +52,7 @@
 
 pub mod activation;
 pub mod tensor;
+pub mod verbs;
 
 pub use activation::{
     ActivationAxis, CpuI8VectorActivation, CpuI8VectorActivation128, CpuI8VectorActivation16,

@@ -104,11 +104,14 @@ implementation. Code in this repository must satisfy:
   foundation-declared `SubstrateTermBody` supertrait on
   `AxisExtension` makes the substrate-Term verb body discipline
   apply to every axis impl, not just standard-library canonical
-  impls per the previous ADR-054 RA2 carve-out; foundation-sdk's
-  `axis!` companion macro emits a default empty `body_arena()` that
-  signals the primitive-fast-path-equivalent realization — the
-  explicit `body` clause grammar is forthcoming in a future
-  foundation-sdk release).
+  impls per the previous ADR-054 RA2 carve-out); **ADR-056**
+  (ψ-residuals discipline scope refinement — the discipline
+  applies to the route body's syntactic surface ONLY; verb bodies
+  and axis impl bodies admit the full substrate vocabulary
+  including `concat`, `le`/`lt`/`ge`/`gt`, `hash(...)` axis
+  invocation, and `first_admit`, unblocking canonical decompositions
+  for SHA padding, HMAC, Merkle tree construction, and tensor
+  saturation per ADR-054 + ADR-055).
 
 Substitution axes (the only permitted variation points per ADR-007 /
 ADR-030 / ADR-036 / ADR-048): `HostTypes`, `HostBounds`, `AxisTuple`,
@@ -182,9 +185,16 @@ that contribute the built-in axes and built-in types it re-exports.
   `prism`'s pin on `uor-foundation` may lag the latest published
   version; updates to this repo are demand-driven (a needed surface
   change) rather than calendar-driven.
-- **`uor-foundation`**: `^0.4` (effective floor 0.4.9 — required for
-  the `axis!` macro's `body = |input| { … };` clause grammar plus
-  `div`/`r#mod`/`pow` as verb-body call forms per ADR-053 + ADR-055).
+- **`uor-foundation`**: `^0.4` (effective floor 0.4.10 — required
+  for the ADR-056 ψ-residuals scope refinement and the closure of
+  Dependencies 1–3 named in the prior version of §11.8: depth-2
+  partition-product field access in verb!-macro const-eval
+  (Dep 1), `literal_u64(<value>, <level>)` and `literal_bytes(<bytes>,
+  <level>)` wide-Witt literal embedding (Dep 2), and verb/axis-body
+  admission of `concat`/`le`/`lt`/`ge`/`gt`/`hash`/`first_admit`
+  per ADR-056 (Dep 3)). Earlier floors: the `axis!` macro's
+  `body = |input| { … };` clause grammar plus `div`/`r#mod`/`pow`
+  as verb-body call forms per ADR-053 + ADR-055 (0.4.9 floor);
   Earlier floors: the `SubstrateTermBody` supertrait on
   `AxisExtension` per ADR-055 (0.4.8 floor);
   width-parametric arithmetic fold-rules per ADR-050; wide-value
@@ -196,13 +206,12 @@ that contribute the built-in axes and built-in types it re-exports.
   `PrimitiveOp::{Le, Lt, Ge, Gt, Concat}` per ADR-026;
   `Output: IntoBindingValue` per ADR-023 value-flow expansion.
   `default-features = false`, `no_std`-clean.
-- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.9 — required
-  for the `axis!` macro's `body = |input| { … };` clause grammar and
-  the `div`/`r#mod`/`pow` verb-body call-form admissions per
-  ADR-053. The body clause is one-body-per-axis with an opaque
-  byte-input binding; richer per-method bodies and `TermValue`-typed
-  wide literals are forward work per ADR-055's emission discipline).
-  Earlier floors: 0.4.8 declared the `SubstrateTermBody` supertrait;
+- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.10 —
+  required for the ADR-056 ψ-residual scope refinement and the
+  closure of the three Dependencies named in the prior version of
+  §11.8). Earlier floors: 0.4.9 admitted `div`/`r#mod`/`pow` as
+  verb-body call forms plus the `axis!` `body` clause grammar;
+  0.4.8 declared the `SubstrateTermBody` supertrait;
   the `axis!` macro's `@generic` companion-emission form per ADR-052;
   the SDK macros `prism_model!`, `verb!`, `axis!`, `resolver!`,
   `output_shape!`, `use_verbs!`, `product_shape!`, `coproduct_shape!`,
