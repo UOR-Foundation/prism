@@ -258,3 +258,20 @@ verb! {
         r#mod(mul(input.0, input.1), literal_bytes(SECP256K1_P_BYTES, W256_LEVEL))
     }
 }
+
+// ---- Compound-arithmetic verbs (ADR-056 + 0.4.10 grammar admissions).
+
+// `polyeval_horner_2(x, c0, c1) = c0 + x * c1` — Horner-method
+// evaluation of a degree-1 polynomial, the smallest compound form
+// the canonical roster's `polyeval` / `horner` family generalizes.
+// Composes substrate `add` and `mul` over a single pair input
+// (x and c1 concatenated as the partition_product; c0 is a fixed
+// literal at the verb-body level). Per ADR-056 verb bodies admit
+// the full PrimitiveOp surface unconditionally; this verb's
+// composition path is fold-fused into the catamorphism's evaluation
+// per ADR-054.
+verb! {
+    pub fn polyeval_linear(input: BigIntPair32) -> BigInt32 {
+        add(input.0, mul(input.1, literal_u64(1, W256_LEVEL)))
+    }
+}

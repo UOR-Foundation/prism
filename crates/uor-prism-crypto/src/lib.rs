@@ -69,6 +69,7 @@ pub mod curve;
 pub mod hash;
 pub mod shapes;
 pub mod signature;
+pub mod verbs;
 
 pub use commitment::{
     CommitmentAxis, MerkleProofShape, MerkleRoot, MerkleRootCommitment, MAX_MERKLE_LEAVES,

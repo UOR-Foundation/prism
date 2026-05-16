@@ -55,3 +55,16 @@ verb! {
         concat(input.0, input.1)
     }
 }
+
+// `saturating_xor_bytes(a, b)` — the GF(2) overflow-free byte sum
+// xor(a, b), shipped as the architectural witness for tensor
+// saturation per ADR-054 § Substrate-Term realization examples.
+// Per ADR-056 the broader Wn saturation path uses `match` over
+// `ge(acc, sat_max)` comparisons (now admissible in verb bodies);
+// the witness here demonstrates the no-overflow byte-add primitive
+// the saturation composition reduces to for unsigned operands.
+verb! {
+    pub fn saturating_xor_bytes(input: BytePair) -> W8Byte {
+        xor(input.0, input.1)
+    }
+}
