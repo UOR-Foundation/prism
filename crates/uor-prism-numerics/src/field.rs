@@ -14,30 +14,24 @@
 //! Per [Wiki ADR-055](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
 //! every `AxisExtension` impl carries a substrate-Term verb body via
 //! the foundation-declared `SubstrateTermBody` supertrait. The
-//! `axis!` companion macro in foundation-sdk 0.4.9 emits a default
+//! `axis!` companion macro in foundation-sdk 0.4.11 emits a default
 //! empty `body_arena()` for every impl that doesn't supply an
 //! explicit `body = |input| { … };` clause (the
 //! primitive-fast-path-equivalent realization); the hand-written
 //! kernel below satisfies the discipline as-shipped.
 //!
-//! The richer explicit substrate-Term decomposition for
-//! `PrimeFieldNumericSecp256k1::{add, sub, mul}` is
-//! `r#mod(<ring-arithmetic>(input.0, input.1), P_LITERAL)` at W256,
-//! where `<ring-arithmetic>` is `add`/`sub`/`mul` and the input is a
-//! `partition_product(FieldElementShape<32>, FieldElementShape<32>)`.
-//! With foundation-sdk 0.4.9's `div`/`r#mod`/`pow` admissions and
-//! the `body` clause grammar in scope, this is now syntactically
-//! expressible per the in-grammar surface — the remaining co-gate is
-//! the wide-Witt-level `TermValue` literal embedding mechanism for
-//! `P_LITERAL` (the secp256k1 base-field prime is a 256-bit
-//! constant; ADR-051's wide `TermValue` carrier exists at the
-//! substrate level but isn't yet surfaced as a verb/axis-body
-//! literal-expr form). AGENTS.md §11.8 names this as Dependency 2.
-//!
-//! See `prism::numerics::verbs::field_add_substrate` for the
-//! intermediate substrate-Term form (three-operand `(a, b, p)`
-//! partition-product) blocked separately on Dependency 1 — depth-2
-//! field access in `verb!`-macro const-eval.
+//! The substrate-Term canonical body for
+//! `PrimeFieldNumericSecp256k1::{add, sub, mul}` —
+//! `r#mod(<ring-arithmetic>(input.0, input.1), literal_bytes(SECP256K1_P_BYTES, W256_LEVEL))`
+//! per ADR-054 (4) — **ships as verbs** in
+//! [`crate::verbs::{secp256k1_field_add, secp256k1_field_sub,
+//! secp256k1_field_mul}`]. Foundation-sdk 0.4.10's `literal_bytes`
+//! wide-Witt-literal embedding admits the secp256k1 P_LITERAL as
+//! a W256 inline constant; foundation-sdk 0.4.9 admitted `r#mod` as
+//! a verb-body call form per ADR-053. The parametric-prime
+//! `field_add` / `field_sub` / `field_mul` verbs (where `p` is an
+//! input operand) also ship and exercise foundation-sdk 0.4.11's
+//! depth-2 const-generic-leaf partition-product projection.
 //!
 //! Byte-output equivalence with the SEC 2 §2.4.1 vectors is verified
 //! by direct vectors in `tests/conformance.rs`.

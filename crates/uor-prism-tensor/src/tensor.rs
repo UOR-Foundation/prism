@@ -16,25 +16,28 @@
 //! Per [Wiki ADR-055](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
 //! every `AxisExtension` impl satisfies the substrate-Term verb body
 //! discipline; the hand-written kernel below uses the default empty
-//! `body_arena()` emitted by foundation-sdk 0.4.9's `axis!` companion
-//! macro (the primitive-fast-path-equivalent realization).
+//! `body_arena()` emitted by foundation-sdk 0.4.11's `axis!`
+//! companion macro (the primitive-fast-path-equivalent realization).
 //!
-//! The richer explicit substrate-Term decomposition of
-//! `CpuI8MatmulSquare<DIM>::matmul` is `fold_n(DIM, ...)` over rows ×
+//! Explicit substrate-Term decomposition of
+//! `CpuI8MatmulSquare<DIM>::matmul` — `fold_n(DIM, ...)` over rows ×
 //! `fold_n(DIM, ...)` over columns × `fold_n(DIM, ...)` over
 //! reductions, with a `sign_extend` sub-verb (matching `Ge(operand,
 //! Literal(0x80, W8))` to select between `Concat(0x00, operand)` and
 //! `Concat(0xff, operand)`) plus W16 `Mul` + W16 `Add` accumulation
 //! plus saturation via `Match` over `Ge(acc, Literal(0x7fff, W16))` /
-//! `Lt(acc, Literal(0x8000, W16))`. The architectural blocker is the
-//! ADR-035 ψ-residual rejection of `le`/`lt`/`ge`/`gt` and `concat`
-//! in axis bodies — this is a **wiki design constraint**, not a
-//! foundation-sdk gap (the comparison and concat ops exist in
-//! `PrimitiveOp` and the substrate catamorphism evaluates them; only
-//! verb/axis body composition rejects them). Closing the tensor
-//! substrate-Term body needs an ADR-035 amendment admitting
-//! comparison-as-Match + concat-as-sign-extend in axis-body contexts.
-//! AGENTS.md §11.8 names this as Dependency 3.
+//! `Lt(acc, Literal(0x8000, W16))` per ADR-054 § Substrate-Term
+//! realization examples — is **syntactically expressible** in
+//! foundation-sdk 0.4.11's verb-body grammar. ADR-056 admits
+//! `le`/`lt`/`ge`/`gt` and `concat` in verb/axis bodies (only the
+//! route body's syntactic surface retains the ψ-residuals rejection);
+//! foundation-sdk 0.4.11's depth-2 const-generic-leaf partition-product
+//! projection covers the fold-n composition over matrix shapes. The
+//! remaining work is **operational composition**: the architectural
+//! witness verbs in [`crate::verbs`] (saturating-xor + concat-bytes)
+//! demonstrate the per-element primitives; the unfolded
+//! fold-over-rows-and-columns matmul body is a published-roster
+//! follow-on.
 //!
 //! The hand-written `for`-loop kernel below is the operational form;
 //! byte-output equivalence with BLAS reference outputs at integer

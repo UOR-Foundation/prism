@@ -12,7 +12,7 @@
 //! Per [Wiki ADR-055](https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions)
 //! every `AxisExtension` impl carries a substrate-Term verb body via
 //! the foundation-declared `SubstrateTermBody` supertrait. The
-//! `axis!` companion macro in foundation-sdk 0.4.9 emits a default
+//! `axis!` companion macro in foundation-sdk 0.4.11 emits a default
 //! empty `body_arena()` for every impl that doesn't supply an
 //! explicit `body = |input| { … };` clause — ADR-055 names this the
 //! **primitive-fast-path-equivalent realization**: the kernel-function
@@ -20,32 +20,27 @@
 //! fold-fusion through an empty body arena, so the hand-written
 //! kernel bodies satisfy the discipline as-shipped.
 //!
-//! The richer explicit substrate-Term decomposition for the hash
+//! Explicit substrate-Term canonical body composition for the hash
 //! family — compressing 32-/64-byte internal-state blocks via composed
 //! `Add` (mod 2^32 or 2^64), `Xor`, `And`, `Or`, `Bnot`, plus a `rotr`
 //! sub-verb composing `Or(Div(x, 2^k), Mul(x, 2^(width-k)))` per
-//! ADR-054 § Substrate-Term realization examples — has three
-//! remaining co-gates per AGENTS.md §11.8:
-//!
-//! - **Multi-method `body` clauses** — foundation-sdk 0.4.9's `axis!`
-//!   admits one `body` clause per trait declaration; the hash family's
-//!   per-impl bodies (SHA-256 = 64 rounds; SHA-512 = 80 rounds;
-//!   BLAKE3 = Bao-tree fold) need per-impl `body` clause emission, a
-//!   foundation-sdk grammar extension.
-//! - **`concat` for pad-and-finalize** — rejected per ADR-035
-//!   ψ-residuals; an architectural wiki commitment, not a
-//!   foundation-sdk gap.
-//! - **partition-product field access in axis bodies** —
-//!   foundation-sdk 0.4.9 binds the body's `input` as opaque bytes
-//!   with no `route_input_ty` for projection; structurally-typed
-//!   hash inputs need partition-product binding.
+//! ADR-054 § Substrate-Term realization examples plus pad-and-finalize
+//! via `Concat` per ADR-056 — is **syntactically expressible** in
+//! foundation-sdk 0.4.11's verb-body grammar (every PrimitiveOp call
+//! form including `div`/`r#mod`/`pow`/`concat`/`le`/`lt`/`ge`/`gt`
+//! plus `hash` axis invocation is admitted in verb/axis bodies per
+//! ADR-056). The remaining work is **operational composition**: each
+//! canonical hash impl's 64- / 80- / 24-round compression unfolded as
+//! `fold_n` over the round-constant table is a published-roster
+//! follow-on; the hand-written kernel bodies below remain the
+//! operational form pending that composition.
 //!
 //! Byte-output equivalence with the canonical reference vectors
 //! (FIPS-180-4, FIPS-202, BLAKE3 spec) is verified by direct vectors
-//! in `tests/conformance.rs`. When the upstream gates clear, the
-//! explicit `body` clauses will be added alongside; per ADR-055's
-//! byte-output-equivalence-at-every-input clause the two forms
-//! produce byte-identical outputs.
+//! in `tests/conformance.rs`. Per ADR-055's byte-output-equivalence-
+//! at-every-input clause the kernel-dispatch path and any future
+//! explicit substrate-Term `body` clause produce byte-identical
+//! outputs.
 
 #![allow(missing_docs)]
 

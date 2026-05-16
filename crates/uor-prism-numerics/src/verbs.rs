@@ -10,87 +10,72 @@
 //! substrate-Term verb body via the foundation-declared
 //! `SubstrateTermBody` supertrait.
 //!
-//! # Verbs shipped (expressible in foundation-sdk 0.4.9's verb! grammar)
+//! # Substrate-Term verbs shipped
 //!
-//! Foundation-sdk 0.4.9 admits `add`, `sub`, `mul`, `div`, `r#mod`,
-//! `pow`, `xor`, `and`, `or`, `neg`, `bnot`, `succ`, `pred` as verb-body
-//! `PrimitiveOp` call forms — the full ADR-053 catalog (the 0.4.9
-//! grammar extension closes the `div`/`mod`/`pow` admission that
-//! 0.4.8 did not yet support).
+//! Foundation-sdk 0.4.11 admits the full
+//! `add`/`sub`/`mul`/`div`/`r#mod`/`pow`/`xor`/`and`/`or`/`neg`/`bnot`/`succ`/`pred`
+//! PrimitiveOp call forms in verb bodies plus the ADR-056-unblocked
+//! `concat`/`le`/`lt`/`ge`/`gt`/`hash`/`first_admit` vocabulary, plus
+//! `literal_u64` / `literal_bytes` wide-Witt-literal embedding per
+//! ADR-051, plus depth-2 partition-product field access on
+//! const-generic leaves via `partition_product!`'s `syn::Type`
+//! operand admission per the v0.4.11 fix.
 //!
-//! Substrate-Term verbs shipped here:
+//! Per ADR-055 + ADR-056 every ADR-054 § Substrate-Term realization-
+//! examples canonical body is now **syntactically expressible** in
+//! the verb-body grammar; the work that remains is operational
+//! composition (round-by-round SHA, fold_n-unrolled polyeval, etc.)
+//! against the wiki's published roster.
 //!
-//! - [`succ_twice`], [`pred_twice`] — single-input compositions of
-//!   substrate unary primitives (`Succ` / `Pred`).
-//! - [`square`] — single-input self-multiplication (`mul(x, x)`).
+//! Verbs shipped here (16 total across single-input, ring-arithmetic,
+//! hypercube-arithmetic, three-operand, and secp256k1-pinned-prime
+//! families):
+//!
+//! - [`succ_twice`], [`pred_twice`], [`square`] — single-input
+//!   architectural-witness compositions.
 //! - [`add_substrate`], [`sub_substrate`], [`mul_substrate`],
 //!   [`div_substrate`], [`mod_substrate`], [`pow_substrate`] —
 //!   substrate-Term realizations of the six ADR-053 ring-arithmetic
-//!   `PrimitiveOp`s over a `partition_product(BigInt32, BigInt32)`
-//!   input at W256 per ADR-055 + ADR-055. Each verb body is one
-//!   substrate `PrimitiveOp` application; per ADR-050's
-//!   width-parametric arithmetic the substrate evaluates at the full
-//!   256-bit width without truncation.
+//!   `PrimitiveOp`s over `partition_product(BigInt32, BigInt32)` at
+//!   W256. Per ADR-050's width-parametric arithmetic the substrate
+//!   evaluates at the full 256-bit width without truncation.
 //! - [`gf2_add_substrate`], [`gf2_mul_substrate`], [`or_substrate`] —
-//!   substrate-Term realizations of the three hypercube-axis
-//!   `PrimitiveOp`s (`Xor` / `And` / `Or`) at W256.
+//!   the three hypercube-axis `PrimitiveOp`s (`Xor` / `And` / `Or`)
+//!   at W256.
+//! - [`fma`], [`mod_pow`], [`field_add`], [`field_sub`], [`field_mul`]
+//!   — three-operand compositions over
+//!   `partition_product(BigIntPair32, BigIntShape<32>)` exercising
+//!   foundation-sdk 0.4.11's depth-2 const-generic-leaf projection.
+//!   `field_*` here is the parametric-prime form (`p` is an input
+//!   operand); the secp256k1-pinned forms below bake P inline.
+//! - [`secp256k1_field_add`], [`secp256k1_field_sub`],
+//!   [`secp256k1_field_mul`] — the ADR-054 (4) canonical bodies of
+//!   `PrimeFieldNumericSecp256k1::{add, sub, mul}` per ADR-031.
+//!   `r#mod(<arithmetic>(input.0, input.1), literal_bytes(SECP256K1_P_BYTES, W256_LEVEL))`
+//!   per foundation-sdk 0.4.10's `literal_bytes` wide-Witt embedding.
 //!
-//! Together these cover **all thirteen** in-grammar `PrimitiveOp` call
-//! forms as substrate-Term verb bodies. The catamorphism walks each
-//! composition as a fold-fusion-reachable Term tree per
-//! ADR-019/ADR-029/ADR-054 — no opaque axis-kernel boundary remains
-//! inside the substrate's structural reach for these compositions.
+//! The catamorphism walks each composition as a fold-fusion-reachable
+//! Term tree per ADR-019 / ADR-029 / ADR-054 — no opaque axis-kernel
+//! boundary remains inside the substrate's structural reach for any
+//! of these compositions.
 //!
-//! # Wiki-named compound numerics verbs — architectural blockers
+//! # Wiki-named compound verbs — operational composition follow-on
 //!
-//! ADR-031 + ADR-054 § Substrate-Term realization examples + ADR-055
-//! commit prism-numerics to ship `modexp_p`, `polyeval`, `gcd`,
-//! `ext_euclidean`, `horner`, `newton_step`, `fma`, `field_add<P>`,
-//! `field_sub<P>`, `field_mul<P>`, `field_inv<P>` as substrate-Term
-//! verb bodies. Of these:
-//!
-//! - **`fma`, `mod_pow_pair`, `field_add<P>`/`sub<P>`/`mul<P>`** —
-//!   three-operand verbs over `partition_product`-folded inputs. The
-//!   wiki's algebraic-composition target is expressible in the
-//!   admitted `add`/`mul`/`r#mod`/`pow` call forms, but the
-//!   depth-2 field access (`input.0.0`, `input.0.1`, `input.1`) on
-//!   nested `partition_product`s fails `verb!`'s const-eval path
-//!   ("index out of bounds: the length is 0 but the index is 0"
-//!   from foundation-sdk's `emit_term_for_call` projection chain).
-//!   Forward work in foundation-sdk: extend the verb!-macro
-//!   const-eval projection path to admit nested-`partition_product`
-//!   depth-2 access, matching `prism_model!`'s already-admitted form
-//!   (smoke-tested at uor-foundation-sdk/tests/smoke.rs line 1093).
-//!
-//! - **`modexp_p`, `field_inv<P>`** — additionally need a wide-Witt
-//!   literal mechanism (the secp256k1 prime P is a 256-bit constant
-//!   that doesn't fit in the closure-body grammar's `u64` literal
-//!   form). ADR-051's `TermValue` wide-value carrier exists at the
-//!   substrate level but isn't surfaced as a verb-body literal-expr
-//!   form. Forward work in foundation-sdk: admit `TermValue`-typed
-//!   literal expressions in verb bodies for wide-Witt constants.
-//!
-//! - **`gcd`, `ext_euclidean`, `newton_step`** — need comparison
-//!   primitives (`le`/`lt`/`ge`/`gt`) for the branching predicate,
-//!   which ADR-035's ψ-residuals discipline rejects in verb/axis
-//!   bodies. This is an **architectural** wiki commitment, not a
-//!   foundation-sdk gap. The canonical body discipline per ADR-054
-//!   would need an ADR-035 amendment admitting comparison-as-`Match`
-//!   in axis-body contexts to express these algorithms.
-//!
-//! - **`polyeval`, `horner`** — composable through `fold_n` over
-//!   `add` + `mul`, expressible in principle. Implementation gated
-//!   on the partition_product depth-2 access fix above (the
-//!   coefficient sequence must be projectable from the input shape).
+//! ADR-031, ADR-054 § Substrate-Term realization examples, and
+//! ADR-055 commit prism-numerics to a richer compound roster:
+//! `modexp_p` (chains `pow` and `r#mod` against an embedded P
+//! literal); `polyeval` and `horner` (`fold_n` over `add` and `mul`);
+//! `gcd` and `ext_euclidean` (`recurse` with `r#mod`-driven
+//! termination predicates per the ADR-056-admitted comparison ops);
+//! `newton_step` (`add`, `sub`, `mul`, `div` iteration); `field_inv`
+//! over a parametric P (Fermat's little theorem,
+//! `pow(x, p - 2) mod p`). Each is a Term-arena composition over
+//! already-admitted call forms with no remaining architectural
+//! blockers per ADR-056; these are published-roster follow-ons.
 //!
 //! [09-adr-024]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 //! [09-adr-031]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
-//! [09-adr-054]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 //! [09-adr-055]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
-//!
-//! [09-adr-024]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
-//! [09-adr-031]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
-//! [09-adr-054]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 
 #![allow(missing_docs)]
 
@@ -221,9 +206,9 @@ verb! {
 // embedding) realize the same semantics with the modulus baked
 // in as a `literal_bytes` const, avoiding the depth-2 path.
 
-// ---- Wide-literal P verbs (closed by foundation-sdk 0.4.10
-// Dependency 2 — `literal_bytes(<bytes>, <level>)` admission for
-// W128+ literal embedding).
+// ---- Wide-literal P verbs over `literal_bytes(<bytes>, <level>)`
+// for W128+ inline-constant embedding (foundation-sdk 0.4.10
+// grammar admission).
 
 /// Secp256k1 base-field prime as a 32-byte big-endian literal:
 /// `p = 2^256 - 2^32 - 977`.
