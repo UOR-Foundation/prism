@@ -369,27 +369,51 @@ dedicated CI gate.
 
 ## 8. Release pipeline (`.github/workflows/release.yml`)
 
-Tag-driven on `v*`. Steps, in order (per wiki ADR-031's layered
-dependency graph: leaf sub-crates first, then `prism-tensor`
-which depends on `prism-numerics`, then the `prism` façade which
-depends on every sub-crate, finally `prism-verify` which depends
-on `prism`):
+Tag-driven on `v*`. Mirrors the `UOR-Foundation/UOR-Framework`
+release pipeline (single `release` job, `dtolnay/rust-toolchain@stable`
+toolchain action, `actions/cache@v4` cargo cache, `softprops/action-gh-release@v2`
+GitHub Release creation, direct crates.io HTTP API for index-propagation
+wait, `CARGO_REGISTRY_TOKEN` secret). Steps, in order:
 
-1. Re-run the full CI matrix; any failure aborts publish.
-2. Dry-run publish each crate (the non-leaf entries pass
-   `--no-verify` since their workspace-path deps aren't yet on
-   the registry; the real publish does the verify pass).
-3. `cargo publish -p uor-prism-numerics`
-4. `cargo publish -p uor-prism-crypto`
-5. `cargo publish -p uor-prism-fhe`
-6. Wait for leaf sub-crates to appear on crates.io index.
-7. `cargo publish -p uor-prism-tensor`
-8. Wait for index propagation.
-9. `cargo publish -p uor-prism`
-10. Wait for index propagation.
-11. `cargo publish -p uor-prism-verify`
+1. **Tag validation**: the tag (`vX.Y.Z`) must match the workspace
+   version pinned in `[workspace.package]`. Mismatched tags fail
+   early before any CI work.
+2. **CI matrix**: `cargo fmt --check`, `cargo clippy --workspace
+   --all-targets --all-features -- -D warnings`, `cargo test
+   --workspace --all-features`, `cargo build --target
+   thumbv7em-none-eabihf --no-default-features` per crate (all six),
+   `wiki-link-check`, `cargo doc -D warnings`. Any failure aborts.
+3. **Per-crate dry-run** (`cargo publish --dry-run --allow-dirty`).
+   Leaf crates (`numerics`, `crypto`, `fhe`) verify against direct
+   deps. Non-leaf crates (`tensor`, `prism`, `prism-verify`) pass
+   `--no-verify` since their workspace-path deps aren't yet on the
+   registry; the actual publish step is the authoritative
+   verification, gated by wait-for-index.
+4. **GitHub Release**: `softprops/action-gh-release@v2` creates the
+   release page with auto-generated notes plus a manifest of the six
+   crates that will be published.
+5. **Publish in dependency order** (per wiki ADR-031's layered
+   graph):
+   - `cargo publish -p uor-prism-numerics`
+   - `cargo publish -p uor-prism-crypto`
+   - `cargo publish -p uor-prism-fhe`
+   - Wait for leaf sub-crates to appear on crates.io (direct HTTP
+     query against `crates.io/api/v1/crates/<pkg>/<version>`,
+     bypassing the runner's cached cargo registry which would be
+     stale).
+   - `cargo publish -p uor-prism-tensor` (depends on numerics).
+   - Wait for tensor to appear.
+   - `cargo publish -p uor-prism` (depends on all four sub-crates).
+   - Wait for prism to appear.
+   - `cargo publish -p uor-prism-verify` (depends on prism).
 
-Secrets required: `CRATES_IO_TOKEN`.
+Secret required: `CARGO_REGISTRY_TOKEN` (matches foundation's
+naming; the publishing maintainer mints this via `cargo login`
+against an account with publish rights to all six `uor-prism*`
+crates on crates.io).
+
+Permissions: `contents: write` on the workflow (required for
+`softprops/action-gh-release@v2` to upload the release notes).
 
 ## 9. Documentation hosting (`.github/workflows/docs.yml`)
 

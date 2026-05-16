@@ -44,11 +44,26 @@ deny:
 # Dry-run publish in ADR-031 dependency-graph order (leaf sub-crates
 # first, then tensor → prism → verify). Non-leaf entries pass
 # --no-verify because their workspace-path deps aren't on the
-# registry; the real release publish does the verify pass.
+# registry; the real release publish does the verify pass. The
+# --allow-dirty flag matches the release-workflow pattern (the cargo
+# cache restored on CI produces an un-stamped lockfile post-restore).
 publish-dry:
-    cargo publish --dry-run -p uor-prism-numerics
-    cargo publish --dry-run -p uor-prism-crypto
-    cargo publish --dry-run -p uor-prism-fhe
-    cargo publish --dry-run -p uor-prism-tensor --no-verify
-    cargo publish --dry-run -p uor-prism --no-verify
-    cargo publish --dry-run -p uor-prism-verify --no-verify
+    cargo publish --dry-run --allow-dirty -p uor-prism-numerics
+    cargo publish --dry-run --allow-dirty -p uor-prism-crypto
+    cargo publish --dry-run --allow-dirty -p uor-prism-fhe
+    cargo publish --dry-run --allow-dirty --no-verify -p uor-prism-tensor
+    cargo publish --dry-run --allow-dirty --no-verify -p uor-prism
+    cargo publish --dry-run --allow-dirty --no-verify -p uor-prism-verify
+
+# Tag a release: `just tag-release 0.1.1` creates and pushes the
+# `v0.1.1` tag. The Cargo workspace version must already be bumped
+# in `[workspace.package]` before tagging — the release workflow's
+# tag-validation step rejects mismatches.
+tag-release version:
+    @if ! grep -q '^version = "{{version}}"' Cargo.toml; then \
+      echo "error: workspace version in Cargo.toml is not {{version}}" >&2; \
+      grep '^version = ' Cargo.toml >&2; \
+      exit 1; \
+    fi
+    git tag -s "v{{version}}" -m "Release v{{version}}"
+    @echo "Created signed tag v{{version}}. Push with: git push origin v{{version}}"

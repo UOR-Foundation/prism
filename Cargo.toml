@@ -44,7 +44,12 @@ uor-prism-fhe = { version = "0.1.0", path = "crates/uor-prism-fhe", default-feat
 # re-implementing primitives from RFCs.
 sha2 = { version = "0.10", default-features = false }
 sha3 = { version = "0.10", default-features = false }
-blake3 = { version = "1", default-features = false }
+# blake3 1.6+ pulls `constant_time_eq = "0.4"` which requires
+# Rust edition 2024 / MSRV 1.85. Cap at the ~1.5 line until our
+# workspace MSRV (1.83) catches up to match foundation's floor.
+# Downstream consumers of `uor-prism-crypto` inherit this cap
+# transitively.
+blake3 = { version = ">=1.5, <1.6", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
