@@ -178,7 +178,33 @@ pub use uor_foundation::pipeline::LeafConstraintRef;
 // 6th runtime argument to `run_route`. The catamorphism evaluates
 // `commitment.evaluate(kappa_label)` after the resolver-bound κ-label
 // is emitted, giving zero-cost typed-bandwidth admission composition.
-pub use uor_foundation::pipeline::{EmptyCommitment, TypedCommitment};
+// Foundation publishes the closed three-impl set — `EmptyCommitment`
+// (the no-commitment baseline), `SingletonCommitment<P>` (a single
+// typed predicate over a UOR observable per ADR-049), and
+// `AndCommitment<A, B>` (typed conjunction; bandwidth additive,
+// accept_prob multiplicative) — plus the `TargetCommitment` canonical
+// search-cost commitment alias per ADR-048's wire-format amendment.
+pub use uor_foundation::pipeline::{
+    AndCommitment, EmptyCommitment, SingletonCommitment, TargetCommitment, TypedCommitment,
+};
+
+// ADR-049 typed UOR observable surface — the foundation-published five
+// `ObservablePredicate` impls that close the catalog correspondence
+// with ADR-040's `BoundShape` roster: `Stratum<P>` (p-adic valuation
+// per `observable:StratumObservable`), `WalshHadamardParity` (spectral
+// parity under `observable:SpectralObservable`), `UltrametricCloseTo<P>`
+// (p-adic ultrametric distance, `observable:MetricObservable`),
+// `AffineParity` (single-bit value at a designated position,
+// `observable:StratumObservable`), and `LexicographicLessEqThreshold`
+// (big-endian integer threshold against a `&'static [u8]` target,
+// `observable:ValueThresholdObservable` realizing
+// `type:LexicographicLessEqBound` per ADR-040). Each predicate is
+// `Copy + Sealed`, consumable as a `SingletonCommitment<P>` operand
+// per ADR-048, and IRI-bound to ADR-038's closed observable taxonomy.
+pub use uor_foundation::pipeline::{
+    AffineParity, LexicographicLessEqThreshold, ObservablePredicate, Stratum, UltrametricCloseTo,
+    WalshHadamardParity,
+};
 
 // ADR-043 witness-tuple source: the substrate for resolver-internal
 // bounded-search convergence/exhaustion accounting.

@@ -82,9 +82,22 @@ implementation. Code in this repository must satisfy:
   **ADR-044** (`PartitionProductFields` trait for product-shape field
   metadata); **ADR-045** (`Grounded::tag::<NewTag>()` zero-cost
   re-tagging); **ADR-047** (σ-projection hardening U1–U6 axioms on
-  canonical-hash axes); **ADR-048** (`TypedCommitment` substrate as the
-  5th model-declaration parameter — zero-cost typed-bandwidth
-  admission composition; `EmptyCommitment` default); **ADR-050**
+  canonical-hash axes); **ADR-040** (closed 7-individual `BoundShape`
+  catalog with `type:LexicographicLessEqBound` for byte-sequence
+  observables — 1:1 correspondence with the foundation-published
+  `ObservablePredicate` impl surface of ADR-049); **ADR-048**
+  (`TypedCommitment` substrate as the 5th model-declaration
+  parameter — zero-cost typed-bandwidth admission composition;
+  closed three-impl set `EmptyCommitment` / `SingletonCommitment<P>` /
+  `AndCommitment<A, B>` plus canonical
+  `TargetCommitment = SingletonCommitment<LexicographicLessEqThreshold>`
+  alias); **ADR-049** (five foundation-published typed UOR observable
+  primitives — `Stratum<P>`, `WalshHadamardParity`,
+  `UltrametricCloseTo<P>`, `AffineParity`, `LexicographicLessEqThreshold` —
+  closing the catalog correspondence with ADR-040 via four taxonomy
+  subclasses of ADR-038's closed `observable:Observable` catalog:
+  `StratumObservable`, `SpectralObservable`, `MetricObservable`,
+  `ValueThresholdObservable`); **ADR-050**
   (width-parametric arithmetic fold-rules — the catamorphism
   evaluates `PrimitiveOp::{Add, Sub, Mul, Neg, Bnot, Succ, Pred, Xor,
   And, Or, Div, Mod, Pow}` at the full Witt tower, no longer
@@ -185,12 +198,18 @@ that contribute the built-in axes and built-in types it re-exports.
   `prism`'s pin on `uor-foundation` may lag the latest published
   version; updates to this repo are demand-driven (a needed surface
   change) rather than calendar-driven.
-- **`uor-foundation`**: `^0.4` (effective floor 0.4.11 — required
-  for the `partition_product!` macro's `syn::Type` operand admission
-  closing the const-generic-leaf depth-2 verb!-macro projection-
-  chain gap, the last remaining structural blocker for the
-  three-operand canonical numerics roster (`fma`, `mod_pow`,
-  parametric `field_*`)). Earlier floors: 0.4.10 shipped the
+- **`uor-foundation`**: `^0.4` (effective floor 0.4.12 — required
+  for the ADR-049 5th `ObservablePredicate` impl
+  `LexicographicLessEqThreshold` plus its
+  `observable:ValueThresholdObservable` taxonomy subclass realizing
+  ADR-040's `type:LexicographicLessEqBound` catalog primitive, and
+  the ADR-048 canonical search-cost commitment alias
+  `TargetCommitment = SingletonCommitment<LexicographicLessEqThreshold>`).
+  Earlier floors: 0.4.11 shipped the `partition_product!` macro's
+  `syn::Type` operand admission closing the const-generic-leaf
+  depth-2 verb!-macro projection-chain gap (the last remaining
+  structural blocker for the three-operand canonical numerics roster
+  `fma` / `mod_pow` / parametric `field_*`); 0.4.10 shipped the
   ADR-056 ψ-residuals scope refinement plus `literal_u64`/`literal_bytes`
   wide-Witt embedding plus depth-2 partition-product field access
   for hand-rolled leaves; 0.4.9 admitted `div`/`r#mod`/`pow` as
@@ -207,13 +226,16 @@ that contribute the built-in axes and built-in types it re-exports.
   `PrimitiveOp::{Le, Lt, Ge, Gt, Concat}` per ADR-026;
   `Output: IntoBindingValue` per ADR-023 value-flow expansion.
   `default-features = false`, `no_std`-clean.
-- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.11 —
-  required for the `partition_product!` macro's `syn::Type` operand
-  admission per the const-generic-leaf depth-2 verb!-macro
-  projection-chain fix). Earlier floors: 0.4.10 shipped the
-  ADR-056 ψ-residual scope refinement (admitting `concat`/`hash`/
-  ordered-comparison ops in verb/axis bodies) and `literal_u64`/
-  `literal_bytes` wide-Witt embedding; 0.4.9 admitted
+- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.12 —
+  tracks the foundation 0.4.12 release that closes the ADR-040 /
+  ADR-048 / ADR-049 catalog correspondence; the sdk is purely
+  additive at 0.4.12, no macro grammar changes). Earlier floors:
+  0.4.11 shipped the `partition_product!` macro's `syn::Type`
+  operand admission per the const-generic-leaf depth-2 verb!-macro
+  projection-chain fix; 0.4.10 shipped the ADR-056 ψ-residual scope
+  refinement (admitting `concat`/`hash`/ordered-comparison ops in
+  verb/axis bodies) and `literal_u64`/`literal_bytes` wide-Witt
+  embedding; 0.4.9 admitted
   `div`/`r#mod`/`pow` as verb-body call forms plus the `axis!`
   `body` clause grammar; 0.4.8 declared the `SubstrateTermBody`
   supertrait;

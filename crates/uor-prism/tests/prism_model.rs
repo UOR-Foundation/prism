@@ -26,11 +26,12 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use prism::pipeline::{
-    ConstrainedTypeShape, EmptyCommitment, FoundationClosed, HasChainComplexResolver,
-    HasCochainComplexResolver, HasCohomologyGroupResolver, HasHomologyGroupResolver,
-    HasHomotopyGroupResolver, HasKInvariantResolver, HasNerveResolver, HasPostnikovResolver,
-    IntoBindingValue, NullResolverTuple, PipelineFailure, PrismModel, ResolverTuple,
-    TypedCommitment,
+    AffineParity, AndCommitment, ConstrainedTypeShape, EmptyCommitment, FoundationClosed,
+    HasChainComplexResolver, HasCochainComplexResolver, HasCohomologyGroupResolver,
+    HasHomologyGroupResolver, HasHomotopyGroupResolver, HasKInvariantResolver, HasNerveResolver,
+    HasPostnikovResolver, IntoBindingValue, LexicographicLessEqThreshold, NullResolverTuple,
+    ObservablePredicate, PipelineFailure, PrismModel, ResolverTuple, SingletonCommitment, Stratum,
+    TargetCommitment, TypedCommitment, UltrametricCloseTo, WalshHadamardParity,
 };
 use prism::seal::Grounded;
 use prism::std_types::{ConstrainedTypeInput, GroundedShape};
@@ -125,6 +126,40 @@ const NULL_RESOLVER_TUPLE_IS_REACHABLE: fn() = accepts_resolver_tuple::<NullReso
 
 #[allow(dead_code)]
 const EMPTY_COMMITMENT_IS_REACHABLE: fn() = accepts_typed_commitment::<EmptyCommitment>;
+
+// ADR-048: the other two foundation-published `TypedCommitment` impls
+// (`SingletonCommitment<P>`, `AndCommitment<A, B>`) and the canonical
+// `TargetCommitment = SingletonCommitment<LexicographicLessEqThreshold>`
+// alias all resolve through the prism façade re-exports.
+#[allow(dead_code)]
+const SINGLETON_COMMITMENT_IS_REACHABLE: fn() =
+    accepts_typed_commitment::<SingletonCommitment<LexicographicLessEqThreshold>>;
+
+#[allow(dead_code)]
+const AND_COMMITMENT_IS_REACHABLE: fn() =
+    accepts_typed_commitment::<AndCommitment<EmptyCommitment, EmptyCommitment>>;
+
+#[allow(dead_code)]
+const TARGET_COMMITMENT_IS_REACHABLE: fn() = accepts_typed_commitment::<TargetCommitment>;
+
+// ADR-049: the foundation-published five `ObservablePredicate` impls
+// resolve through the prism façade re-exports.
+#[allow(dead_code)]
+fn accepts_observable_predicate<P: ObservablePredicate>() {}
+
+#[allow(dead_code)]
+const STRATUM_2_IS_OBSERVABLE_PREDICATE: fn() = accepts_observable_predicate::<Stratum<2>>;
+#[allow(dead_code)]
+const WALSH_HADAMARD_PARITY_IS_OBSERVABLE_PREDICATE: fn() =
+    accepts_observable_predicate::<WalshHadamardParity>;
+#[allow(dead_code)]
+const ULTRAMETRIC_CLOSE_TO_2_IS_OBSERVABLE_PREDICATE: fn() =
+    accepts_observable_predicate::<UltrametricCloseTo<2>>;
+#[allow(dead_code)]
+const AFFINE_PARITY_IS_OBSERVABLE_PREDICATE: fn() = accepts_observable_predicate::<AffineParity>;
+#[allow(dead_code)]
+const LEXICOGRAPHIC_LESS_EQ_THRESHOLD_IS_OBSERVABLE_PREDICATE: fn() =
+    accepts_observable_predicate::<LexicographicLessEqThreshold>;
 
 // ---- Runtime checks against foundation-supplied impls ----
 

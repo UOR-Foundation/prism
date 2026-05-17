@@ -117,6 +117,22 @@
 //! - **ADR-031** — `prism` IS the standard library: a façade over
 //!   `uor-foundation` plus Layer-3 sub-crates published from the
 //!   Prism repository.
+//! - **ADR-040** — closed `BoundShape` catalog (7 individuals) with
+//!   `type:LexicographicLessEqBound` for byte-sequence-valued
+//!   observables; 1:1 correspondence with the foundation-published
+//!   `ObservablePredicate` impl surface per ADR-049.
+//! - **ADR-048** — typed-commitment substrate: the `TypedCommitment`
+//!   trait with three built-in impls (`EmptyCommitment`,
+//!   `SingletonCommitment<P>`, `AndCommitment<A, B>`) and the canonical
+//!   `TargetCommitment = SingletonCommitment<LexicographicLessEqThreshold>`
+//!   alias. The 5th model-declaration parameter `C` on `PrismModel`.
+//! - **ADR-049** — five foundation-published typed UOR observable
+//!   primitives (`Stratum<P>`, `WalshHadamardParity`,
+//!   `UltrametricCloseTo<P>`, `AffineParity`,
+//!   `LexicographicLessEqThreshold`) realizing the four taxonomy
+//!   subclasses of ADR-038's closed observable catalog. Each is
+//!   `Copy + Sealed` and consumable as a `SingletonCommitment<P>`
+//!   operand per ADR-048.
 //!
 //! # C4 placement
 //!
