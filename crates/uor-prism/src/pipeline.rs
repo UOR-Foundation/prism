@@ -103,6 +103,7 @@
 //!             | ConstraintRef::SatClauses { .. }
 //!             | ConstraintRef::Bound { .. }
 //!             | ConstraintRef::Conjunction { .. }
+//!             | ConstraintRef::Recurse { .. }
 //!     )
 //! }
 //! ```
@@ -172,6 +173,25 @@ pub use uor_foundation::pipeline::{PartitionProductFactor, PartitionProductField
 // `Term::Closure` body grammar (G16); referenced from
 // `partition_product` factor declarations.
 pub use uor_foundation::pipeline::LeafConstraintRef;
+
+// ADR-057 bounded recursive structural typing — the foundation
+// shape-IRI registry that powers `ConstraintRef::Recurse { shape_iri,
+// descent_bound }`. Recurse references another `ConstrainedTypeShape`
+// by content-addressed IRI per ADR-017 with a per-reference monotonic
+// descent budget; the IRI graph may carry cycles and mutual recursion
+// provided every cycle is bounded by some `descent_bound` along it.
+// Two-tier lookup mirrors the observable-IRI registry of ADR-038/049:
+// `lookup_shape` consults the foundation-owned registry (reserved for
+// future foundation-curated stdlib shapes); `lookup_shape_in::<R>`
+// consults the application-provided `ShapeRegistryProvider` first
+// then falls back to the foundation registry. Applications emit a
+// concrete provider via the `register_shape!` SDK macro re-exported
+// below. The `Recurse`-bearing shape declares
+// `CYCLE_SIZE = u64::MAX` (saturation per ADR-032); ψ_1 NerveResolver
+// evaluates the registry lookup at runtime admission.
+pub use uor_foundation::pipeline::shape_iri_registry::{
+    lookup_shape, lookup_shape_in, EmptyShapeRegistry, RegisteredShape, ShapeRegistryProvider,
+};
 
 // ADR-048 typed-commitment substrate: the 5th model-declaration
 // parameter `C: TypedCommitment` (default `EmptyCommitment`) and the
@@ -244,5 +264,5 @@ pub use uor_foundation::pipeline::{AXIS_OUTPUT_BYTES_CEILING, MAX_AXIS_TUPLE_ARI
 // need to depend on `uor-foundation-sdk` or `uor-foundation` directly.
 pub use uor_foundation_sdk::{
     axis, cartesian_product_shape, coproduct_shape, output_shape, partition_coproduct,
-    partition_product, prism_model, product_shape, resolver, use_verbs, verb,
+    partition_product, prism_model, product_shape, register_shape, resolver, use_verbs, verb,
 };

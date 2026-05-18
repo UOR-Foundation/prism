@@ -124,7 +124,17 @@ implementation. Code in this repository must satisfy:
   including `concat`, `le`/`lt`/`ge`/`gt`, `hash(...)` axis
   invocation, and `first_admit`, unblocking canonical decompositions
   for SHA padding, HMAC, Merkle tree construction, and tensor
-  saturation per ADR-054 + ADR-055).
+  saturation per ADR-054 + ADR-055); **ADR-057** (bounded recursive
+  structural typing via `ConstraintRef::Recurse { shape_iri,
+  descent_bound }` + the foundation `shape_iri_registry` module
+  surface — `RegisteredShape`, `ShapeRegistryProvider`,
+  `EmptyShapeRegistry`, `lookup_shape`, `lookup_shape_in` — plus the
+  `register_shape!` SDK macro and the `partition_product!` /
+  `partition_coproduct!` operand grammar admitting
+  `recurse[(<bound>)]:T`. A `Recurse`-bearing shape declares
+  `CYCLE_SIZE = u64::MAX` (saturation per ADR-032). Wire-format trace
+  events gain a `Recurse` discriminant;
+  `TRACE_REPLAY_FORMAT_VERSION` bumps 9 → 10).
 
 Substitution axes (the only permitted variation points per ADR-007 /
 ADR-030 / ADR-036 / ADR-048): `HostTypes`, `HostBounds`, `AxisTuple`,
@@ -198,14 +208,20 @@ that contribute the built-in axes and built-in types it re-exports.
   `prism`'s pin on `uor-foundation` may lag the latest published
   version; updates to this repo are demand-driven (a needed surface
   change) rather than calendar-driven.
-- **`uor-foundation`**: `^0.4` (effective floor 0.4.12 — required
-  for the ADR-049 5th `ObservablePredicate` impl
-  `LexicographicLessEqThreshold` plus its
+- **`uor-foundation`**: `^0.4` (effective floor 0.4.14 — required
+  for ADR-057 bounded recursive structural typing: the
+  `ConstraintRef::Recurse { shape_iri, descent_bound }` variant +
+  the `pipeline::shape_iri_registry` module surface
+  (`RegisteredShape`, `ShapeRegistryProvider`, `EmptyShapeRegistry`,
+  `lookup_shape`, `lookup_shape_in`); the `TRACE_REPLAY_FORMAT_VERSION`
+  bump 9 → 10 ships in 0.4.14 with the wire-format `Recurse`
+  discriminant). Earlier floors: 0.4.12 shipped the ADR-049 5th
+  `ObservablePredicate` impl `LexicographicLessEqThreshold` plus its
   `observable:ValueThresholdObservable` taxonomy subclass realizing
   ADR-040's `type:LexicographicLessEqBound` catalog primitive, and
   the ADR-048 canonical search-cost commitment alias
-  `TargetCommitment = SingletonCommitment<LexicographicLessEqThreshold>`).
-  Earlier floors: 0.4.11 shipped the `partition_product!` macro's
+  `TargetCommitment = SingletonCommitment<LexicographicLessEqThreshold>`;
+  0.4.11 shipped the `partition_product!` macro's
   `syn::Type` operand admission closing the const-generic-leaf
   depth-2 verb!-macro projection-chain gap (the last remaining
   structural blocker for the three-operand canonical numerics roster
@@ -226,10 +242,17 @@ that contribute the built-in axes and built-in types it re-exports.
   `PrimitiveOp::{Le, Lt, Ge, Gt, Concat}` per ADR-026;
   `Output: IntoBindingValue` per ADR-023 value-flow expansion.
   `default-features = false`, `no_std`-clean.
-- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.12 —
-  tracks the foundation 0.4.12 release that closes the ADR-040 /
-  ADR-048 / ADR-049 catalog correspondence; the sdk is purely
-  additive at 0.4.12, no macro grammar changes). Earlier floors:
+- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.14 —
+  required for ADR-057's `register_shape!(Registry, S1, S2, …)`
+  macro emitting a `ShapeRegistryProvider` impl with a
+  const-aggregated `REGISTRY` slice, plus the
+  `partition_product!` / `partition_coproduct!` operand grammar
+  admitting `recurse[(<bound>)]:T` markers that lower to
+  `ConstraintRef::Recurse` instead of inlining the target's
+  CONSTRAINTS — closing the const-eval cycle for recursive shapes).
+  Earlier floors: 0.4.12 tracked the foundation 0.4.12 release that
+  closes the ADR-040 / ADR-048 / ADR-049 catalog correspondence
+  (purely additive at 0.4.12, no macro grammar changes);
   0.4.11 shipped the `partition_product!` macro's `syn::Type`
   operand admission per the const-generic-leaf depth-2 verb!-macro
   projection-chain fix; 0.4.10 shipped the ADR-056 ψ-residual scope

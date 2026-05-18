@@ -133,6 +133,16 @@
 //!   subclasses of ADR-038's closed observable catalog. Each is
 //!   `Copy + Sealed` and consumable as a `SingletonCommitment<P>`
 //!   operand per ADR-048.
+//! - **ADR-057** — bounded recursive structural typing via
+//!   `ConstraintRef::Recurse { shape_iri, descent_bound }` plus the
+//!   foundation shape-IRI registry (`RegisteredShape`,
+//!   `ShapeRegistryProvider`, `EmptyShapeRegistry`, `lookup_shape`,
+//!   `lookup_shape_in`). Apps emit a registry via the `register_shape!`
+//!   SDK macro; `partition_product!` / `partition_coproduct!` operand
+//!   grammar admits `recurse[(<bound>)]:T` to declare recursive
+//!   references without const-eval cycles. Wire-format trace events
+//!   gain a `Recurse` discriminant; `TRACE_REPLAY_FORMAT_VERSION`
+//!   bumps to 10.
 //!
 //! # C4 placement
 //!

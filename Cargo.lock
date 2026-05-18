@@ -194,18 +194,18 @@ checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
 
 [[package]]
 name = "uor-foundation"
-version = "0.4.12"
+version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cf72f6c83a7848d070110b32d3a51c9aacc093dd72815c4d54c03d58dfc11f4"
+checksum = "a70c1049801723d0a1baee4db8ef6153b225ba715b19d57f1610faa6f57dc3e3"
 dependencies = [
  "libm",
 ]
 
 [[package]]
 name = "uor-foundation-sdk"
-version = "0.4.12"
+version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "138d1a24a67a205aee92715126cc7b8dbe4aabd56a422ed7fafb7bf5ef13dc2f"
+checksum = "66d5c5f44ce511f79cc201cb69ebe674d034605ddb28768d5f32fc733fdc0017"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -214,7 +214,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "uor-foundation",
  "uor-foundation-sdk",
@@ -226,7 +226,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-crypto"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "blake3",
  "sha2",
@@ -237,7 +237,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-fhe"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "uor-foundation",
  "uor-foundation-sdk",
@@ -245,7 +245,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-numerics"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "uor-foundation",
  "uor-foundation-sdk",
@@ -253,7 +253,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-tensor"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "uor-foundation",
  "uor-foundation-sdk",
@@ -262,7 +262,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-verify"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "uor-foundation",
  "uor-prism",
@@ -276,4 +276,4 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "wiki-link-check"
-version = "0.1.1"
+version = "0.1.2"

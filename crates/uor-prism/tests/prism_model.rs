@@ -26,12 +26,14 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use prism::pipeline::{
-    AffineParity, AndCommitment, ConstrainedTypeShape, EmptyCommitment, FoundationClosed,
-    HasChainComplexResolver, HasCochainComplexResolver, HasCohomologyGroupResolver,
-    HasHomologyGroupResolver, HasHomotopyGroupResolver, HasKInvariantResolver, HasNerveResolver,
-    HasPostnikovResolver, IntoBindingValue, LexicographicLessEqThreshold, NullResolverTuple,
-    ObservablePredicate, PipelineFailure, PrismModel, ResolverTuple, SingletonCommitment, Stratum,
-    TargetCommitment, TypedCommitment, UltrametricCloseTo, WalshHadamardParity,
+    AffineParity, AndCommitment, ConstrainedTypeShape, ConstraintRef, EmptyCommitment,
+    EmptyShapeRegistry, FoundationClosed, HasChainComplexResolver, HasCochainComplexResolver,
+    HasCohomologyGroupResolver, HasHomologyGroupResolver, HasHomotopyGroupResolver,
+    HasKInvariantResolver, HasNerveResolver, HasPostnikovResolver, IntoBindingValue,
+    LeafConstraintRef, LexicographicLessEqThreshold, NullResolverTuple, ObservablePredicate,
+    PipelineFailure, PrismModel, RegisteredShape, ResolverTuple, ShapeRegistryProvider,
+    SingletonCommitment, Stratum, TargetCommitment, TypedCommitment, UltrametricCloseTo,
+    WalshHadamardParity,
 };
 use prism::seal::Grounded;
 use prism::std_types::{ConstrainedTypeInput, GroundedShape};
@@ -160,6 +162,48 @@ const AFFINE_PARITY_IS_OBSERVABLE_PREDICATE: fn() = accepts_observable_predicate
 #[allow(dead_code)]
 const LEXICOGRAPHIC_LESS_EQ_THRESHOLD_IS_OBSERVABLE_PREDICATE: fn() =
     accepts_observable_predicate::<LexicographicLessEqThreshold>;
+
+// ADR-057: the foundation-published shape-IRI registry surface
+// (`RegisteredShape`, `ShapeRegistryProvider`, `EmptyShapeRegistry`,
+// `lookup_shape`, `lookup_shape_in`) plus the
+// `ConstraintRef::Recurse` / `LeafConstraintRef::Recurse` variants
+// resolve through the prism façade re-exports.
+#[allow(dead_code)]
+fn accepts_shape_registry_provider<R: ShapeRegistryProvider>() {}
+
+#[allow(dead_code)]
+const EMPTY_SHAPE_REGISTRY_IS_PROVIDER: fn() =
+    accepts_shape_registry_provider::<EmptyShapeRegistry>;
+
+// `RegisteredShape` is constructed at link time by the
+// `register_shape!` SDK macro; the foundation-owned `lookup_shape`
+// path is reserved for future foundation-curated shapes (currently
+// returns `None` for any IRI). The const here pins the function
+// pointer types so a signature regression breaks the build.
+#[allow(dead_code)]
+const LOOKUP_SHAPE_SIGNATURE: fn(&str) -> Option<&'static RegisteredShape> =
+    prism::pipeline::lookup_shape;
+
+#[allow(dead_code)]
+const LOOKUP_SHAPE_IN_EMPTY_SIGNATURE: fn(&str) -> Option<&'static RegisteredShape> =
+    prism::pipeline::lookup_shape_in::<EmptyShapeRegistry>;
+
+/// Compile-time witness that the `Recurse` variant is reachable on
+/// both `ConstraintRef` and `LeafConstraintRef`. Each constant pins
+/// a const value of the variant; if the wiki-spec field shape
+/// (`shape_iri: &'static str, descent_bound: u32`) regresses the
+/// build fails.
+#[allow(dead_code)]
+const CONSTRAINT_REF_RECURSE_REACHABLE: ConstraintRef = ConstraintRef::Recurse {
+    shape_iri: "https://uor.foundation/test/recurse",
+    descent_bound: 0,
+};
+
+#[allow(dead_code)]
+const LEAF_CONSTRAINT_REF_RECURSE_REACHABLE: LeafConstraintRef = LeafConstraintRef::Recurse {
+    shape_iri: "https://uor.foundation/test/recurse",
+    descent_bound: 0,
+};
 
 // ---- Runtime checks against foundation-supplied impls ----
 
