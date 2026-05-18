@@ -140,9 +140,15 @@
 //!   `lookup_shape_in`). Apps emit a registry via the `register_shape!`
 //!   SDK macro; `partition_product!` / `partition_coproduct!` operand
 //!   grammar admits `recurse[(<bound>)]:T` to declare recursive
-//!   references without const-eval cycles. Wire-format trace events
-//!   gain a `Recurse` discriminant; `TRACE_REPLAY_FORMAT_VERSION`
-//!   bumps to 10.
+//!   references without const-eval cycles. The registry-aware
+//!   nerve / Betti substrate primitives shipped in foundation 0.4.15 —
+//!   `primitive_simplicial_nerve_betti_in::<T, R>`,
+//!   `primitive_cartesian_nerve_betti_in::<S, R>`, and
+//!   `expand_constraints_in::<R>` — walk Recurse entries through `R`'s
+//!   registry plus foundation's built-in registry, giving the
+//!   structurally-correct nerve / Betti reading of recursively-expanded
+//!   constraint sets. Wire-format trace events gain a `Recurse`
+//!   discriminant; `TRACE_REPLAY_FORMAT_VERSION` bumps to 10.
 //!
 //! # C4 placement
 //!

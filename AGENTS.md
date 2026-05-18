@@ -132,8 +132,17 @@ implementation. Code in this repository must satisfy:
   `register_shape!` SDK macro and the `partition_product!` /
   `partition_coproduct!` operand grammar admitting
   `recurse[(<bound>)]:T`. A `Recurse`-bearing shape declares
-  `CYCLE_SIZE = u64::MAX` (saturation per ADR-032). Wire-format trace
-  events gain a `Recurse` discriminant;
+  `CYCLE_SIZE = u64::MAX` (saturation per ADR-032). The
+  registry-aware nerve / Betti substrate primitives shipped in
+  foundation 0.4.15 — `primitive_simplicial_nerve_betti_in::<T, R>`,
+  `primitive_cartesian_nerve_betti_in::<S, R>`, and
+  `expand_constraints_in::<R>` — walk `Recurse` entries through `R`'s
+  registry plus foundation's built-in registry, giving the
+  structurally-correct nerve / Betti reading of recursively-expanded
+  constraint sets; the non-`_in` siblings
+  (`primitive_simplicial_nerve_betti::<T>`,
+  `primitive_cartesian_nerve_betti::<S>`) are also surfaced through the
+  prism façade. Wire-format trace events gain a `Recurse` discriminant;
   `TRACE_REPLAY_FORMAT_VERSION` bumps 9 → 10).
 
 Substitution axes (the only permitted variation points per ADR-007 /
@@ -208,14 +217,21 @@ that contribute the built-in axes and built-in types it re-exports.
   `prism`'s pin on `uor-foundation` may lag the latest published
   version; updates to this repo are demand-driven (a needed surface
   change) rather than calendar-driven.
-- **`uor-foundation`**: `^0.4` (effective floor 0.4.14 — required
-  for ADR-057 bounded recursive structural typing: the
-  `ConstraintRef::Recurse { shape_iri, descent_bound }` variant +
-  the `pipeline::shape_iri_registry` module surface
-  (`RegisteredShape`, `ShapeRegistryProvider`, `EmptyShapeRegistry`,
-  `lookup_shape`, `lookup_shape_in`); the `TRACE_REPLAY_FORMAT_VERSION`
-  bump 9 → 10 ships in 0.4.14 with the wire-format `Recurse`
-  discriminant). Earlier floors: 0.4.12 shipped the ADR-049 5th
+- **`uor-foundation`**: `^0.4` (effective floor 0.4.15 — required
+  for the complete ADR-057 registry-aware substrate-primitive surface:
+  `enforcement::expand_constraints_in::<R>`,
+  `enforcement::primitive_simplicial_nerve_betti_in::<T, R>`, and
+  `pipeline::primitive_cartesian_nerve_betti_in::<S, R>` walk
+  `ConstraintRef::Recurse` entries through `R`'s registry plus
+  foundation's built-in registry, closing the ADR-057 nerve / Betti
+  reading of recursively-expanded constraint sets. Earlier floors:
+  0.4.14 shipped the foundational ADR-057 surface — the
+  `ConstraintRef::Recurse { shape_iri, descent_bound }` variant + the
+  `pipeline::shape_iri_registry` module surface (`RegisteredShape`,
+  `ShapeRegistryProvider`, `EmptyShapeRegistry`, `lookup_shape`,
+  `lookup_shape_in`) + the `TRACE_REPLAY_FORMAT_VERSION` bump 9 → 10
+  with the wire-format `Recurse` discriminant.
+  Earlier floors: 0.4.12 shipped the ADR-049 5th
   `ObservablePredicate` impl `LexicographicLessEqThreshold` plus its
   `observable:ValueThresholdObservable` taxonomy subclass realizing
   ADR-040's `type:LexicographicLessEqBound` catalog primitive, and
@@ -242,14 +258,20 @@ that contribute the built-in axes and built-in types it re-exports.
   `PrimitiveOp::{Le, Lt, Ge, Gt, Concat}` per ADR-026;
   `Output: IntoBindingValue` per ADR-023 value-flow expansion.
   `default-features = false`, `no_std`-clean.
-- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.14 —
-  required for ADR-057's `register_shape!(Registry, S1, S2, …)`
-  macro emitting a `ShapeRegistryProvider` impl with a
-  const-aggregated `REGISTRY` slice, plus the
-  `partition_product!` / `partition_coproduct!` operand grammar
-  admitting `recurse[(<bound>)]:T` markers that lower to
+- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.15 —
+  tracks the foundation 0.4.15 release and adds the optional
+  `resolver!` macro `shape_registry: MyRegistry` clause that wires an
+  application's `ShapeRegistryProvider` marker into the emitted
+  `ResolverTuple` impl as the `ShapeRegistry` associated type;
+  `prism::pipeline` does not invoke `resolver!`, so the new clause is
+  purely a downstream-application surface. Earlier floors: 0.4.14
+  shipped ADR-057's `register_shape!(Registry, S1, S2, …)` macro
+  emitting a `ShapeRegistryProvider` impl with a const-aggregated
+  `REGISTRY` slice, plus the `partition_product!` /
+  `partition_coproduct!` operand grammar admitting
+  `recurse[(<bound>)]:T` markers that lower to
   `ConstraintRef::Recurse` instead of inlining the target's
-  CONSTRAINTS — closing the const-eval cycle for recursive shapes).
+  CONSTRAINTS — closing the const-eval cycle for recursive shapes.
   Earlier floors: 0.4.12 tracked the foundation 0.4.12 release that
   closes the ADR-040 / ADR-048 / ADR-049 catalog correspondence
   (purely additive at 0.4.12, no macro grammar changes);

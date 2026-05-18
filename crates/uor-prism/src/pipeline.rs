@@ -193,6 +193,49 @@ pub use uor_foundation::pipeline::shape_iri_registry::{
     lookup_shape, lookup_shape_in, EmptyShapeRegistry, RegisteredShape, ShapeRegistryProvider,
 };
 
+// ADR-057 nerve / Betti substrate primitives.
+//
+// `primitive_simplicial_nerve_betti::<T>()` computes the Betti-number
+// array of the simplicial nerve of `T`'s constraint set per ADR-031's
+// ψ_1 NerveResolver lowering;
+// `primitive_cartesian_nerve_betti::<S>()` is the
+// cartesian-product-shape variant that Künneth-composes its two
+// components' Betti arrays per ADR-031 PT_3.
+//
+// The `_in::<…, R: ShapeRegistryProvider>()` companions shipped in
+// foundation 0.4.15 walk `ConstraintRef::Recurse` entries through `R`'s
+// registry plus foundation's built-in registry, so applications using
+// `register_shape!` for recursive grammars get the structurally-correct
+// nerve / Betti reading of the recursively-expanded constraint set.
+// `expand_constraints_in::<R>` is the workhorse helper both `_in`
+// Betti primitives compose over (and an application-grade primitive
+// in its own right for resolver impls that need the registry-aware
+// constraint walk).
+pub use uor_foundation::enforcement::{
+    expand_constraints_in, primitive_simplicial_nerve_betti, primitive_simplicial_nerve_betti_in,
+};
+pub use uor_foundation::pipeline::{
+    primitive_cartesian_nerve_betti, primitive_cartesian_nerve_betti_in,
+};
+
+// ADR-057 capacity constants honored by the nerve / Betti primitives:
+// `NERVE_CONSTRAINTS_CAP` is the per-shape constraint cap after
+// recursive expansion; `NERVE_SITES_CAP` is the site-support bitmask
+// width cap. Exceeding either raises
+// `NERVE_CAPACITY_EXCEEDED`; an unregistered `Recurse` IRI raises
+// `RECURSE_SHAPE_UNREGISTERED`. `MAX_BETTI_DIMENSION` is the array
+// length returned by the Betti primitives.
+pub use uor_foundation::enforcement::{
+    MAX_BETTI_DIMENSION, NERVE_CONSTRAINTS_CAP, NERVE_SITES_CAP,
+};
+
+// `GenericImpossibilityWitness` is the substrate-level error type
+// returned by the nerve / Betti primitives and by `expand_constraints_in`.
+// Surfacing it here lets applications match against the witness
+// (e.g. `NERVE_CAPACITY_EXCEEDED`, `RECURSE_SHAPE_UNREGISTERED`) without
+// a separate `uor-foundation` import path.
+pub use uor_foundation::enforcement::GenericImpossibilityWitness;
+
 // ADR-048 typed-commitment substrate: the 5th model-declaration
 // parameter `C: TypedCommitment` (default `EmptyCommitment`) and the
 // 6th runtime argument to `run_route`. The catamorphism evaluates

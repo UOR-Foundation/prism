@@ -26,16 +26,19 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use prism::pipeline::{
-    AffineParity, AndCommitment, ConstrainedTypeShape, ConstraintRef, EmptyCommitment,
-    EmptyShapeRegistry, FoundationClosed, HasChainComplexResolver, HasCochainComplexResolver,
-    HasCohomologyGroupResolver, HasHomologyGroupResolver, HasHomotopyGroupResolver,
-    HasKInvariantResolver, HasNerveResolver, HasPostnikovResolver, IntoBindingValue,
-    LeafConstraintRef, LexicographicLessEqThreshold, NullResolverTuple, ObservablePredicate,
-    PipelineFailure, PrismModel, RegisteredShape, ResolverTuple, ShapeRegistryProvider,
-    SingletonCommitment, Stratum, TargetCommitment, TypedCommitment, UltrametricCloseTo,
-    WalshHadamardParity,
+    primitive_cartesian_nerve_betti, primitive_cartesian_nerve_betti_in,
+    primitive_simplicial_nerve_betti, primitive_simplicial_nerve_betti_in, AffineParity,
+    AndCommitment, ConstrainedTypeShape, ConstraintRef, EmptyCommitment, EmptyShapeRegistry,
+    FoundationClosed, GenericImpossibilityWitness, HasChainComplexResolver,
+    HasCochainComplexResolver, HasCohomologyGroupResolver, HasHomologyGroupResolver,
+    HasHomotopyGroupResolver, HasKInvariantResolver, HasNerveResolver, HasPostnikovResolver,
+    IntoBindingValue, LeafConstraintRef, LexicographicLessEqThreshold, NullResolverTuple,
+    ObservablePredicate, PipelineFailure, PrismModel, RegisteredShape, ResolverTuple,
+    ShapeRegistryProvider, SingletonCommitment, Stratum, TargetCommitment, TypedCommitment,
+    UltrametricCloseTo, WalshHadamardParity, MAX_BETTI_DIMENSION, NERVE_CONSTRAINTS_CAP,
 };
 use prism::seal::Grounded;
+use prism::std_types::CartesianProductShape;
 use prism::std_types::{ConstrainedTypeInput, GroundedShape};
 use prism::vocabulary::{DefaultHostBounds, DefaultHostTypes, Hasher};
 
@@ -205,6 +208,45 @@ const LEAF_CONSTRAINT_REF_RECURSE_REACHABLE: LeafConstraintRef = LeafConstraintR
     descent_bound: 0,
 };
 
+// ADR-057 nerve / Betti substrate primitives (foundation 0.4.15
+// completes the registry-aware `_in` variants). The function pointer
+// constants below pin each primitive's signature so a signature
+// regression in foundation breaks our build.
+type BettiArray = [u32; MAX_BETTI_DIMENSION];
+type BettiResult = Result<BettiArray, GenericImpossibilityWitness>;
+
+#[allow(dead_code)]
+const PRIMITIVE_SIMPLICIAL_NERVE_BETTI_SIGNATURE: fn() -> BettiResult =
+    primitive_simplicial_nerve_betti::<ConstrainedTypeInput>;
+
+#[allow(dead_code)]
+const PRIMITIVE_SIMPLICIAL_NERVE_BETTI_IN_SIGNATURE: fn() -> BettiResult =
+    primitive_simplicial_nerve_betti_in::<ConstrainedTypeInput, EmptyShapeRegistry>;
+
+#[allow(dead_code)]
+fn accepts_cartesian_betti<S: CartesianProductShape>(_f: fn() -> BettiResult) {}
+
+// `primitive_cartesian_nerve_betti<S>` / `_in<S, R>` resolve at any
+// `S: CartesianProductShape`. We bind the function-pointer signature
+// in a generic harness so the bounds are checked at definition time
+// without minting a concrete cartesian-product shape in this test.
+#[allow(dead_code)]
+fn bind_cartesian_betti_signatures<S: CartesianProductShape>() {
+    accepts_cartesian_betti::<S>(primitive_cartesian_nerve_betti::<S>);
+    accepts_cartesian_betti::<S>(primitive_cartesian_nerve_betti_in::<S, EmptyShapeRegistry>);
+}
+
+type ExpandConstraintsInFn = fn(
+    &[ConstraintRef],
+    u32,
+    &mut [ConstraintRef; NERVE_CONSTRAINTS_CAP],
+    &mut usize,
+) -> Result<(), GenericImpossibilityWitness>;
+
+#[allow(dead_code)]
+const EXPAND_CONSTRAINTS_IN_SIGNATURE: ExpandConstraintsInFn =
+    prism::pipeline::expand_constraints_in::<EmptyShapeRegistry>;
+
 // ---- Runtime checks against foundation-supplied impls ----
 
 #[test]
@@ -237,4 +279,49 @@ fn into_binding_value_resolves_for_constrained_type_input() {
         MAX, 0,
         "identity input has zero MAX_BYTES per foundation 0.3.2"
     );
+}
+
+#[test]
+fn nerve_betti_primitives_resolve_for_identity_input() {
+    // ADR-057 / foundation 0.4.15: the simplicial-nerve Betti primitive
+    // and its registry-aware companion both run end-to-end on the
+    // identity input shape. `ConstrainedTypeInput` carries an empty
+    // constraint set, so the simplicial nerve is the empty complex —
+    // Betti numbers (1, 0, 0, …) (one 0-cell connected component, no
+    // higher cells). Both call paths through the prism façade must
+    // produce the same byte-identical result per ADR-031.
+    let plain = primitive_simplicial_nerve_betti::<ConstrainedTypeInput>()
+        .expect("identity input fits within nerve caps");
+    let registry_aware =
+        primitive_simplicial_nerve_betti_in::<ConstrainedTypeInput, EmptyShapeRegistry>()
+            .expect("identity input fits within nerve caps even when registry-aware");
+    assert_eq!(
+        plain, registry_aware,
+        "registry-aware variant must agree with plain variant on shapes with no Recurse entries"
+    );
+    assert_eq!(plain[0], 1, "identity shape has one connected component");
+}
+
+#[test]
+fn expand_constraints_in_passes_through_non_recurse() {
+    // ADR-057 / foundation 0.4.15: `expand_constraints_in::<R>` is the
+    // workhorse helper that walks a constraint slice and expands
+    // `ConstraintRef::Recurse` entries through `R`'s registry. On an
+    // input free of Recurse the output is a verbatim copy.
+    let input = [
+        ConstraintRef::Site { position: 0 },
+        ConstraintRef::Site { position: 1 },
+    ];
+    let mut out_arr = [ConstraintRef::Site { position: 0 }; NERVE_CONSTRAINTS_CAP];
+    let mut out_n: usize = 0;
+    prism::pipeline::expand_constraints_in::<EmptyShapeRegistry>(
+        &input,
+        u32::MAX,
+        &mut out_arr,
+        &mut out_n,
+    )
+    .expect("non-Recurse expansion never fails");
+    assert_eq!(out_n, 2, "two non-Recurse entries pass through unchanged");
+    assert!(matches!(out_arr[0], ConstraintRef::Site { position: 0 }));
+    assert!(matches!(out_arr[1], ConstraintRef::Site { position: 1 }));
 }
