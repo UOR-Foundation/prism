@@ -17,7 +17,7 @@ keywords = ["prism", "uor", "verify", "replay", "no-std"]
 name = "prism_verify"
 
 [dependencies]
-uor-prism = { version = "0.1.3", path = "../uor-prism", default-features = false }
+uor-prism = { version = "0.1.4", path = "../uor-prism", default-features = false }
 uor-foundation = { workspace = true }
 
 [features]

@@ -149,6 +149,23 @@
 //!   structurally-correct nerve / Betti reading of recursively-expanded
 //!   constraint sets. Wire-format trace events gain a `Recurse`
 //!   discriminant; `TRACE_REPLAY_FORMAT_VERSION` bumps to 10.
+//! - **ADR-058** — κ-derivation (the eight-resolver ψ-pipeline composed
+//!   with the ψ_9 σ-projection) **is** the framework's
+//!   compression-to-canonical-form operator; the κ-label is the
+//!   minimum-information canonical-form representation, with a three-tier
+//!   closure-lossless taxonomy (T1 byte-identical ⇒ T2 κ-label-identical
+//!   ⇒ T3 outcome-coarse-equivalent). A conceptual-reading commitment over
+//!   existing constructs — no new substrate surface.
+//! - **ADR-059** — the operator-geometry codomain of κ-derivation is the
+//!   Atlas image inside E₈, coarsely stratified by the Hopf convergence
+//!   tower (the foundation's [`kernel::convergence`] namespace, surfaced
+//!   through [`convergence`]): four `ConvergenceLevel` instances R / C /
+//!   H / O at division-algebra dimensions {1, 2, 4, 8}. A
+//!   conceptual-reading commitment over the foundation's existing
+//!   `kernel::convergence` substrate vocabulary — no new substrate
+//!   surface.
+//!
+//! [`kernel::convergence`]: uor_foundation::kernel::convergence
 //!
 //! # C4 placement
 //!
@@ -164,6 +181,8 @@
 //! - [`operation`] — operation declaration vocabulary
 //! - [`std_types`] — standard type library (baseline primitives)
 //! - [`vocabulary`] — foundation surface re-exports
+//! - [`convergence`] — the Hopf convergence tower: κ-derivation's
+//!   operator-geometry codomain (ADR-058 / ADR-059)
 //! - [`crypto`] — standard-library cryptography axes (ADR-031)
 //! - [`numerics`] — standard-library numerics axes (ADR-031)
 //! - [`tensor`] — standard-library tensor-compute axes (ADR-031)
@@ -176,7 +195,7 @@
 //! // When:  the prism standard-library façade is loaded
 //! // Then:  every wiki Level 2 module of `prism` AND every ADR-031
 //! //        standard-library sub-crate is reachable through `use prism::*;`
-//! use prism::{operation as _, pipeline as _, replay as _};
+//! use prism::{convergence as _, operation as _, pipeline as _, replay as _};
 //! use prism::{seal as _, std_types as _, vocabulary as _};
 //! use prism::{crypto as _, fhe as _, numerics as _, tensor as _};
 //! use uor_foundation as _;
@@ -194,6 +213,7 @@
 
 pub use uor_foundation;
 
+pub mod convergence;
 pub mod operation;
 pub mod pipeline;
 pub mod replay;

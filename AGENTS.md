@@ -143,7 +143,24 @@ implementation. Code in this repository must satisfy:
   (`primitive_simplicial_nerve_betti::<T>`,
   `primitive_cartesian_nerve_betti::<S>`) are also surfaced through the
   prism façade. Wire-format trace events gain a `Recurse` discriminant;
-  `TRACE_REPLAY_FORMAT_VERSION` bumps 9 → 10).
+  `TRACE_REPLAY_FORMAT_VERSION` bumps 9 → 10); **ADR-058** (κ-derivation
+  — the eight-resolver ψ-pipeline composed with the ψ_9 σ-projection —
+  **is** the framework's compression-to-canonical-form operator; the
+  three-tier closure-lossless taxonomy T1 byte-identical ⇒ T2
+  κ-label-identical ⇒ T3 outcome-coarse-equivalent. Conceptual-reading
+  commitment over existing constructs — no new substrate surface);
+  **ADR-059** (the operator-geometry codomain of κ-derivation is the
+  Atlas image inside E₈, coarsely stratified by the **Hopf convergence
+  tower** — the foundation's `kernel::convergence` namespace: four
+  `ConvergenceLevel` instances R / C / H / O at division-algebra
+  dimensions {1, 2, 4, 8} with Hopf fibers S⁰ / S¹ / S³ / S⁷ and
+  characteristic identities existence / feedback / choice /
+  self-reference. Conceptual-reading commitment over the foundation's
+  **existing** `kernel::convergence` substrate vocabulary — no new
+  substrate surface; the prism façade surfaces it through the
+  `prism::convergence` module so application authors building ADR-059
+  codomain-typed `TypedCommitment` predicates reach it through `prism`
+  per ADR-031).
 
 Substitution axes (the only permitted variation points per ADR-007 /
 ADR-030 / ADR-036 / ADR-048): `HostTypes`, `HostBounds`, `AxisTuple`,
