@@ -138,8 +138,8 @@
 
 #![allow(non_camel_case_types)]
 
-use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
-use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue};
+use uor_foundation::enforcement::GroundedShape;
+use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue, TermValue};
 use uor_foundation_sdk::register_shape;
 
 // ---- GGML quantization-block parameters per `ggml-common.h` ----
@@ -240,7 +240,13 @@ mod sealed {
 /// 2-byte shapes but Rust-distinct dtypes carrying distinct
 /// floating-point interpretations at the container-format layer).
 pub trait Dtype:
-    sealed::Sealed + ConstrainedTypeShape + GroundedShape + IntoBindingValue + Default + Copy + 'static
+    sealed::Sealed
+    + ConstrainedTypeShape
+    + GroundedShape
+    + for<'a> IntoBindingValue<'a>
+    + Default
+    + Copy
+    + 'static
 {
     /// Per-dtype name string (uppercase, GGML-convention spelling).
     const NAME: &'static str;
@@ -272,10 +278,9 @@ macro_rules! decl_dtype {
 
         impl GroundedShape for $name {}
 
-        impl IntoBindingValue for $name {
-            const MAX_BYTES: usize = $bytes;
-            fn into_binding_bytes(&self, _out: &mut [u8]) -> Result<usize, ShapeViolation> {
-                Ok(0)
+        impl<'a> IntoBindingValue<'a> for $name {
+            fn as_binding_value<const INLINE_BYTES: usize>(&self) -> TermValue<'a, INLINE_BYTES> {
+                TermValue::empty()
             }
         }
 

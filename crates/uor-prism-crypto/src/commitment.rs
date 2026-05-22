@@ -6,7 +6,7 @@
 use core::marker::PhantomData;
 
 use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
-use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue};
+use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue, TermValue};
 use uor_foundation_sdk::axis;
 
 use crate::hash::{HashAxis, Sha256Hasher};
@@ -179,12 +179,10 @@ impl<const MAX_DEPTH: usize, const LEAF_BYTES: usize> GroundedShape
     for MerkleProofShape<MAX_DEPTH, LEAF_BYTES>
 {
 }
-impl<const MAX_DEPTH: usize, const LEAF_BYTES: usize> IntoBindingValue
+impl<'a, const MAX_DEPTH: usize, const LEAF_BYTES: usize> IntoBindingValue<'a>
     for MerkleProofShape<MAX_DEPTH, LEAF_BYTES>
 {
-    const MAX_BYTES: usize = MAX_DEPTH * LEAF_BYTES + 8;
-
-    fn into_binding_bytes(&self, _out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        Ok(0)
+    fn as_binding_value<const INLINE_BYTES: usize>(&self) -> TermValue<'a, INLINE_BYTES> {
+        TermValue::empty()
     }
 }

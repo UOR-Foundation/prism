@@ -49,7 +49,7 @@
 #![allow(missing_docs)]
 
 use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
-use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue};
+use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue, TermValue};
 use uor_foundation_sdk::axis;
 
 axis! {
@@ -220,13 +220,11 @@ impl<const ROWS: usize, const COLS: usize, const ELEM_BYTES: usize> GroundedShap
     for MatrixShape<ROWS, COLS, ELEM_BYTES>
 {
 }
-impl<const ROWS: usize, const COLS: usize, const ELEM_BYTES: usize> IntoBindingValue
+impl<'a, const ROWS: usize, const COLS: usize, const ELEM_BYTES: usize> IntoBindingValue<'a>
     for MatrixShape<ROWS, COLS, ELEM_BYTES>
 {
-    const MAX_BYTES: usize = ROWS * COLS * ELEM_BYTES;
-
-    fn into_binding_bytes(&self, _out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        Ok(0)
+    fn as_binding_value<const INLINE_BYTES: usize>(&self) -> TermValue<'a, INLINE_BYTES> {
+        TermValue::empty()
     }
 }
 
@@ -255,10 +253,10 @@ impl<const N: usize, const ELEM_BYTES: usize> uor_foundation::pipeline::__sdk_se
 {
 }
 impl<const N: usize, const ELEM_BYTES: usize> GroundedShape for VectorShape<N, ELEM_BYTES> {}
-impl<const N: usize, const ELEM_BYTES: usize> IntoBindingValue for VectorShape<N, ELEM_BYTES> {
-    const MAX_BYTES: usize = N * ELEM_BYTES;
-
-    fn into_binding_bytes(&self, _out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        Ok(0)
+impl<'a, const N: usize, const ELEM_BYTES: usize> IntoBindingValue<'a>
+    for VectorShape<N, ELEM_BYTES>
+{
+    fn as_binding_value<const INLINE_BYTES: usize>(&self) -> TermValue<'a, INLINE_BYTES> {
+        TermValue::empty()
     }
 }

@@ -23,8 +23,8 @@
 
 #![allow(missing_docs)]
 
-use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
-use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue};
+use uor_foundation::enforcement::GroundedShape;
+use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue, TermValue};
 
 /// Parametric `ConstrainedTypeShape` for a row-major rank-3 tensor of
 /// shape `D0 × D1 × D2` carrying `ELEM_BYTES`-byte elements.
@@ -62,13 +62,11 @@ impl<const D0: usize, const D1: usize, const D2: usize, const ELEM_BYTES: usize>
     for Tensor3Shape<D0, D1, D2, ELEM_BYTES>
 {
 }
-impl<const D0: usize, const D1: usize, const D2: usize, const ELEM_BYTES: usize> IntoBindingValue
-    for Tensor3Shape<D0, D1, D2, ELEM_BYTES>
+impl<'a, const D0: usize, const D1: usize, const D2: usize, const ELEM_BYTES: usize>
+    IntoBindingValue<'a> for Tensor3Shape<D0, D1, D2, ELEM_BYTES>
 {
-    const MAX_BYTES: usize = D0 * D1 * D2 * ELEM_BYTES;
-
-    fn into_binding_bytes(&self, _out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        Ok(0)
+    fn as_binding_value<const INLINE_BYTES: usize>(&self) -> TermValue<'a, INLINE_BYTES> {
+        TermValue::empty()
     }
 }
 
@@ -135,16 +133,15 @@ impl<
 {
 }
 impl<
+        'a,
         const D0: usize,
         const D1: usize,
         const D2: usize,
         const D3: usize,
         const ELEM_BYTES: usize,
-    > IntoBindingValue for Tensor4Shape<D0, D1, D2, D3, ELEM_BYTES>
+    > IntoBindingValue<'a> for Tensor4Shape<D0, D1, D2, D3, ELEM_BYTES>
 {
-    const MAX_BYTES: usize = D0 * D1 * D2 * D3 * ELEM_BYTES;
-
-    fn into_binding_bytes(&self, _out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        Ok(0)
+    fn as_binding_value<const INLINE_BYTES: usize>(&self) -> TermValue<'a, INLINE_BYTES> {
+        TermValue::empty()
     }
 }

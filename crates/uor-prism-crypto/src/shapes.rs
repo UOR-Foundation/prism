@@ -9,8 +9,8 @@
 //!
 //! [09-adr-031]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 
-use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
-use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue};
+use uor_foundation::enforcement::GroundedShape;
+use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue, TermValue};
 
 macro_rules! parametric_byte_shape {
     ($(#[$attr:meta])* $name:ident) => {
@@ -37,11 +37,9 @@ macro_rules! parametric_byte_shape {
         {
         }
         impl<const BYTES: usize> GroundedShape for $name<BYTES> {}
-        impl<const BYTES: usize> IntoBindingValue for $name<BYTES> {
-            const MAX_BYTES: usize = BYTES;
-
-            fn into_binding_bytes(&self, _out: &mut [u8]) -> Result<usize, ShapeViolation> {
-                Ok(0)
+        impl<'a, const BYTES: usize> IntoBindingValue<'a> for $name<BYTES> {
+            fn as_binding_value<const INLINE_BYTES: usize>(&self) -> TermValue<'a, INLINE_BYTES> {
+                TermValue::empty()
             }
         }
     };

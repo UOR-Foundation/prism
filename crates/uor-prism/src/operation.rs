@@ -5,9 +5,14 @@
 //! and its arena ([`TermArena`]), the [`TermList`] container, and the
 //! eighteen-element closed set of [`PrimitiveOp`] discriminants (the
 //! original fifteen plus `Div`/`Mod`/`Pow` per ADR-053). The
-//! [`TermValue`] byte-sequence carrier on `Term::Literal` per ADR-051
-//! lets wide-Witt-level literals (up to `TERM_VALUE_MAX_BYTES`) sit
-//! directly in the AST.
+//! [`TermValue`] carrier on `Term::Literal` per ADR-051 — refined by
+//! ADR-060 into the source-polymorphic enum
+//! `TermValue<'a, INLINE_BYTES> { Inline, Borrowed, Stream }` — lets a
+//! wide-Witt-level literal sit inline in the AST, a larger in-memory
+//! value borrow zero-copy, and an unbounded payload stream via a
+//! `ChunkSource`. The inline width derives from the application's
+//! `HostBounds` via `carrier_inline_bytes::<B>()`; there is no
+//! foundation byte-width cap (ADR-060 removed `TERM_VALUE_MAX_BYTES`).
 //!
 //! Per ADR-014, `prism`'s `operation` module surfaces the *primitive
 //! operation vocabulary* — the closed `PrimitiveOp` set that the

@@ -26,13 +26,11 @@ impl uor_foundation::pipeline::ConstrainedTypeShape for W8Byte {
 }
 impl uor_foundation::pipeline::__sdk_seal::Sealed for W8Byte {}
 impl uor_foundation::enforcement::GroundedShape for W8Byte {}
-impl uor_foundation::pipeline::IntoBindingValue for W8Byte {
-    const MAX_BYTES: usize = 1;
-    fn into_binding_bytes(
+impl<'a> uor_foundation::pipeline::IntoBindingValue<'a> for W8Byte {
+    fn as_binding_value<const INLINE_BYTES: usize>(
         &self,
-        _out: &mut [u8],
-    ) -> Result<usize, uor_foundation::enforcement::ShapeViolation> {
-        Ok(0)
+    ) -> uor_foundation::pipeline::TermValue<'a, INLINE_BYTES> {
+        uor_foundation::pipeline::TermValue::empty()
     }
 }
 

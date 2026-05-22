@@ -24,8 +24,8 @@
 //!
 //! [09-adr-031]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 
-use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
-use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue};
+use uor_foundation::enforcement::GroundedShape;
+use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue, TermValue};
 
 /// Parametric `ConstrainedTypeShape` for a degree-`MAX_DEGREE` polynomial
 /// with `COEFF_BYTES`-wide coefficients (big-endian).
@@ -62,13 +62,11 @@ impl<const MAX_DEGREE: usize, const COEFF_BYTES: usize> GroundedShape
     for PolynomialShape<MAX_DEGREE, COEFF_BYTES>
 {
 }
-impl<const MAX_DEGREE: usize, const COEFF_BYTES: usize> IntoBindingValue
+impl<'a, const MAX_DEGREE: usize, const COEFF_BYTES: usize> IntoBindingValue<'a>
     for PolynomialShape<MAX_DEGREE, COEFF_BYTES>
 {
-    const MAX_BYTES: usize = (MAX_DEGREE + 1) * COEFF_BYTES;
-
-    fn into_binding_bytes(&self, _out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        Ok(0)
+    fn as_binding_value<const INLINE_BYTES: usize>(&self) -> TermValue<'a, INLINE_BYTES> {
+        TermValue::empty()
     }
 }
 

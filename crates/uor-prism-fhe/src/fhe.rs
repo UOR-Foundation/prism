@@ -4,7 +4,7 @@
 #![allow(missing_docs)]
 
 use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
-use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue};
+use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue, TermValue};
 use uor_foundation_sdk::axis;
 
 axis! {
@@ -131,10 +131,8 @@ impl<const BYTES: usize> ConstrainedTypeShape for CiphertextShape<BYTES> {
 
 impl<const BYTES: usize> uor_foundation::pipeline::__sdk_seal::Sealed for CiphertextShape<BYTES> {}
 impl<const BYTES: usize> GroundedShape for CiphertextShape<BYTES> {}
-impl<const BYTES: usize> IntoBindingValue for CiphertextShape<BYTES> {
-    const MAX_BYTES: usize = BYTES;
-
-    fn into_binding_bytes(&self, _out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        Ok(0)
+impl<'a, const BYTES: usize> IntoBindingValue<'a> for CiphertextShape<BYTES> {
+    fn as_binding_value<const INLINE_BYTES: usize>(&self) -> TermValue<'a, INLINE_BYTES> {
+        TermValue::empty()
     }
 }

@@ -57,10 +57,10 @@ const CARRIER: usize = uor_foundation::pipeline::carrier_inline_bytes::<TestHost
 // crate fails to compile and the test binary fails to build.
 
 #[allow(dead_code)]
-fn _accepts_prism_model<H, M>()
+fn _accepts_prism_model<'a, H, M>()
 where
     H: Hasher,
-    M: PrismModel<DefaultHostTypes, TestHostBounds, H, CARRIER>,
+    M: PrismModel<'a, DefaultHostTypes, TestHostBounds, H, CARRIER>,
 {
     // `PrismModel`'s fourth generic `R` defaults to `NullResolverTuple`
     // per ADR-035/036; the 3-param form below uses that default. Foundation
@@ -70,28 +70,29 @@ where
 }
 
 #[allow(dead_code)]
-fn _associated_type_bounds<H, M>()
+fn _associated_type_bounds<'a, H, M>()
 where
     H: Hasher,
-    M: PrismModel<DefaultHostTypes, TestHostBounds, H, CARRIER>,
-    M::Input: ConstrainedTypeShape + IntoBindingValue,
-    // ADR-035: `Output` now additionally requires `IntoBindingValue` so
-    // the runtime can lower the grounded output back into a binding
-    // value for downstream composition.
-    M::Output: ConstrainedTypeShape + GroundedShape + IntoBindingValue,
+    M: PrismModel<'a, DefaultHostTypes, TestHostBounds, H, CARRIER>,
+    // ADR-060: `IntoBindingValue<'a>` now returns a source-polymorphic
+    // `TermValue` carrier (Inline/Borrowed/Stream) rather than
+    // serializing into a fixed buffer; the `'a` is the borrowed-input
+    // lifetime the carrier (and resulting `Grounded<'a>`) propagates.
+    M::Input: ConstrainedTypeShape + IntoBindingValue<'a>,
+    M::Output: ConstrainedTypeShape + GroundedShape + IntoBindingValue<'a>,
     M::Route: FoundationClosed<CARRIER>,
 {
 }
 
 #[allow(dead_code)]
-fn _run_route_signature<H, M, R, C>(
+fn _run_route_signature<'a, H, M, R, C>(
     input: M::Input,
     resolvers: &R,
     commitment: &C,
-) -> Result<Grounded<M::Output, CARRIER>, PipelineFailure>
+) -> Result<Grounded<'a, M::Output, CARRIER>, PipelineFailure>
 where
-    H: Hasher,
-    M: PrismModel<DefaultHostTypes, TestHostBounds, H, CARRIER, R, C>,
+    H: Hasher + 'a,
+    M: PrismModel<'a, DefaultHostTypes, TestHostBounds, H, CARRIER, R, C>,
     // ADR-035/036: `R: ResolverTuple` is the substrate parameter for
     // the eight categorical-machinery resolvers (Nerve, ChainComplex,
     // HomologyGroup, CochainComplex, CohomologyGroup, Postnikov,
@@ -274,20 +275,19 @@ fn foundation_closed_resolves_for_constrained_type_input() {
     assert!(arena.is_empty(), "identity model carries no terms");
 }
 
-#[test]
-fn into_binding_value_resolves_for_constrained_type_input() {
-    // `IntoBindingValue::MAX_BYTES` is the on-stack capacity hint per
-    // ADR-023; foundation's identity-input impl reports zero bytes.
-    // We can't construct `ConstrainedTypeInput` from outside foundation
-    // (its single field is private), so we verify the const-evaluable
-    // contract — the MAX_BYTES value the trait promises — without
-    // calling the method that would require a `&self` we can't mint.
-    const MAX: usize = <ConstrainedTypeInput as IntoBindingValue>::MAX_BYTES;
-    assert_eq!(
-        MAX, 0,
-        "identity input has zero MAX_BYTES per foundation 0.3.2"
-    );
-}
+// ADR-060 (foundation 0.5.1): `IntoBindingValue` no longer carries a
+// `MAX_BYTES` const + `into_binding_bytes` writer; it returns a
+// source-polymorphic `TermValue<'a, INLINE_BYTES>` carrier from
+// `as_binding_value`. The identity input shape still satisfies the
+// contract — witnessed at definition time by the bound below (we cannot
+// construct `ConstrainedTypeInput` from outside foundation to call the
+// method, so the trait-impl resolution is the assertion).
+#[allow(dead_code)]
+fn _accepts_into_binding_value<'a, T: IntoBindingValue<'a>>() {}
+
+#[allow(dead_code)]
+const CONSTRAINED_TYPE_INPUT_IS_INTO_BINDING_VALUE: fn() =
+    _accepts_into_binding_value::<'static, ConstrainedTypeInput>;
 
 #[test]
 fn nerve_betti_primitives_resolve_for_identity_input() {

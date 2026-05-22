@@ -12,7 +12,7 @@
 #![allow(missing_docs)]
 
 use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
-use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue};
+use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue, TermValue};
 use uor_foundation_sdk::axis;
 
 use crate::{check_output, split_pair};
@@ -193,12 +193,10 @@ impl<const INT_BITS: u32, const FRAC_BITS: u32> GroundedShape
     for FixedPointShape<INT_BITS, FRAC_BITS>
 {
 }
-impl<const INT_BITS: u32, const FRAC_BITS: u32> IntoBindingValue
+impl<'a, const INT_BITS: u32, const FRAC_BITS: u32> IntoBindingValue<'a>
     for FixedPointShape<INT_BITS, FRAC_BITS>
 {
-    const MAX_BYTES: usize = WIDTH;
-
-    fn into_binding_bytes(&self, _out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        Ok(0)
+    fn as_binding_value<const INLINE_BYTES: usize>(&self) -> TermValue<'a, INLINE_BYTES> {
+        TermValue::empty()
     }
 }

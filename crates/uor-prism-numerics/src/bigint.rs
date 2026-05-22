@@ -17,7 +17,7 @@
 #![allow(missing_docs)]
 
 use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
-use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue};
+use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue, TermValue};
 use uor_foundation_sdk::axis;
 
 use crate::{check_output, split_pair};
@@ -221,14 +221,12 @@ impl<const BYTES: usize> ConstrainedTypeShape for BigIntShape<BYTES> {
 
 impl<const BYTES: usize> uor_foundation::pipeline::__sdk_seal::Sealed for BigIntShape<BYTES> {}
 impl<const BYTES: usize> GroundedShape for BigIntShape<BYTES> {}
-impl<const BYTES: usize> IntoBindingValue for BigIntShape<BYTES> {
-    const MAX_BYTES: usize = BYTES;
-
-    fn into_binding_bytes(&self, _out: &mut [u8]) -> Result<usize, ShapeViolation> {
+impl<'a, const BYTES: usize> IntoBindingValue<'a> for BigIntShape<BYTES> {
+    fn as_binding_value<const INLINE_BYTES: usize>(&self) -> TermValue<'a, INLINE_BYTES> {
         // The shape is a phantom carrier; downstream impls that want to
         // bind an actual N-byte big-int value wrap this shape in a
-        // newtype carrying the data + a bespoke `into_binding_bytes`.
-        Ok(0)
+        // newtype carrying the data + a bespoke carrier.
+        TermValue::empty()
     }
 }
 

@@ -175,7 +175,15 @@ implementation. Code in this repository must satisfy:
   shim. **There is no default `HostBounds`: every application — including
   prism's own test suite — declares its own impl** (the standard library
   re-exports the `HostBounds` trait but provides no concrete impl, per
-  ADR-060's "no default that hides a choice").
+  ADR-060's "no default that hides a choice"). Foundation 0.5.1
+  completes the input side: `IntoBindingValue` gains a `'a` lifetime and
+  replaces the `MAX_BYTES` const + `into_binding_bytes` writer with
+  `as_binding_value<INLINE_BYTES>(&self) -> TermValue<'a, INLINE_BYTES>`,
+  so an input returns the source-polymorphic carrier directly and
+  `run_route` consumes it with no byte-width cap. prism's stdlib shapes
+  are zero-sized markers, so each `as_binding_value` returns
+  `TermValue::empty()`; `PrismModel` / `Grounded` / `run_route` gain the
+  same `'a` lifetime.
 
 Substitution axes (the only permitted variation points per ADR-007 /
 ADR-030 / ADR-036 / ADR-048): `HostTypes`, `HostBounds`, `AxisTuple`,
@@ -183,25 +191,27 @@ ADR-030 / ADR-036 / ADR-048): `HostTypes`, `HostBounds`, `AxisTuple`,
 no `DefaultHostBounds`; the application declares its `HostBounds` impl
 explicitly (prism re-exports the trait, not a default).
 
-**Input-size discipline (ADR-060).** The convenience path
-`prism_model!` → `forward()` → `run_route` serializes the model input
-through `IntoBindingValue` into a stack `[u8; INLINE_BYTES]` buffer and
-rejects any input whose `MAX_BYTES` exceeds
-`carrier_inline_bytes::<B>()` — it is the path for inputs that fit the
-inline carrier. Per ADR-060 the byte width of a value carrier is an
-application concern; **large inputs are content-addressed by their
-hash, not materialized**. To ground an input larger than the inline
-carrier (model-weight container formats, multi-GB tensor-data sections,
-large canonical-JSON), stream-hash the full input through the
-application's `Hasher` (`fold_bytes`, chunk-by-chunk, never
-materialized), set the leading-8-byte digest as the input-slot
-`Binding`'s `content_address`, and drive `run` over a
-`CompileUnitBuilder` whose root term is the identity route
-`Term::Variable { name_index: 0 }`. `run` folds the binding's content
-address into the `Grounded` certificate, so the large input's identity
-enters the κ-derivation with no byte-width ceiling. `Binding` is
-re-exported through `prism::vocabulary`; the replay-verified worked
-example is `crates/uor-prism/tests/large_input_grounding.rs`.
+**Input-size discipline (ADR-060, completed in foundation 0.5.1).**
+Per ADR-060 the byte width of a value carrier is an application
+concern; **large inputs are content-addressed by their hash, not
+materialized**. Foundation 0.5.1 completed the input path:
+`IntoBindingValue::as_binding_value<INLINE_BYTES>` returns the
+source-polymorphic `TermValue<'a, INLINE_BYTES>` carrier
+(`Inline` within the derived inline width, `Borrowed` zero-copy for
+larger in-memory values, `Stream` for unbounded sources), and
+`run_route` consumes it directly with **no `INLINE_BYTES` cap** (the
+pre-0.5.1 `MAX_BYTES`-overflow rejection is gone). So an input shape
+whose `as_binding_value` returns `Borrowed`/`Stream` flows through the
+convenience `prism_model!` path unbounded (model-weight container
+formats, multi-GB tensor-data sections, large canonical-JSON).
+Independently, a large input can be content-addressed by hash and
+bound directly: stream-hash it through the application's `Hasher`
+(`fold_bytes`, chunk-by-chunk, never materialized), set the
+leading-8-byte digest as an input-slot `Binding`'s `content_address`,
+and drive `run` over a `CompileUnitBuilder` whose root term is
+`Term::Variable { name_index: 0 }`. `Binding` is re-exported through
+`prism::vocabulary`; the replay-verified worked example is
+`crates/uor-prism/tests/large_input_grounding.rs`.
 
 ## 3. Layout
 
@@ -271,9 +281,16 @@ that contribute the built-in axes and built-in types it re-exports.
   `prism`'s pin on `uor-foundation` may lag the latest published
   version; updates to this repo are demand-driven (a needed surface
   change) rather than calendar-driven.
-- **`uor-foundation`**: `^0.5` (effective floor 0.5.0 — the ADR-060
-  source-polymorphic value carrier: `TermValue` becomes the
-  const-generic enum `TermValue<'a, INLINE_BYTES>` with
+- **`uor-foundation`**: `^0.5` (effective floor 0.5.1 — completes the
+  ADR-060 input path: `IntoBindingValue` gains a `'a` lifetime and
+  replaces the `MAX_BYTES` const + `into_binding_bytes` writer with
+  `as_binding_value<INLINE_BYTES>(&self) -> TermValue<'a, INLINE_BYTES>`,
+  returning the source-polymorphic carrier directly so `run_route`
+  admits arbitrarily large inputs with no byte-width cap;
+  `PrismModel` / `Grounded` / `run_route` gain the same `'a`. Earlier
+  floor 0.5.0 introduced the ADR-060 source-polymorphic value carrier:
+  `TermValue` becomes the const-generic enum
+  `TermValue<'a, INLINE_BYTES>` with
   `Inline`/`Borrowed`/`Stream(&dyn ChunkSource)` variants; the 12
   byte-width capacity caps and the foundation-provided
   `DefaultHostBounds` are removed; `HostBounds` shrinks 26 → 14
@@ -324,13 +341,14 @@ that contribute the built-in axes and built-in types it re-exports.
   `PrimitiveOp::{Le, Lt, Ge, Gt, Concat}` per ADR-026;
   `Output: IntoBindingValue` per ADR-023 value-flow expansion.
   `default-features = false`, `no_std`-clean.
-- **`uor-foundation-sdk`**: `^0.5` (effective floor 0.5.0 — tracks
-  the foundation 0.5.0 ADR-060 release; the `axis!` / `verb!` /
-  `prism_model!` / `partition_product!` / `register_shape!` macro
-  names and grammar are unchanged, but the `verb!`-emitted
-  `<verb>_term_arena()` accessors and the model/route surface are now
-  const-generic over the ADR-060 `INLINE_BYTES` carrier width.
-  Earlier floors: 0.4.15 added the optional
+- **`uor-foundation-sdk`**: `^0.5` (effective floor 0.5.1 — tracks
+  the foundation 0.5.1 release completing the ADR-060 input path; the
+  `axis!` / `verb!` / `prism_model!` / `partition_product!` /
+  `register_shape!` macro names and grammar are unchanged, but the
+  `verb!`-emitted `<verb>_term_arena()` accessors and the model/route
+  surface are const-generic over the ADR-060 `INLINE_BYTES` carrier
+  width and the `prism_model!`-emitted impls now carry the
+  `IntoBindingValue<'a>` lifetime. Earlier floors: 0.4.15 added the optional
   `resolver!` macro `shape_registry: MyRegistry` clause that wires an
   application's `ShapeRegistryProvider` marker into the emitted
   `ResolverTuple` impl as the `ShapeRegistry` associated type;

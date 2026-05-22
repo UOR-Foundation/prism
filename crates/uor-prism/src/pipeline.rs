@@ -132,27 +132,27 @@ pub use uor_foundation::{PipelineFailure, ShapeViolation};
 // (the serialization contract on `Input` and `Output`, per ADR-023)
 // are the sealed supertraits the macro emits alongside.
 //
-// **Input-size discipline (ADR-060).** `run_route` is the convenience
-// path for inputs that fit the ADR-060 inline carrier: it serializes
-// `M::Input` via `IntoBindingValue::into_binding_bytes` into a stack
-// `[u8; INLINE_BYTES]` buffer and rejects any input whose `MAX_BYTES`
-// exceeds `INLINE_BYTES = carrier_inline_bytes::<B>()`. That cap is a
-// property of the convenience packaging, not of the architecture: per
-// ADR-060 the byte width of a value carrier is an application concern
-// and large structured payloads (model-weight container formats,
+// **Input-size discipline (ADR-060, completed in foundation 0.5.1).**
+// Per ADR-060 the byte width of a value carrier is an application
+// concern; large structured payloads (model-weight container formats,
 // multi-GB tensor-data sections, large canonical-JSON documents) are
-// content-addressed by their hash, not by materializing them into a
-// fixed buffer. To ground an input larger than `INLINE_BYTES`,
-// stream-hash the full input through the application's [`Hasher`]
-// (`fold_bytes`, chunk-by-chunk, never materialized), take the
-// leading-8-byte big-endian digest as the input-slot
-// [`Binding`][crate::vocabulary::Binding]'s `content_address`, and
-// drive [`run`] over a [`CompileUnitBuilder`][crate::vocabulary::CompileUnitBuilder]
-// whose root term is the identity route `Term::Variable { name_index: 0 }`.
-// `run` folds the binding's content address into the `Grounded`'s
-// certificate, so the large input's identity flows into the
-// κ-derivation with no byte-width ceiling. The worked, replay-verified
-// example is `tests/large_input_grounding.rs`.
+// content-addressed by their hash, not materialized into a fixed
+// buffer. Foundation 0.5.1 completed the input path:
+// `IntoBindingValue::as_binding_value` returns the source-polymorphic
+// `TermValue<'a, INLINE_BYTES>` carrier (`Inline` for values within the
+// derived inline width, `Borrowed` for larger in-memory values,
+// `Stream` for unbounded sources), and `run_route` consumes it
+// directly with **no `INLINE_BYTES` cap** — an input shape whose
+// `as_binding_value` returns `Borrowed`/`Stream` flows through the
+// convenience `prism_model!` path unbounded. Independently, a large
+// input can be content-addressed by hash and bound directly:
+// stream-hash it through the application's [`Hasher`] (`fold_bytes`,
+// chunk-by-chunk, never materialized), set the leading-8-byte digest as
+// an input-slot [`Binding`][crate::vocabulary::Binding]'s
+// `content_address`, and drive [`run`] over a
+// [`CompileUnitBuilder`][crate::vocabulary::CompileUnitBuilder] whose
+// root term is `Term::Variable { name_index: 0 }`. The worked,
+// replay-verified example is `tests/large_input_grounding.rs`.
 pub use uor_foundation::pipeline::{run_route, FoundationClosed, IntoBindingValue, PrismModel};
 
 // ADR-035/036 substrate axes: `AxisTuple` (axis-substrate parameter for

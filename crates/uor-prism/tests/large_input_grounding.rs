@@ -1,24 +1,28 @@
 //! Large-input grounding: content-addressing inputs whose byte length
 //! exceeds the ADR-060 inline carrier width (`INLINE_BYTES`).
 //!
-//! # The constraint this test resolves
+//! # Background
 //!
-//! The convenience path `prism_model!` → `forward()` →
-//! `pipeline::run_route` serializes the model input through
-//! `IntoBindingValue::into_binding_bytes` into a stack `[u8; INLINE_BYTES]`
-//! buffer and **rejects** any input whose `MAX_BYTES` exceeds
-//! `INLINE_BYTES = carrier_inline_bytes::<B>()` (≈71–97 bytes for
-//! SHA-256-class bounds). That convenience cap is *not* a fundamental
-//! limit of the architecture: per wiki ADR-060 the byte width of any
-//! single value carrier is an application concern, and large structured
-//! payloads (model-weight container formats, multi-GB tensor-data
-//! sections, canonical-JSON documents) are content-addressed by their
-//! hash, not by materializing them into a fixed stack buffer.
+//! Per wiki ADR-060 the byte width of a value carrier is an application
+//! concern: large structured payloads (model-weight container formats,
+//! multi-GB tensor-data sections, canonical-JSON documents) are
+//! content-addressed by their hash, not materialized into a fixed
+//! buffer. Foundation 0.5.1 completed the input side of ADR-060 —
+//! `IntoBindingValue::as_binding_value` now returns the source-
+//! polymorphic `TermValue<'a, INLINE_BYTES>` carrier (`Inline` for
+//! values within the derived inline width, `Borrowed` for larger
+//! in-memory values, `Stream` for unbounded sources), and `run_route`
+//! consumes that carrier directly with **no `INLINE_BYTES` cap** (the
+//! pre-0.5.1 `MAX_BYTES`-overflow rejection is gone): an input shape
+//! whose `as_binding_value` returns `Borrowed`/`Stream` flows through
+//! the convenience `prism_model!` path unbounded.
 //!
-//! # The uncapped path
+//! # The explicit-binding path this test exercises
 //!
-//! Foundation's public surface admits arbitrarily large inputs without
-//! the `run_route` cap:
+//! This test exercises the lower-level path — content-addressing a
+//! large input by hash and binding it directly — which works
+//! independently of the model surface and is the most direct
+//! demonstration that the κ-derivation admits arbitrarily large inputs:
 //!
 //! 1. **Stream-hash** the full input through the application's [`Hasher`]
 //!    via [`Hasher::fold_bytes`] — chunk-by-chunk, never materializing
@@ -35,11 +39,11 @@
 //!    the large input's identity flows into the κ-derivation without the
 //!    raw bytes ever sitting in a fixed buffer.
 //!
-//! This test grounds an input two orders of magnitude larger than
-//! `INLINE_BYTES`, asserts the result is `Grounded` (no rejection), and
-//! verifies the QS-05 replay round-trip — proving the architecture
-//! content-addresses large inputs end-to-end through prism's re-exported
-//! foundation surface.
+//! This test grounds an input three orders of magnitude larger than the
+//! inline carrier width, asserts the result is `Grounded` (no
+//! rejection), and verifies the QS-05 replay round-trip — proving the
+//! architecture content-addresses large inputs end-to-end through
+//! prism's re-exported foundation surface.
 
 #![allow(
     clippy::unwrap_used,
@@ -141,10 +145,11 @@ fn ground_large_input<H: Hasher>(large_input: &[u8]) {
 
 #[test]
 fn grounds_input_far_larger_than_inline_carrier() {
-    // 100 KiB — ~1000× the SHA-256-class `INLINE_BYTES` ceiling (which
-    // the module-level `const` assertion guards). The convenience
-    // `run_route` path would reject this; the streaming-hash +
-    // explicit-binding path grounds it.
+    // 100 KiB — ~1000× the inline carrier width (which the module-level
+    // `const` assertion guards). The streaming-hash + explicit-binding
+    // path content-addresses it; per ADR-060 / foundation 0.5.1 the
+    // `run_route` convenience path also handles inputs of this size via
+    // an `as_binding_value` returning `Borrowed`/`Stream`.
     let large_input: Vec<u8> = (0..100 * 1024).map(|i| (i % 251) as u8).collect();
     ground_large_input::<Sha256Hasher>(&large_input);
 }
