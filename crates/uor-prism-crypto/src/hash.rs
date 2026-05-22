@@ -47,7 +47,6 @@
 use sha2::Digest as Sha2Digest;
 use sha3::Digest as Sha3Digest;
 use uor_foundation::enforcement::{Hasher, ShapeViolation};
-use uor_foundation::pipeline::AxisExtension;
 use uor_foundation_sdk::axis;
 
 axis! {

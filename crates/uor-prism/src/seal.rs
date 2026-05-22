@@ -57,7 +57,10 @@
 //! let _ = (
 //!     _name::<Validated<ConstrainedTypeInput, CompileTime>>(),
 //!     _name::<Validated<ConstrainedTypeInput, Runtime>>(),
-//!     _name::<Grounded<ConstrainedTypeInput>>(),
+//!     // Per ADR-060 `Grounded` carries the inline carrier width as its
+//!     // 2nd parameter (`Grounded<T, INLINE_BYTES, Tag = T>`); 32 is a
+//!     // representative width for this type-name reachability check.
+//!     _name::<Grounded<ConstrainedTypeInput, 32>>(),
 //!     _name::<Certified<prism::vocabulary::GroundingCertificate>>(),
 //! );
 //! ```

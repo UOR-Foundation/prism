@@ -12,9 +12,7 @@
 #![allow(missing_docs)]
 
 use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
-use uor_foundation::pipeline::{
-    AxisExtension, ConstrainedTypeShape, ConstraintRef, IntoBindingValue,
-};
+use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue};
 use uor_foundation_sdk::axis;
 
 use crate::{check_output, split_pair};

@@ -18,6 +18,30 @@ use prism_numerics::{
 };
 use uor_foundation::pipeline::ConstrainedTypeShape;
 
+// ADR-060: arena accessors are generic over the inline carrier width;
+// arena structure is width-independent, so the conformance tests
+// declare a minimal bounds and derive the width via the foundation
+// const fn (the principled ADR-060 pattern — every test is an
+// "application" declaring its own HostBounds).
+struct ConfBounds;
+impl uor_foundation::HostBounds for ConfBounds {
+    const FINGERPRINT_MIN_BYTES: usize = 16;
+    const FINGERPRINT_MAX_BYTES: usize = 32;
+    const TRACE_MAX_EVENTS: usize = 256;
+    const WITT_LEVEL_MAX_BITS: u32 = 64;
+    const FOLD_UNROLL_THRESHOLD: usize = 8;
+    const BETTI_DIMENSION_MAX: usize = 8;
+    const NERVE_CONSTRAINTS_MAX: usize = 8;
+    const NERVE_SITES_MAX: usize = 8;
+    const JACOBIAN_SITES_MAX: usize = 8;
+    const RECURSION_TRACE_DEPTH_MAX: usize = 16;
+    const OP_CHAIN_DEPTH_MAX: usize = 8;
+    const AFFINE_COEFFS_MAX: usize = 8;
+    const CONJUNCTION_TERMS_MAX: usize = 8;
+    const UNFOLD_ITERATIONS_MAX: usize = 256;
+}
+const CARRIER: usize = uor_foundation::pipeline::carrier_inline_bytes::<ConfBounds>();
+
 fn be_from_u64(value: u64) -> [u8; 32] {
     let mut out = [0u8; 32];
     out[24..].copy_from_slice(&value.to_be_bytes());
@@ -359,13 +383,13 @@ fn verb_succ_twice_emits_two_application_terms() {
     // — three nodes total. The verb-closure check at macro expansion
     // already guarantees acyclicity; this test asserts the structural
     // shape.
-    let arena = prism_numerics::verbs::succ_twice_term_arena();
+    let arena = prism_numerics::verbs::succ_twice_term_arena::<CARRIER>();
     assert_eq!(arena.len(), 3, "succ(succ(input)) emits 3 arena nodes");
 }
 
 #[test]
 fn verb_pred_twice_dual() {
-    let arena = prism_numerics::verbs::pred_twice_term_arena();
+    let arena = prism_numerics::verbs::pred_twice_term_arena::<CARRIER>();
     assert_eq!(arena.len(), 3, "pred(pred(input)) emits 3 arena nodes");
 }
 
@@ -386,15 +410,15 @@ fn substrate_term_arithmetic_verb_arenas_terminate_in_application() {
     // complete at the 2-arg surface (add/sub/mul/div/mod/pow).
     use uor_foundation::Term;
     for arena in [
-        prism_numerics::verbs::add_substrate_term_arena(),
-        prism_numerics::verbs::sub_substrate_term_arena(),
-        prism_numerics::verbs::mul_substrate_term_arena(),
-        prism_numerics::verbs::div_substrate_term_arena(),
-        prism_numerics::verbs::mod_substrate_term_arena(),
-        prism_numerics::verbs::pow_substrate_term_arena(),
-        prism_numerics::verbs::gf2_add_substrate_term_arena(),
-        prism_numerics::verbs::gf2_mul_substrate_term_arena(),
-        prism_numerics::verbs::or_substrate_term_arena(),
+        prism_numerics::verbs::add_substrate_term_arena::<CARRIER>(),
+        prism_numerics::verbs::sub_substrate_term_arena::<CARRIER>(),
+        prism_numerics::verbs::mul_substrate_term_arena::<CARRIER>(),
+        prism_numerics::verbs::div_substrate_term_arena::<CARRIER>(),
+        prism_numerics::verbs::mod_substrate_term_arena::<CARRIER>(),
+        prism_numerics::verbs::pow_substrate_term_arena::<CARRIER>(),
+        prism_numerics::verbs::gf2_add_substrate_term_arena::<CARRIER>(),
+        prism_numerics::verbs::gf2_mul_substrate_term_arena::<CARRIER>(),
+        prism_numerics::verbs::or_substrate_term_arena::<CARRIER>(),
     ] {
         assert!(arena.len() >= 4, "substrate-Term verb has ≥4 arena nodes");
         assert!(matches!(arena.last(), Some(Term::Application { .. })));
@@ -403,7 +427,7 @@ fn substrate_term_arithmetic_verb_arenas_terminate_in_application() {
 
 #[test]
 fn substrate_term_square_arena() {
-    let arena = prism_numerics::verbs::square_term_arena();
+    let arena = prism_numerics::verbs::square_term_arena::<CARRIER>();
     assert!(arena.len() >= 2);
     assert!(matches!(
         arena.last(),
@@ -423,11 +447,11 @@ fn three_operand_compound_verbs_emit_application_terminated_arenas() {
     // access.
     use uor_foundation::Term;
     for arena in [
-        prism_numerics::verbs::fma_term_arena(),
-        prism_numerics::verbs::mod_pow_term_arena(),
-        prism_numerics::verbs::field_add_term_arena(),
-        prism_numerics::verbs::field_sub_term_arena(),
-        prism_numerics::verbs::field_mul_term_arena(),
+        prism_numerics::verbs::fma_term_arena::<CARRIER>(),
+        prism_numerics::verbs::mod_pow_term_arena::<CARRIER>(),
+        prism_numerics::verbs::field_add_term_arena::<CARRIER>(),
+        prism_numerics::verbs::field_sub_term_arena::<CARRIER>(),
+        prism_numerics::verbs::field_mul_term_arena::<CARRIER>(),
     ] {
         assert!(
             arena.len() >= 4,

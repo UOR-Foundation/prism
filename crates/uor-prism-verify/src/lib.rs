@@ -87,10 +87,13 @@ pub use prism::seal::Certified;
 // substitution axes a verifier instantiates them at. `HostBounds`
 // carries the capacity constants that used to be free `pub const`s in
 // foundation 0.3.0 (`TRACE_MAX_EVENTS` is now
-// `<B as HostBounds>::TRACE_MAX_EVENTS`).
+// `<B as HostBounds>::TRACE_MAX_EVENTS`). Per ADR-060 the foundation
+// ships no `DefaultHostBounds`; a verifier declares its own
+// `impl HostBounds` (matching the producer's capacity policy) — the
+// `HostBounds` trait is re-exported for that purpose.
 pub use uor_foundation::{
-    ContentFingerprint, DefaultHostBounds, GroundingCertificate, HostBounds, ReplayError, Trace,
-    TraceEvent, TRACE_REPLAY_FORMAT_VERSION,
+    ContentFingerprint, GroundingCertificate, HostBounds, ReplayError, Trace, TraceEvent,
+    TRACE_REPLAY_FORMAT_VERSION,
 };
 
 /// Canonical URL of the UOR-Framework wiki, the normative source for the

@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.83"
 license = "MIT"
@@ -24,27 +24,25 @@ readme = "README.md"
 # Per wiki ADR-031, the `prism` standard library and its Layer-3
 # sub-crates close under the foundation substrate (`uor-foundation`) and
 # its SDK macro lane (`uor-foundation-sdk` per ADR-022 / ADR-030 /
-# ADR-036). Both are floored at v0.4 (effective floor 0.4.15 — completes
-# the ADR-057 registry-aware substrate-primitive surface with
-# `enforcement::primitive_simplicial_nerve_betti_in::<T, R>`,
-# `pipeline::primitive_cartesian_nerve_betti_in::<S, R>`, and
-# `enforcement::expand_constraints_in::<R>`. Applications using
-# `register_shape!` for recursive grammars now have registry-aware
-# variants of every primitive that walks constraint slices or computes
-# nerve / Betti readings; the non-`_in` siblings (existed pre-0.4.15)
-# are also surfaced through the prism façade in this release so the
-# nerve-primitive contract is complete in `prism::pipeline`).
-uor-foundation = { version = "0.4", default-features = false }
-uor-foundation-sdk = { version = "0.4", default-features = false }
+# ADR-036). Both are floored at v0.5 (effective floor 0.5.0 — the
+# ADR-060 source-polymorphic value carrier: `TermValue` becomes the
+# `Inline`/`Borrowed`/`Stream` carrier enum over a `ChunkSource`, the
+# fictional 4096 byte-width caps and the foundation-provided
+# `DefaultHostBounds` are removed, and per-stage carrier widths derive
+# from app-declared structural-count primitives via the foundation
+# `*_carrier_bytes::<B>()` const fns. Wire format byte-identical
+# (`TRACE_REPLAY_FORMAT_VERSION` stays 10); MSRV stays 1.83).
+uor-foundation = { version = "0.5", default-features = false }
+uor-foundation-sdk = { version = "0.5", default-features = false }
 
 # Standard-library sub-crate cross-deps per ADR-031's layered
 # consumption pattern (numerics → foundation; crypto → foundation +
 # numerics; tensor → foundation + numerics + optionally crypto; fhe →
 # foundation). The `prism` façade depends on all four.
-uor-prism-numerics = { version = "0.2.0", path = "crates/uor-prism-numerics", default-features = false }
-uor-prism-crypto = { version = "0.2.0", path = "crates/uor-prism-crypto", default-features = false }
-uor-prism-tensor = { version = "0.2.0", path = "crates/uor-prism-tensor", default-features = false }
-uor-prism-fhe = { version = "0.2.0", path = "crates/uor-prism-fhe", default-features = false }
+uor-prism-numerics = { version = "0.3.0", path = "crates/uor-prism-numerics", default-features = false }
+uor-prism-crypto = { version = "0.3.0", path = "crates/uor-prism-crypto", default-features = false }
+uor-prism-tensor = { version = "0.3.0", path = "crates/uor-prism-tensor", default-features = false }
+uor-prism-fhe = { version = "0.3.0", path = "crates/uor-prism-fhe", default-features = false }
 
 # Cryptographic substrate dependencies for `prism-crypto`'s canonical
 # `HashAxis` impls (ADR-031). These are widely-vetted, no_std-clean

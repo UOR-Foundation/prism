@@ -40,7 +40,15 @@ use prism::pipeline::{
 use prism::seal::Grounded;
 use prism::std_types::CartesianProductShape;
 use prism::std_types::{ConstrainedTypeInput, GroundedShape};
-use prism::vocabulary::{DefaultHostBounds, DefaultHostTypes, Hasher};
+use prism::vocabulary::{DefaultHostTypes, Hasher};
+
+// Per ADR-060 the foundation ships no `DefaultHostBounds`; the test
+// suite (the "application" here) declares its own. `TestHostBounds`
+// lives in `tests/common/mod.rs`.
+mod common;
+use common::TestHostBounds;
+
+const CARRIER: usize = uor_foundation::pipeline::carrier_inline_bytes::<TestHostBounds>();
 
 // ---- Compile-time bound resolution ----
 //
@@ -52,7 +60,7 @@ use prism::vocabulary::{DefaultHostBounds, DefaultHostTypes, Hasher};
 fn _accepts_prism_model<H, M>()
 where
     H: Hasher,
-    M: PrismModel<DefaultHostTypes, DefaultHostBounds, H>,
+    M: PrismModel<DefaultHostTypes, TestHostBounds, H, CARRIER>,
 {
     // `PrismModel`'s fourth generic `R` defaults to `NullResolverTuple`
     // per ADR-035/036; the 3-param form below uses that default. Foundation
@@ -65,13 +73,13 @@ where
 fn _associated_type_bounds<H, M>()
 where
     H: Hasher,
-    M: PrismModel<DefaultHostTypes, DefaultHostBounds, H>,
+    M: PrismModel<DefaultHostTypes, TestHostBounds, H, CARRIER>,
     M::Input: ConstrainedTypeShape + IntoBindingValue,
     // ADR-035: `Output` now additionally requires `IntoBindingValue` so
     // the runtime can lower the grounded output back into a binding
     // value for downstream composition.
     M::Output: ConstrainedTypeShape + GroundedShape + IntoBindingValue,
-    M::Route: FoundationClosed,
+    M::Route: FoundationClosed<CARRIER>,
 {
 }
 
@@ -80,10 +88,10 @@ fn _run_route_signature<H, M, R, C>(
     input: M::Input,
     resolvers: &R,
     commitment: &C,
-) -> Result<Grounded<M::Output>, PipelineFailure>
+) -> Result<Grounded<M::Output, CARRIER>, PipelineFailure>
 where
     H: Hasher,
-    M: PrismModel<DefaultHostTypes, DefaultHostBounds, H, R, C>,
+    M: PrismModel<DefaultHostTypes, TestHostBounds, H, CARRIER, R, C>,
     // ADR-035/036: `R: ResolverTuple` is the substrate parameter for
     // the eight categorical-machinery resolvers (Nerve, ChainComplex,
     // HomologyGroup, CochainComplex, CohomologyGroup, Postnikov,
@@ -92,14 +100,14 @@ where
     // implementation that raises `RESOLVER_ABSENT` when invoked —
     // the default mode for applications that don't supply real resolvers.
     R: ResolverTuple
-        + HasNerveResolver<H>
-        + HasChainComplexResolver<H>
-        + HasHomologyGroupResolver<H>
-        + HasCochainComplexResolver<H>
-        + HasCohomologyGroupResolver<H>
-        + HasPostnikovResolver<H>
-        + HasHomotopyGroupResolver<H>
-        + HasKInvariantResolver<H>,
+        + HasNerveResolver<CARRIER, H>
+        + HasChainComplexResolver<CARRIER, H>
+        + HasHomologyGroupResolver<CARRIER, H>
+        + HasCochainComplexResolver<CARRIER, H>
+        + HasCohomologyGroupResolver<CARRIER, H>
+        + HasPostnikovResolver<CARRIER, H>
+        + HasHomotopyGroupResolver<CARRIER, H>
+        + HasKInvariantResolver<CARRIER, H>,
     // ADR-048: `C: TypedCommitment` is the 5th model-declaration
     // parameter — the cost-model commitment surface. The catamorphism
     // evaluates `commitment.evaluate(kappa_label)` after the
@@ -111,7 +119,7 @@ where
     // `PrismModel::forward` expands to exactly this call with R / C
     // defaulting to `NullResolverTuple` / `EmptyCommitment` when the
     // model declares neither resolver use nor a typed commitment.
-    prism::pipeline::run_route::<DefaultHostTypes, DefaultHostBounds, H, M, R, C>(
+    prism::pipeline::run_route::<DefaultHostTypes, TestHostBounds, H, M, R, C, CARRIER>(
         input, resolvers, commitment,
     )
 }
@@ -262,7 +270,7 @@ fn foundation_closed_resolves_for_constrained_type_input() {
     // `FoundationClosed::arena_slice() -> &'static [Term]` is the
     // route's term-tree witness. Foundation's `ConstrainedTypeInput`
     // impl is the identity model — empty arena.
-    let arena = <ConstrainedTypeInput as FoundationClosed>::arena_slice();
+    let arena = <ConstrainedTypeInput as FoundationClosed<CARRIER>>::arena_slice();
     assert!(arena.is_empty(), "identity model carries no terms");
 }
 

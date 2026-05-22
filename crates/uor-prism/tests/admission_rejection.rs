@@ -12,12 +12,21 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+mod common;
+
 use prism::operation::Term;
 use prism::pipeline::{validate_compile_unit_const, ViolationKind};
 use prism::std_types::ConstrainedTypeInput;
 use prism::vocabulary::{CompileUnitBuilder, VerificationDomain, WittLevel};
 
-static SENTINEL_TERMS: &[Term] = &[Term::Literal {
+const CARRIER: usize = uor_foundation::pipeline::carrier_inline_bytes::<common::TestHostBounds>();
+
+// ADR-060: `TermValue` now carries a `Stream(&dyn ChunkSource)` variant
+// that is not `Sync`, so a `&[Term]` can no longer live in a `static`
+// (which requires `Sync`). These literal arenas only ever construct the
+// `Inline` variant; promoting them to `const` keeps the same `'static`
+// slice semantics without the `Sync` obligation.
+const SENTINEL_TERMS: &[Term<'static, CARRIER>] = &[Term::Literal {
     value: prism::operation::TermValue::from_u64_be(1, 1),
     level: WittLevel::W8,
 }];
@@ -26,7 +35,9 @@ static SENTINEL_DOMAINS: &[VerificationDomain] = &[VerificationDomain::Enumerati
 #[test]
 fn missing_root_term_is_typed_missing() {
     // Given: a CompileUnitBuilder with every required field except root_term.
-    let builder = CompileUnitBuilder::new()
+    // No `.root_term(..)` call means the width can't be inferred from the
+    // arena slice, so it's pinned explicitly via the carrier const.
+    let builder = CompileUnitBuilder::<'_, CARRIER>::new()
         .witt_level_ceiling(WittLevel::W8)
         .thermodynamic_budget(100)
         .target_domains(SENTINEL_DOMAINS)

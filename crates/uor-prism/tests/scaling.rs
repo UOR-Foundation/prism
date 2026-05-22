@@ -9,20 +9,21 @@
 //! data path → replay → `certify_from_trace` round-trip across a
 //! representative spread of:
 //!
-//! - **`Hasher::OUTPUT_BYTES`** widths within `DefaultHostBounds`'s
+//! - **`Hasher::OUTPUT_BYTES`** widths within the test's `HostBounds`
 //!   `[FINGERPRINT_MIN_BYTES, FINGERPRINT_MAX_BYTES]` range:
 //!   16 (minimum), 24 (intermediate), 32 (maximum).
 //! - **Witt-level ceilings** spanning the named family `W8`/`W16`/`W32`
-//!   and the boundary level `W64` (the default `HostBounds`'s
+//!   and the boundary level `W64` (the test bounds'
 //!   `WITT_LEVEL_MAX_BITS`).
 //!
 //! The third axis named in the wiki — `HostTypes` — is held at
 //! `DefaultHostTypes` because `pipeline::run`'s `<T, P, H>` parameters
 //! inherit `HostTypes` through the application's own crate-level type
 //! alias rather than the call site. `HostBounds` is similarly held at
-//! `DefaultHostBounds` for the same reason: `Hasher`, `Trace`, and
-//! `ContentFingerprint` resolve their const generics to the default
-//! profile when called through the foundation-supplied `pipeline::run`
+//! the test's `common::TestHostBounds` (per ADR-060 the foundation
+//! ships no `DefaultHostBounds`; the test declares its own): `Hasher`,
+//! `Trace`, and `ContentFingerprint` resolve their const generics to
+//! that profile when called through the foundation-supplied `pipeline::run`
 //! entry point. (The higher-level `pipeline::run_route` adds the
 //! `R: ResolverTuple` and `C: TypedCommitment` parameters per
 //! ADR-036 + ADR-048 — exercised in `tests/prism_model.rs`, not here.)
@@ -68,13 +69,18 @@ use prism::pipeline::run;
 use prism::replay::{certify_from_trace, Trace};
 use prism::seal::Validated;
 use prism::std_types::ConstrainedTypeInput;
-use prism::vocabulary::{
-    CompileUnitBuilder, DefaultHostBounds, Hasher, HostBounds, VerificationDomain, WittLevel,
-};
+use prism::vocabulary::{CompileUnitBuilder, Hasher, HostBounds, VerificationDomain, WittLevel};
 
 // ---- Generic round-trip property ----
 
-static ROOT_TERMS: &[Term] = &[Term::Literal {
+const CARRIER: usize = uor_foundation::pipeline::carrier_inline_bytes::<common::TestHostBounds>();
+
+// ADR-060: `TermValue` now carries a `Stream(&dyn ChunkSource)` variant
+// that is not `Sync`, so a `&[Term]` can no longer live in a `static`
+// (which requires `Sync`). These literal arenas only ever construct the
+// `Inline` variant; promoting them to `const` keeps the same `'static`
+// slice semantics without the `Sync` obligation.
+const ROOT_TERMS: &[Term<'static, CARRIER>] = &[Term::Literal {
     value: prism::operation::TermValue::from_u64_be(7, 1),
     level: WittLevel::W8,
 }];
@@ -87,7 +93,7 @@ static DOMAINS: &[VerificationDomain] = &[VerificationDomain::Enumerative];
 /// 1. The pipeline admits the unit (TC-03 singular path).
 /// 2. The certificate's content fingerprint width equals
 ///    `H::OUTPUT_BYTES` (Hasher contract).
-/// 3. The trace fits within `<DefaultHostBounds as HostBounds>::TRACE_MAX_EVENTS`
+/// 3. The trace fits within `<common::TestHostBounds as HostBounds>::TRACE_MAX_EVENTS`
 ///    (HostBounds capacity contract).
 /// 4. `certify_from_trace`'s certificate is bit-identical to the source
 ///    grounded value's certificate (QS-05).
@@ -100,7 +106,7 @@ fn assert_roundtrip<H: Hasher>(witt_ceiling: WittLevel) {
         .target_domains(DOMAINS)
         .result_type::<ConstrainedTypeInput>();
     let unit: Validated<_> = builder.validate().expect("unit well-formed");
-    let grounded = run::<ConstrainedTypeInput, _, H>(unit).expect("pipeline admits");
+    let grounded = run::<ConstrainedTypeInput, _, H, CARRIER>(unit).expect("pipeline admits");
 
     // (2) Hasher contract: width recorded on the fingerprint matches the
     // hasher's declared `OUTPUT_BYTES`.
@@ -116,7 +122,7 @@ fn assert_roundtrip<H: Hasher>(witt_ceiling: WittLevel) {
     // `HostBounds` impl reduces the cap.
     let trace: Trace = grounded.derivation().replay();
     assert!(
-        usize::from(trace.len()) <= <DefaultHostBounds as HostBounds>::TRACE_MAX_EVENTS,
+        usize::from(trace.len()) <= <common::TestHostBounds as HostBounds>::TRACE_MAX_EVENTS,
         "trace length exceeds HostBounds::TRACE_MAX_EVENTS",
     );
 
@@ -160,7 +166,7 @@ fn fnv16_w32() {
 
 #[test]
 fn fnv16_w64_boundary() {
-    // `W64` equals `<DefaultHostBounds as HostBounds>::WITT_LEVEL_MAX_BITS`
+    // `W64` equals `<common::TestHostBounds as HostBounds>::WITT_LEVEL_MAX_BITS`
     // — the boundary the substitution-axis contract names as the cap of
     // the default capacity profile.
     assert_roundtrip::<Fnv16>(WittLevel::new(64));
@@ -213,7 +219,7 @@ fn sha256_w64_boundary() {
 
 #[test]
 fn fingerprints_at_different_widths_are_distinguishable() {
-    fn fresh_unit() -> Validated<prism::vocabulary::CompileUnit<'static>> {
+    fn fresh_unit() -> Validated<prism::vocabulary::CompileUnit<'static, CARRIER>> {
         CompileUnitBuilder::new()
             .root_term(ROOT_TERMS)
             .witt_level_ceiling(WittLevel::W32)
@@ -224,9 +230,9 @@ fn fingerprints_at_different_widths_are_distinguishable() {
             .expect("unit well-formed")
     }
 
-    let g16 = run::<ConstrainedTypeInput, _, Fnv16>(fresh_unit()).expect("admits");
-    let g24 = run::<ConstrainedTypeInput, _, Fnv24>(fresh_unit()).expect("admits");
-    let g32 = run::<ConstrainedTypeInput, _, Sha256Hasher>(fresh_unit()).expect("admits");
+    let g16 = run::<ConstrainedTypeInput, _, Fnv16, CARRIER>(fresh_unit()).expect("admits");
+    let g24 = run::<ConstrainedTypeInput, _, Fnv24, CARRIER>(fresh_unit()).expect("admits");
+    let g32 = run::<ConstrainedTypeInput, _, Sha256Hasher, CARRIER>(fresh_unit()).expect("admits");
 
     let f16 = g16.content_fingerprint();
     let f24 = g24.content_fingerprint();

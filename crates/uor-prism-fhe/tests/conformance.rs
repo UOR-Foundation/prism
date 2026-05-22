@@ -13,6 +13,30 @@ use prism_fhe::{
 };
 use uor_foundation::pipeline::ConstrainedTypeShape;
 
+// ADR-060: arena accessors are generic over the inline carrier width;
+// arena structure is width-independent, so the conformance tests
+// declare a minimal bounds and derive the width via the foundation
+// const fn (the principled ADR-060 pattern — every test is an
+// "application" declaring its own HostBounds).
+struct ConfBounds;
+impl uor_foundation::HostBounds for ConfBounds {
+    const FINGERPRINT_MIN_BYTES: usize = 16;
+    const FINGERPRINT_MAX_BYTES: usize = 32;
+    const TRACE_MAX_EVENTS: usize = 256;
+    const WITT_LEVEL_MAX_BITS: u32 = 64;
+    const FOLD_UNROLL_THRESHOLD: usize = 8;
+    const BETTI_DIMENSION_MAX: usize = 8;
+    const NERVE_CONSTRAINTS_MAX: usize = 8;
+    const NERVE_SITES_MAX: usize = 8;
+    const JACOBIAN_SITES_MAX: usize = 8;
+    const RECURSION_TRACE_DEPTH_MAX: usize = 16;
+    const OP_CHAIN_DEPTH_MAX: usize = 8;
+    const AFFINE_COEFFS_MAX: usize = 8;
+    const CONJUNCTION_TERMS_MAX: usize = 8;
+    const UNFOLD_ITERATIONS_MAX: usize = 256;
+}
+const CARRIER: usize = uor_foundation::pipeline::carrier_inline_bytes::<ConfBounds>();
+
 #[test]
 fn one_time_pad_adds_zero_yields_left() {
     // a XOR 0 = a (zero ciphertext is the additive identity).
@@ -148,7 +172,7 @@ fn substrate_term_otp_xor_verb_arena_witness() {
     // (Variable refs + per-field ProjectField nodes). The structural
     // witness is that the arena is non-empty and terminates in an
     // Application node — both conditions checked below.
-    let arena = prism_fhe::verbs::add_ciphertexts_verb_term_arena();
+    let arena = prism_fhe::verbs::add_ciphertexts_verb_term_arena::<CARRIER>();
     assert!(arena.len() >= 4, "substrate-Term verb has ≥4 arena nodes");
     assert!(
         matches!(arena.last(), Some(uor_foundation::Term::Application { .. })),

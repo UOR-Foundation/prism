@@ -295,9 +295,12 @@ pub use uor_foundation::pipeline::{
 // pipeline contract self-contained.
 pub use uor_foundation::pipeline::WITT_MAX_BITS;
 
-// ADR-030 capacity caps and substitution-axis machinery for application
-// authors who declare their own axes via `axis!`.
-pub use uor_foundation::pipeline::{AXIS_OUTPUT_BYTES_CEILING, MAX_AXIS_TUPLE_ARITY};
+// ADR-030 type-system impl-table arity cap for application authors who
+// declare their own axes via `axis!`. The byte-width ceiling
+// `AXIS_OUTPUT_BYTES_CEILING` was removed in foundation 0.5.0 per
+// ADR-060 — axis-kernel output byte widths now flow through the
+// source-polymorphic `TermValue` carrier, not a pinned ceiling.
+pub use uor_foundation::pipeline::MAX_AXIS_TUPLE_ARITY;
 
 // Wiki ADR-031 façade commitment: the SDK macros declared by
 // `uor-foundation-sdk` are re-exported through `prism::pipeline` so a

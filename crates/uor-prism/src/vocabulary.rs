@@ -38,16 +38,39 @@
 //!
 //! # Behavior
 //!
+//! Per wiki ADR-060 the foundation ships **no** `DefaultHostBounds`:
+//! "there is no 'default' application, so the foundation supplies no
+//! default policy. Every application declares its own `impl
+//! HostBounds`." The standard library re-exports the [`HostBounds`]
+//! trait so application authors declare their capacity policy
+//! explicitly; the per-carrier byte widths derive from the declared
+//! structural-count primitives via foundation `const fn`s, with no
+//! application-chosen byte-width literals.
+//!
 //! ```rust
 //! // Given: the curated vocabulary surface
-//! // When:  the wire-format version and the canonical `HostBounds`
-//! //        defaults are read
-//! // Then:  they match the foundation's normative values verbatim
-//! use prism::vocabulary::{DefaultHostBounds, HostBounds, TRACE_REPLAY_FORMAT_VERSION};
-//! assert_eq!(<DefaultHostBounds as HostBounds>::FINGERPRINT_MIN_BYTES, 16);
-//! assert_eq!(<DefaultHostBounds as HostBounds>::FINGERPRINT_MAX_BYTES, 32);
-//! assert_eq!(<DefaultHostBounds as HostBounds>::TRACE_MAX_EVENTS, 256);
-//! assert_eq!(<DefaultHostBounds as HostBounds>::WITT_LEVEL_MAX_BITS, 64);
+//! // When:  an application declares its own `HostBounds` policy
+//! // Then:  the trait + wire-format version resolve through the façade
+//! use prism::vocabulary::{HostBounds, TRACE_REPLAY_FORMAT_VERSION};
+//!
+//! struct MyBounds;
+//! impl HostBounds for MyBounds {
+//!     const FINGERPRINT_MIN_BYTES: usize = 16;
+//!     const FINGERPRINT_MAX_BYTES: usize = 32;
+//!     const TRACE_MAX_EVENTS: usize = 256;
+//!     const WITT_LEVEL_MAX_BITS: u32 = 64;
+//!     const FOLD_UNROLL_THRESHOLD: usize = 8;
+//!     const BETTI_DIMENSION_MAX: usize = 8;
+//!     const NERVE_CONSTRAINTS_MAX: usize = 8;
+//!     const NERVE_SITES_MAX: usize = 8;
+//!     const JACOBIAN_SITES_MAX: usize = 8;
+//!     const RECURSION_TRACE_DEPTH_MAX: usize = 16;
+//!     const OP_CHAIN_DEPTH_MAX: usize = 8;
+//!     const AFFINE_COEFFS_MAX: usize = 8;
+//!     const CONJUNCTION_TERMS_MAX: usize = 8;
+//!     const UNFOLD_ITERATIONS_MAX: usize = 256;
+//! }
+//! assert_eq!(<MyBounds as HostBounds>::FINGERPRINT_MAX_BYTES, 32);
 //! assert_eq!(TRACE_REPLAY_FORMAT_VERSION, 10);
 //! ```
 //!
@@ -58,14 +81,24 @@ pub use uor_foundation::enforcement::{Datum, FreeRank, Triad};
 
 // Substitution-axis traits — two of the three axes named in ADR-007.
 // `HostTypes` carries the three host-side type slots; `HostBounds` carries
-// the four capacity bounds (`FINGERPRINT_MIN_BYTES`, `FINGERPRINT_MAX_BYTES`,
-// `TRACE_MAX_EVENTS`, `WITT_LEVEL_MAX_BITS`) the principal data path
-// const-generic instantiations resolve against. ADR-018 ratified
-// `HostBounds` as a first-class substitution axis (capacity completeness),
-// so the (HostTypes, HostBounds, Hasher) triple is now the full
-// substitution-axis surface. The third axis, `Hasher`, is below in the
-// substrate-hasher block.
-pub use uor_foundation::{DefaultHostBounds, DefaultHostTypes, HostBounds, HostTypes};
+// the 14 capacity primitives (the 4 pre-ADR-018 bounds
+// `FINGERPRINT_MIN_BYTES`, `FINGERPRINT_MAX_BYTES`, `TRACE_MAX_EVENTS`,
+// `WITT_LEVEL_MAX_BITS` plus the 10 structural-count caps) the principal
+// data path const-generic instantiations resolve against. ADR-018
+// ratified `HostBounds` as a first-class substitution axis (capacity
+// completeness), so the (HostTypes, HostBounds, Hasher) triple is the
+// full substitution-axis surface. The third axis, `Hasher`, is below in
+// the substrate-hasher block.
+//
+// Per ADR-060 the foundation ships NO `DefaultHostBounds` — there is no
+// "default" application, so the standard library re-exports only the
+// `HostBounds` trait, and application authors declare their own impl
+// (every honored constant traces to an explicit application
+// declaration; per-carrier byte widths derive from these primitives via
+// foundation `const fn`s, never a pinned literal). `DefaultHostTypes`
+// is retained: the host-type slots have a canonical foundation identity
+// (it is not a capacity-policy default).
+pub use uor_foundation::{DefaultHostTypes, HostBounds, HostTypes};
 
 // Builders, declarations, and validation results.
 pub use uor_foundation::{
@@ -93,10 +126,11 @@ pub use uor_foundation::{Derivation, ReplayError, ShapeViolation};
 
 // Wire-format version constant. The capacity constants
 // (`FINGERPRINT_MIN_BYTES`, `FINGERPRINT_MAX_BYTES`, `TRACE_MAX_EVENTS`)
-// are no longer free — they are associated consts on `HostBounds`,
-// reachable as `<DefaultHostBounds as HostBounds>::FINGERPRINT_MAX_BYTES`
-// and so on. Selecting a different `HostBounds` impl rescales them
-// without code changes.
+// are associated consts on `HostBounds`, reachable as
+// `<MyBounds as HostBounds>::FINGERPRINT_MAX_BYTES` on the
+// application's own impl (no foundation default exists per ADR-060).
+// Selecting a different `HostBounds` impl rescales them without code
+// changes.
 pub use uor_foundation::TRACE_REPLAY_FORMAT_VERSION;
 
 // Foundation-owned closed enums and ordinals: the Witt-level family and

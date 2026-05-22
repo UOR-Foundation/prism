@@ -23,7 +23,14 @@ use prism::seal::Validated;
 use prism::std_types::ConstrainedTypeInput;
 use prism::vocabulary::{CompileUnitBuilder, VerificationDomain, WittLevel};
 
-static ROOT_TERMS: &[Term] = &[Term::Literal {
+const CARRIER: usize = uor_foundation::pipeline::carrier_inline_bytes::<common::TestHostBounds>();
+
+// ADR-060: `TermValue` now carries a `Stream(&dyn ChunkSource)` variant
+// that is not `Sync`, so a `&[Term]` can no longer live in a `static`
+// (which requires `Sync`). These literal arenas only ever construct the
+// `Inline` variant; promoting them to `const` keeps the same `'static`
+// slice semantics without the `Sync` obligation.
+const ROOT_TERMS: &[Term<'static, CARRIER>] = &[Term::Literal {
     value: prism::operation::TermValue::from_u64_be(7, 1),
     level: WittLevel::W8,
 }];
@@ -43,11 +50,11 @@ fn pipeline_run_then_replay_roundtrip() {
 
     // When: `prism::pipeline::run` consumes the unit with the FNV-1a
     // substrate, producing a sealed `Grounded<T>`.
-    let grounded = run::<ConstrainedTypeInput, _, Fnv16>(unit).expect("pipeline admits");
+    let grounded = run::<ConstrainedTypeInput, _, Fnv16, CARRIER>(unit).expect("pipeline admits");
 
     // And: the grounded value's derivation is replayed into a `Trace`
     // at the foundation's default `HostBounds` capacity
-    // (`<DefaultHostBounds as HostBounds>::TRACE_MAX_EVENTS == 256`),
+    // (`<common::TestHostBounds as HostBounds>::TRACE_MAX_EVENTS == 256`),
     // and the trace alone is fed through `prism::replay::certify_from_trace`.
     let trace: prism::replay::Trace = grounded.derivation().replay();
     let recertified = certify_from_trace(&trace).expect("trace is well-formed");

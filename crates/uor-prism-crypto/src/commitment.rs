@@ -6,9 +6,7 @@
 use core::marker::PhantomData;
 
 use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
-use uor_foundation::pipeline::{
-    AxisExtension, ConstrainedTypeShape, ConstraintRef, IntoBindingValue,
-};
+use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue};
 use uor_foundation_sdk::axis;
 
 use crate::hash::{HashAxis, Sha256Hasher};

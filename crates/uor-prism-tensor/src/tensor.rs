@@ -49,9 +49,7 @@
 #![allow(missing_docs)]
 
 use uor_foundation::enforcement::{GroundedShape, ShapeViolation};
-use uor_foundation::pipeline::{
-    AxisExtension, ConstrainedTypeShape, ConstraintRef, IntoBindingValue,
-};
+use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue};
 use uor_foundation_sdk::axis;
 
 axis! {
@@ -63,10 +61,11 @@ axis! {
     /// commitment.
     pub trait TensorAxis: AxisExtension {
         const AXIS_ADDRESS: &'static str = "https://uor.foundation/axis/TensorAxis";
-        /// Per-impl axis output ceiling. The application's
-        /// `HostBounds::AXIS_OUTPUT_BYTES_MAX` (ADR-037) is checked
-        /// against this value at dispatch; the axis impl carries no
-        /// substrate-arbitrary cap of its own.
+        /// Per-impl structural output-byte hint
+        /// (`<Impl as TensorAxis>::MAX_OUTPUT_BYTES`). Per ADR-060 the
+        /// foundation derives carrier widths from the application's
+        /// `HostBounds` structural-count primitives; the axis impl
+        /// carries no substrate-arbitrary byte-width cap.
         const MAX_OUTPUT_BYTES: usize = 32;
         /// Multiply two row-major `DIM × DIM` `i8` matrices into a
         /// `DIM × DIM` `i16` product (saturating). Input is `A || B`
@@ -79,16 +78,6 @@ axis! {
     }
 }
 
-/// Per-impl `MAX_OUTPUT_BYTES` default for `TensorAxis`: the framework
-/// uses `<Impl as TensorAxis>::MAX_OUTPUT_BYTES` together with the
-/// application's [`HostBounds::AXIS_OUTPUT_BYTES_MAX`][hb] to validate
-/// that the application's substrate selection is wide enough for every
-/// axis impl it composes. The dispatch layer enforces the relation
-/// `<Impl as TensorAxis>::MAX_OUTPUT_BYTES <= B::AXIS_OUTPUT_BYTES_MAX`
-/// structurally; the axis impl carries no per-substrate ceiling of
-/// its own.
-///
-/// [hb]: uor_foundation::HostBounds::AXIS_OUTPUT_BYTES_MAX
 fn arity_violation(constraint: &'static str) -> ShapeViolation {
     ShapeViolation {
         shape_iri: "https://uor.foundation/axis/TensorAxisShape",
@@ -112,13 +101,14 @@ fn arity_violation(constraint: &'static str) -> ShapeViolation {
 ///
 /// # `HostBounds` discipline
 ///
-/// `DIM` is unconstrained at the axis level per [Wiki ADR-018][09].
-/// The application's [`HostBounds`][uor_foundation::HostBounds]
-/// selection declares the ceiling: a `CpuI8MatmulSquare<DIM>`
-/// instantiation requires the application's `B` to satisfy
-/// `2 * DIM * DIM <= B::AXIS_OUTPUT_BYTES_MAX` per ADR-037. Specific
-/// `DIM` values (4, 8, 16, 32, 64, …) are picked by the application
-/// from its declared bounds, not by this crate.
+/// `DIM` is unconstrained at the axis level. Per [Wiki ADR-060][09]
+/// the foundation removed the `AXIS_OUTPUT_BYTES_MAX` cap: a
+/// `CpuI8MatmulSquare<DIM>` kernel's `2 * DIM * DIM`-byte output flows
+/// through the source-polymorphic `TermValue` carrier, whose widths
+/// derive from the application's [`HostBounds`][uor_foundation::HostBounds]
+/// structural-count primitives via foundation `const fn`s — never a
+/// pinned byte-width literal. Specific `DIM` values (4, 8, 16, 32, 64,
+/// …) are picked by the application; this crate imposes no ceiling.
 ///
 /// [09]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 #[derive(Debug, Clone, Copy)]
@@ -142,9 +132,9 @@ impl<const DIM: usize> TensorAxis for CpuI8MatmulSquare<DIM> {
 
     fn matmul(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
         // Structural well-formedness only — a 0-dimensional matrix is
-        // not a matrix. Capacity ceilings are the application's
-        // `HostBounds::AXIS_OUTPUT_BYTES_MAX` per ADR-037, enforced
-        // structurally at the dispatch layer; no axis-internal cap.
+        // not a matrix. Per ADR-060 there is no byte-width cap; the
+        // output flows through the source-polymorphic `TermValue`
+        // carrier sized from the application's `HostBounds` primitives.
         if DIM == 0 {
             return Err(arity_violation(
                 "https://uor.foundation/axis/TensorAxisShape/dimNonZero",

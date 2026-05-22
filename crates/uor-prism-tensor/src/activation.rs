@@ -4,7 +4,6 @@
 #![allow(missing_docs)]
 
 use uor_foundation::enforcement::ShapeViolation;
-use uor_foundation::pipeline::AxisExtension;
 use uor_foundation_sdk::axis;
 
 axis! {
@@ -16,10 +15,10 @@ axis! {
     /// integer-arithmetic determinism contract per ADR-030.
     pub trait ActivationAxis: AxisExtension {
         const AXIS_ADDRESS: &'static str = "https://uor.foundation/axis/ActivationAxis";
-        /// Per-impl axis output ceiling. The application's
-        /// `HostBounds::AXIS_OUTPUT_BYTES_MAX` (ADR-037) is checked
-        /// against this value at dispatch; the axis impl carries no
-        /// substrate-arbitrary cap of its own.
+        /// Per-impl structural output-byte hint. Per ADR-060 the
+        /// foundation derives carrier widths from the application's
+        /// `HostBounds` structural-count primitives; the axis impl
+        /// carries no substrate-arbitrary byte-width cap.
         const MAX_OUTPUT_BYTES: usize = 16;
         /// Apply ReLU elementwise.
         ///
@@ -71,13 +70,14 @@ fn check_lens(input: &[u8], out: &[u8], n: usize) -> Result<(), ShapeViolation> 
 ///
 /// # `HostBounds` discipline
 ///
-/// `N` is unconstrained at the axis level per [Wiki ADR-018][09]. The
-/// application's [`HostBounds`][uor_foundation::HostBounds] selection
-/// declares the ceiling: a `CpuI8VectorActivation<N>` instantiation
-/// requires the application's `B` to satisfy
-/// `N <= B::AXIS_OUTPUT_BYTES_MAX` per ADR-037. Specific `N` values
-/// (16, 32, 64, 128, 256, …) are picked by the application from its
-/// declared bounds, not by this crate.
+/// `N` is unconstrained at the axis level. Per [Wiki ADR-060][09] the
+/// foundation removed the `AXIS_OUTPUT_BYTES_MAX` cap: a length-`N`
+/// kernel's output flows through the source-polymorphic `TermValue`
+/// carrier, whose widths derive from the application's
+/// [`HostBounds`][uor_foundation::HostBounds] structural-count
+/// primitives via foundation `const fn`s — never a pinned byte-width
+/// literal. Specific `N` values (16, 32, 64, 128, 256, …) are picked
+/// by the application; this crate imposes no ceiling.
 ///
 /// [09]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 #[derive(Debug, Clone, Copy)]
@@ -95,9 +95,9 @@ impl<const N: usize> ActivationAxis for CpuI8VectorActivation<N> {
 
     fn relu(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
         // Structural well-formedness only — a zero-length vector is
-        // not a vector. Capacity ceilings are the application's
-        // `HostBounds::AXIS_OUTPUT_BYTES_MAX` per ADR-037, enforced
-        // structurally at the dispatch layer.
+        // not a vector. Per ADR-060 there is no byte-width cap; the
+        // output flows through the source-polymorphic `TermValue`
+        // carrier sized from the application's `HostBounds` primitives.
         if N == 0 {
             return Err(arity_violation(
                 "https://uor.foundation/axis/ActivationAxisShape/nNonZero",

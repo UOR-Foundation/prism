@@ -79,7 +79,10 @@
 //! // because `Grounding` and `Sinking` are public traits at this path.
 //! use prism::operation::{Grounding, Sinking};
 //! fn _accepts_grounding<G: Grounding>() {}
-//! fn _accepts_sinking<S: Sinking>() {}
+//! // Per ADR-060 `Sinking` is generic over the inline carrier width;
+//! // staying generic here proves the trait path resolves without
+//! // pinning a width.
+//! fn _accepts_sinking<const INLINE_BYTES: usize, S: Sinking<INLINE_BYTES>>() {}
 //! ```
 
 pub use uor_foundation::pipeline::TermValue;

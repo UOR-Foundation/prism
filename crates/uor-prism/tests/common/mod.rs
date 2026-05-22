@@ -93,3 +93,41 @@ impl Hasher for Fnv24 {
         buf
     }
 }
+
+// ---- TestHostBounds: an application-declared `HostBounds` impl ----
+//
+// Per wiki ADR-060, the foundation no longer ships a `DefaultHostBounds`:
+// "there is no 'default' application, so the foundation supplies no
+// default policy. Every application declares its own `impl HostBounds`."
+// The prism standard library re-exports the `HostBounds` trait but
+// provides no concrete impl (a default would re-introduce exactly the
+// hidden-choice the ADR removes). prism's test suite is the
+// "application" here, so it declares its own bounds. The values match
+// the pre-0.5.0 foundation defaults the byte-width-cap ADR-037 carried,
+// minus the 12 byte-width caps ADR-060 removed (those now derive from
+// these structural-count primitives via the foundation `*_carrier_bytes`
+// const fns).
+use prism::vocabulary::HostBounds;
+
+/// Test-only `HostBounds` carrying the pre-0.5.0 foundation default
+/// capacity values. The 14 retained associated constants per ADR-060;
+/// the 12 byte-width caps are gone (carrier widths derive from these).
+#[derive(Clone, Copy)]
+pub(crate) struct TestHostBounds;
+
+impl HostBounds for TestHostBounds {
+    const FINGERPRINT_MIN_BYTES: usize = 16;
+    const FINGERPRINT_MAX_BYTES: usize = 32;
+    const TRACE_MAX_EVENTS: usize = 256;
+    const WITT_LEVEL_MAX_BITS: u32 = 64;
+    const FOLD_UNROLL_THRESHOLD: usize = 8;
+    const BETTI_DIMENSION_MAX: usize = 8;
+    const NERVE_CONSTRAINTS_MAX: usize = 8;
+    const NERVE_SITES_MAX: usize = 8;
+    const JACOBIAN_SITES_MAX: usize = 8;
+    const RECURSION_TRACE_DEPTH_MAX: usize = 16;
+    const OP_CHAIN_DEPTH_MAX: usize = 8;
+    const AFFINE_COEFFS_MAX: usize = 8;
+    const CONJUNCTION_TERMS_MAX: usize = 8;
+    const UNFOLD_ITERATIONS_MAX: usize = 256;
+}

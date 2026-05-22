@@ -12,17 +12,17 @@
 //!
 //! - **`TensorAxis`** — fixed-shape matmul. Parametric reference:
 //!   [`CpuI8MatmulSquare<DIM>`] for `DIM × DIM` `i8` × `i8` → `i16`
-//!   matrices. `DIM` is unconstrained at the axis level; the
-//!   application's [`HostBounds::AXIS_OUTPUT_BYTES_MAX`][hb] per
-//!   [ADR-037][09-adr-037] enforces the per-application ceiling
-//!   structurally (`<Impl as TensorAxis>::MAX_OUTPUT_BYTES =
-//!   2 * DIM * DIM <= B::AXIS_OUTPUT_BYTES_MAX`).
+//!   matrices. `DIM` is unconstrained at the axis level: per
+//!   [ADR-060][09-adr-060] there is no `AXIS_OUTPUT_BYTES_MAX` cap —
+//!   axis-kernel output flows through the source-polymorphic
+//!   `TermValue` carrier (`Inline`/`Borrowed`/`Stream`), whose inline
+//!   width derives from the application's `HostBounds` structural-count
+//!   primitives via foundation `const fn`s. The axis impl performs only
+//!   a `DIM == 0` structural well-formedness check.
 //! - **`ActivationAxis`** — element-wise nonlinearity. Parametric
 //!   reference: [`CpuI8VectorActivation<N>`] for length-`N` `i8`
-//!   vectors. `N` is unconstrained at the axis level; the
-//!   application's `HostBounds::AXIS_OUTPUT_BYTES_MAX` enforces the
-//!   ceiling structurally (`<Impl as ActivationAxis>::MAX_OUTPUT_BYTES
-//!   = N <= B::AXIS_OUTPUT_BYTES_MAX`).
+//!   vectors. `N` is likewise unconstrained at the axis level per
+//!   ADR-060; the impl performs only an `N == 0` structural check.
 //! - **[`dtype`]** — GGML / GGUF / ONNX tensor element-type alphabet
 //!   per [ADR-057][09-adr-057]: 43 sealed [`dtype::Dtype`] impls
 //!   (continuous floats, ONNX FLOAT8 / complex / packed-4-bit,
@@ -39,8 +39,6 @@
 //!   [`shape::Tensor3Shape`] (rank-3) and [`shape::Tensor4Shape`]
 //!   (rank-4). Common GGUF / ONNX rank coverage; higher ranks compose
 //!   through `partition_product!` per ADR-033/044.
-//!
-//! [hb]: uor_foundation::HostBounds::AXIS_OUTPUT_BYTES_MAX
 //!
 //! ## ConstrainedTypeShape declarations
 //!
@@ -73,6 +71,7 @@
 //! - [Wiki: 09 Architecture Decisions § ADR-057 — Bounded recursive structural typing][09-adr-057]
 //! - [Wiki: 09 Architecture Decisions § ADR-058 — κ-derivation as the framework's compression operator][09-adr-058]
 //! - [Wiki: 09 Architecture Decisions § ADR-059 — Atlas image inside E₈ as the codomain of κ-derivation][09-adr-059]
+//! - [Wiki: 09 Architecture Decisions § ADR-060 — source-polymorphic value carrier (removes the byte-width caps)][09-adr-060]
 //!
 //! [09-adr-030]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 //! [09-adr-031]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
@@ -80,6 +79,7 @@
 //! [09-adr-057]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 //! [09-adr-058]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 //! [09-adr-059]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
+//! [09-adr-060]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 
 #![no_std]
 #![cfg_attr(docsrs, feature(doc_cfg))]

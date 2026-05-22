@@ -160,11 +160,28 @@ implementation. Code in this repository must satisfy:
   substrate surface; the prism façade surfaces it through the
   `prism::convergence` module so application authors building ADR-059
   codomain-typed `TypedCommitment` predicates reach it through `prism`
-  per ADR-031).
+  per ADR-031); **ADR-060** (source-polymorphic value carrier —
+  `TermValue` becomes the const-generic enum
+  `TermValue<'a, INLINE_BYTES> { Inline, Borrowed, Stream(&dyn ChunkSource) }`
+  admitting bounded inline, zero-copy borrowed, and unbounded streamed
+  payloads; the 12 fictional byte-width caps and the foundation-provided
+  `DefaultHostBounds` are **removed**; `HostBounds` shrinks 26 → 14
+  associated consts and per-carrier widths derive from the
+  application's declared structural-count primitives via foundation
+  `const fn`s (`carrier_inline_bytes::<B>()`, the per-ψ-stage
+  `*_carrier_bytes::<B>()`). `Term`, `CompileUnitBuilder`, `Grounded`,
+  `Sinking`, and `run` gain the `INLINE_BYTES` const parameter. Wire
+  format byte-identical — `TRACE_REPLAY_FORMAT_VERSION` stays 10, no
+  shim. **There is no default `HostBounds`: every application — including
+  prism's own test suite — declares its own impl** (the standard library
+  re-exports the `HostBounds` trait but provides no concrete impl, per
+  ADR-060's "no default that hides a choice").
 
 Substitution axes (the only permitted variation points per ADR-007 /
 ADR-030 / ADR-036 / ADR-048): `HostTypes`, `HostBounds`, `AxisTuple`,
-`ResolverTuple`, `TypedCommitment`.
+`ResolverTuple`, `TypedCommitment`. Per ADR-060 the foundation supplies
+no `DefaultHostBounds`; the application declares its `HostBounds` impl
+explicitly (prism re-exports the trait, not a default).
 
 ## 3. Layout
 
@@ -234,14 +251,26 @@ that contribute the built-in axes and built-in types it re-exports.
   `prism`'s pin on `uor-foundation` may lag the latest published
   version; updates to this repo are demand-driven (a needed surface
   change) rather than calendar-driven.
-- **`uor-foundation`**: `^0.4` (effective floor 0.4.15 — required
-  for the complete ADR-057 registry-aware substrate-primitive surface:
+- **`uor-foundation`**: `^0.5` (effective floor 0.5.0 — the ADR-060
+  source-polymorphic value carrier: `TermValue` becomes the
+  const-generic enum `TermValue<'a, INLINE_BYTES>` with
+  `Inline`/`Borrowed`/`Stream(&dyn ChunkSource)` variants; the 12
+  byte-width capacity caps and the foundation-provided
+  `DefaultHostBounds` are removed; `HostBounds` shrinks 26 → 14
+  associated consts; per-carrier widths derive from the application's
+  structural-count primitives via `carrier_inline_bytes::<B>()` and the
+  per-ψ-stage `*_carrier_bytes::<B>()` const fns; `Term`,
+  `CompileUnitBuilder`, `Grounded`, `Sinking`, and `run` gain the
+  `INLINE_BYTES` const parameter. Wire format byte-identical
+  (`TRACE_REPLAY_FORMAT_VERSION` stays 10); MSRV stays 1.83. Earlier
+  floors: 0.4.15 shipped the complete ADR-057 registry-aware
+  substrate-primitive surface:
   `enforcement::expand_constraints_in::<R>`,
   `enforcement::primitive_simplicial_nerve_betti_in::<T, R>`, and
   `pipeline::primitive_cartesian_nerve_betti_in::<S, R>` walk
   `ConstraintRef::Recurse` entries through `R`'s registry plus
   foundation's built-in registry, closing the ADR-057 nerve / Betti
-  reading of recursively-expanded constraint sets. Earlier floors:
+  reading of recursively-expanded constraint sets;
   0.4.14 shipped the foundational ADR-057 surface — the
   `ConstraintRef::Recurse { shape_iri, descent_bound }` variant + the
   `pipeline::shape_iri_registry` module surface (`RegisteredShape`,
@@ -275,8 +304,13 @@ that contribute the built-in axes and built-in types it re-exports.
   `PrimitiveOp::{Le, Lt, Ge, Gt, Concat}` per ADR-026;
   `Output: IntoBindingValue` per ADR-023 value-flow expansion.
   `default-features = false`, `no_std`-clean.
-- **`uor-foundation-sdk`**: `^0.4` (effective floor 0.4.15 —
-  tracks the foundation 0.4.15 release and adds the optional
+- **`uor-foundation-sdk`**: `^0.5` (effective floor 0.5.0 — tracks
+  the foundation 0.5.0 ADR-060 release; the `axis!` / `verb!` /
+  `prism_model!` / `partition_product!` / `register_shape!` macro
+  names and grammar are unchanged, but the `verb!`-emitted
+  `<verb>_term_arena()` accessors and the model/route surface are now
+  const-generic over the ADR-060 `INLINE_BYTES` carrier width.
+  Earlier floors: 0.4.15 added the optional
   `resolver!` macro `shape_registry: MyRegistry` clause that wires an
   application's `ShapeRegistryProvider` marker into the emitted
   `ResolverTuple` impl as the `ShapeRegistry` associated type;

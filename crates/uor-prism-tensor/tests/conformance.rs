@@ -17,7 +17,7 @@ use uor_foundation::pipeline::ConstrainedTypeShape;
 
 /// 4×4 i8 matmul reference used throughout the conformance vectors.
 /// Picked at test scope; the production-grade ceiling is the
-/// application's `HostBounds::AXIS_OUTPUT_BYTES_MAX` per ADR-037.
+/// application's `HostBounds` structural-count primitives per ADR-060.
 type Mat4 = CpuI8MatmulSquare<4>;
 /// 8×8 i8 matmul reference.
 type Mat8 = CpuI8MatmulSquare<8>;
@@ -147,9 +147,9 @@ fn matmul_8x8_identity() {
 #[test]
 fn matmul_16x16_zero() {
     // Exercise the matmul kernel at a larger square dimension; the
-    // axis layer has no DIM ceiling of its own per ADR-037 — the
-    // application's `HostBounds::AXIS_OUTPUT_BYTES_MAX` declares the
-    // per-application bound.
+    // axis layer has no DIM ceiling of its own — per ADR-060 the
+    // application's `HostBounds` primitives (via foundation `const fn`s)
+    // size the carrier, with no byte-width cap.
     let input = [0u8; 2 * 16 * 16];
     let mut out = [0u8; 2 * 16 * 16];
     let n = Mat16::matmul(&input, &mut out).expect("matmul ok");
@@ -161,12 +161,12 @@ fn matmul_16x16_zero() {
 
 #[test]
 fn matmul_dim_is_unbounded_at_axis_layer() {
-    // Per ADR-037 the axis impl carries no substrate-arbitrary
+    // Per ADR-060 the axis impl carries no substrate-arbitrary
     // ceiling on DIM. Instantiate at a dimension larger than the
     // historical `MAX_TENSOR_DIM = 16` cap to witness the absence of
-    // an axis-level bound. The application's `HostBounds` declares
-    // the per-application ceiling structurally; the test allocates
-    // its own buffers at the appropriate size.
+    // an axis-level bound. Carrier widths derive from the application's
+    // `HostBounds` primitives; the test allocates its own buffers at
+    // the appropriate size.
     type Mat32 = CpuI8MatmulSquare<32>;
     const N: usize = 32;
     const MAT_BYTES: usize = N * N;
