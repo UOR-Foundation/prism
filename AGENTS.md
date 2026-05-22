@@ -183,6 +183,26 @@ ADR-030 / ADR-036 / ADR-048): `HostTypes`, `HostBounds`, `AxisTuple`,
 no `DefaultHostBounds`; the application declares its `HostBounds` impl
 explicitly (prism re-exports the trait, not a default).
 
+**Input-size discipline (ADR-060).** The convenience path
+`prism_model!` → `forward()` → `run_route` serializes the model input
+through `IntoBindingValue` into a stack `[u8; INLINE_BYTES]` buffer and
+rejects any input whose `MAX_BYTES` exceeds
+`carrier_inline_bytes::<B>()` — it is the path for inputs that fit the
+inline carrier. Per ADR-060 the byte width of a value carrier is an
+application concern; **large inputs are content-addressed by their
+hash, not materialized**. To ground an input larger than the inline
+carrier (model-weight container formats, multi-GB tensor-data sections,
+large canonical-JSON), stream-hash the full input through the
+application's `Hasher` (`fold_bytes`, chunk-by-chunk, never
+materialized), set the leading-8-byte digest as the input-slot
+`Binding`'s `content_address`, and drive `run` over a
+`CompileUnitBuilder` whose root term is the identity route
+`Term::Variable { name_index: 0 }`. `run` folds the binding's content
+address into the `Grounded` certificate, so the large input's identity
+enters the κ-derivation with no byte-width ceiling. `Binding` is
+re-exported through `prism::vocabulary`; the replay-verified worked
+example is `crates/uor-prism/tests/large_input_grounding.rs`.
+
 ## 3. Layout
 
 Per wiki ADR-031 (`prism` is the standard library), the `prism`

@@ -106,6 +106,19 @@ pub use uor_foundation::{
     CalibrationError, CompileUnit, CompileUnitBuilder,
 };
 
+// `Binding` is the public-fielded input-slot binding an application
+// constructs to content-address a value into a `CompileUnit`'s
+// binding table (`CompileUnitBuilder::bindings`). Its `content_address`
+// is a `u64` the application computes — for a value that fits the
+// ADR-060 inline carrier, by serializing through `IntoBindingValue`;
+// for a **large input** that exceeds `carrier_inline_bytes::<B>()`, by
+// stream-hashing the full input through the application's `Hasher`
+// (`fold_bytes`, chunk-by-chunk, never materialized) and taking the
+// leading-8-byte big-endian digest. The latter is the uncapped
+// large-input grounding path that the convenience `run_route` cap does
+// not expose — see `tests/large_input_grounding.rs`.
+pub use uor_foundation::enforcement::Binding;
+
 // Address, fingerprint, and the substrate hasher contract.
 pub use uor_foundation::{ContentAddress, ContentFingerprint, Hasher};
 
