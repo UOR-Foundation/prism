@@ -55,7 +55,7 @@
 mod common;
 
 use prism::crypto::Sha256Hasher;
-use prism::operation::Term;
+use prism::operation::{Term, TermValue};
 use prism::pipeline::run;
 use prism::replay::{certify_from_trace, Trace};
 use prism::seal::Validated;
@@ -63,7 +63,8 @@ use prism::std_types::ConstrainedTypeInput;
 use prism::vocabulary::{
     Binding, CompileUnitBuilder, Hasher, HostBounds, VerificationDomain, WittLevel,
 };
-use uor_foundation::pipeline::ConstrainedTypeShape;
+use uor_foundation::enforcement::GroundedShape;
+use uor_foundation::pipeline::{ConstrainedTypeShape, ConstraintRef, IntoBindingValue};
 
 const CARRIER: usize = uor_foundation::pipeline::carrier_inline_bytes::<common::TestHostBounds>();
 
@@ -169,4 +170,57 @@ fn distinct_large_inputs_ground_to_distinct_addresses() {
     // And both ground successfully.
     ground_large_input::<Sha256Hasher>(&a);
     ground_large_input::<Sha256Hasher>(&b);
+}
+
+// ---- The canonical 0.5.1 carrier path: as_binding_value -> Borrowed ----
+//
+// An application input shape that borrows an arbitrarily large byte
+// region and returns it as a `TermValue::Borrowed` carrier from
+// `as_binding_value`. This is the mechanism foundation 0.5.1 added to
+// complete the ADR-060 input path: the carrier admits the full input
+// with no inline-width truncation, and `run_route` consumes it directly
+// (no `INLINE_BYTES` cap). The shape is a foundation-vocabulary
+// `ConstrainedTypeShape` with the generic content-addressed IRI per
+// ADR-017.
+struct BorrowedInput<'a> {
+    data: &'a [u8],
+}
+
+impl ConstrainedTypeShape for BorrowedInput<'_> {
+    const IRI: &'static str = "https://uor.foundation/type/ConstrainedType";
+    const SITE_COUNT: usize = 0;
+    const CONSTRAINTS: &'static [ConstraintRef] = &[];
+    const CYCLE_SIZE: u64 = 1;
+}
+impl uor_foundation::pipeline::__sdk_seal::Sealed for BorrowedInput<'_> {}
+impl GroundedShape for BorrowedInput<'_> {}
+impl<'a> IntoBindingValue<'a> for BorrowedInput<'a> {
+    fn as_binding_value<const INLINE_BYTES: usize>(&self) -> TermValue<'a, INLINE_BYTES> {
+        // The full input borrows zero-copy into the carrier — no
+        // materialization, no inline-width ceiling.
+        TermValue::borrowed(self.data)
+    }
+}
+
+#[test]
+fn as_binding_value_borrows_arbitrarily_large_input_without_truncation() {
+    // 1 MiB — far beyond any inline carrier width. The `Borrowed`
+    // carrier holds the full slice; nothing is truncated to
+    // `INLINE_BYTES`.
+    let big: Vec<u8> = (0..1024 * 1024).map(|i| (i % 251) as u8).collect();
+    let input = BorrowedInput { data: &big };
+
+    let carrier = input.as_binding_value::<CARRIER>();
+    assert!(
+        matches!(carrier, TermValue::Borrowed(_)),
+        "a large input must produce the Borrowed carrier, not Inline",
+    );
+    // `bytes()` exposes the full borrowed slice — the whole 1 MiB,
+    // independent of the CARRIER inline width.
+    assert_eq!(
+        carrier.bytes().len(),
+        big.len(),
+        "the Borrowed carrier must expose the full input with no INLINE_BYTES truncation",
+    );
+    assert_eq!(carrier.bytes(), big.as_slice());
 }
