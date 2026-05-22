@@ -63,8 +63,10 @@ axis! {
     /// commitment.
     pub trait TensorAxis: AxisExtension {
         const AXIS_ADDRESS: &'static str = "https://uor.foundation/axis/TensorAxis";
-        /// `2 * MAX_TENSOR_DIM * MAX_TENSOR_DIM` = 512 bytes for
-        /// 16×16. Overridden per impl.
+        /// Per-impl axis output ceiling. The application's
+        /// `HostBounds::AXIS_OUTPUT_BYTES_MAX` (ADR-037) is checked
+        /// against this value at dispatch; the axis impl carries no
+        /// substrate-arbitrary cap of its own.
         const MAX_OUTPUT_BYTES: usize = 32;
         /// Multiply two row-major `DIM × DIM` `i8` matrices into a
         /// `DIM × DIM` `i16` product (saturating). Input is `A || B`
@@ -77,11 +79,16 @@ axis! {
     }
 }
 
-/// Maximum square dimension any [`CpuI8MatmulSquare`] instantiation
-/// supports. Cap at 16: output buffer = `2 * 16 * 16` = 512 bytes,
-/// inputs = 256 bytes each, total kernel byte budget bounded.
-pub const MAX_TENSOR_DIM: usize = 16;
-
+/// Per-impl `MAX_OUTPUT_BYTES` default for `TensorAxis`: the framework
+/// uses `<Impl as TensorAxis>::MAX_OUTPUT_BYTES` together with the
+/// application's [`HostBounds::AXIS_OUTPUT_BYTES_MAX`][hb] to validate
+/// that the application's substrate selection is wide enough for every
+/// axis impl it composes. The dispatch layer enforces the relation
+/// `<Impl as TensorAxis>::MAX_OUTPUT_BYTES <= B::AXIS_OUTPUT_BYTES_MAX`
+/// structurally; the axis impl carries no per-substrate ceiling of
+/// its own.
+///
+/// [hb]: uor_foundation::HostBounds::AXIS_OUTPUT_BYTES_MAX
 fn arity_violation(constraint: &'static str) -> ShapeViolation {
     ShapeViolation {
         shape_iri: "https://uor.foundation/axis/TensorAxisShape",
@@ -102,6 +109,18 @@ fn arity_violation(constraint: &'static str) -> ShapeViolation {
 /// non-integer / variable-shape tensor compute the wiki's pattern is
 /// to compose this axis kernel through verbs over `partition_product!`
 /// (per ADR-033/044) — the axis layer fixes the atom shape.
+///
+/// # `HostBounds` discipline
+///
+/// `DIM` is unconstrained at the axis level per [Wiki ADR-018][09].
+/// The application's [`HostBounds`][uor_foundation::HostBounds]
+/// selection declares the ceiling: a `CpuI8MatmulSquare<DIM>`
+/// instantiation requires the application's `B` to satisfy
+/// `2 * DIM * DIM <= B::AXIS_OUTPUT_BYTES_MAX` per ADR-037. Specific
+/// `DIM` values (4, 8, 16, 32, 64, …) are picked by the application
+/// from its declared bounds, not by this crate.
+///
+/// [09]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 #[derive(Debug, Clone, Copy)]
 pub struct CpuI8MatmulSquare<const DIM: usize>;
 
@@ -122,9 +141,13 @@ impl<const DIM: usize> TensorAxis for CpuI8MatmulSquare<DIM> {
     const MAX_OUTPUT_BYTES: usize = 2 * DIM * DIM;
 
     fn matmul(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        if DIM == 0 || DIM > MAX_TENSOR_DIM {
+        // Structural well-formedness only — a 0-dimensional matrix is
+        // not a matrix. Capacity ceilings are the application's
+        // `HostBounds::AXIS_OUTPUT_BYTES_MAX` per ADR-037, enforced
+        // structurally at the dispatch layer; no axis-internal cap.
+        if DIM == 0 {
             return Err(arity_violation(
-                "https://uor.foundation/axis/TensorAxisShape/dimInRange",
+                "https://uor.foundation/axis/TensorAxisShape/dimNonZero",
             ));
         }
         let mat_bytes = DIM * DIM;
@@ -171,13 +194,6 @@ impl<const DIM: usize> TensorAxis for CpuI8MatmulSquare<DIM> {
 
 // ADR-052 generic-form companion.
 axis_extension_impl_for_tensor_axis!(@generic CpuI8MatmulSquare<DIM>, [const DIM: usize]);
-
-/// 4×4 `i8` matmul — the canonical small-tensor reference.
-pub type CpuI8Tensor4x4Matmul = CpuI8MatmulSquare<4>;
-/// 8×8 `i8` matmul.
-pub type CpuI8Tensor8x8Matmul = CpuI8MatmulSquare<8>;
-/// 16×16 `i8` matmul (the `MAX_TENSOR_DIM` ceiling).
-pub type CpuI8Tensor16x16Matmul = CpuI8MatmulSquare<16>;
 
 // ---- MatrixShape: ConstrainedTypeShape carrier ----
 

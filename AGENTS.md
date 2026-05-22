@@ -503,6 +503,23 @@ crates.io account behind the token has publish rights to each
 Permissions: `contents: write` on the workflow (required for
 `softprops/action-gh-release@v2` to upload the release notes).
 
+### 8.1 SemVer policy
+
+The six `uor-prism*` crates share the workspace version and follow
+[Cargo SemVer](https://doc.rust-lang.org/cargo/reference/semver.html)
+for a `0.x` series: the **minor** component is the breaking-change
+axis. Any release that removes or renames a `pub` item, removes a
+re-export, or otherwise breaks source compatibility for a downstream
+pinned to the prior `0.MINOR` bumps the **minor** (e.g. `0.1.4 →
+0.2.0`); additive-only releases (new re-exports, new axes, new
+shapes, foundation-floor bumps that don't change the prism surface)
+bump the **patch** (e.g. `0.1.3 → 0.1.4`). The breaking change is
+recorded in the release commit body. Precedent: `0.2.0` removed the
+`prism::tensor` convenience aliases (`CpuI8Tensor4x4Matmul` etc.) and
+the `MAX_TENSOR_DIM` / `MAX_ACTIVATION_LEN` caps in favor of the
+ADR-037 `HostBounds` discipline — a `pub`-item removal, hence the
+minor bump.
+
 ## 9. Documentation hosting (`.github/workflows/docs.yml`)
 
 On push to `main`:
@@ -756,7 +773,7 @@ sub-crates per ADR-031 ship parametric shape carriers that downstream
 |---|---|
 | `prism::numerics` | `BigIntShape<BYTES>`, `FixedPointShape<I, F>`, `FieldElementShape<BYTES>`, `Gf2RingShape<BYTES>`, `PolynomialShape<MAX_DEGREE, COEFF_BYTES>` |
 | `prism::crypto` | `Digest<BYTES>`, `PublicKey<BYTES>`, `Signature<BYTES>`, `MerkleProofShape<MAX_DEPTH, LEAF_BYTES>` |
-| `prism::tensor` | `MatrixShape<ROWS, COLS, ELEM_BYTES>`, `VectorShape<N, ELEM_BYTES>` |
+| `prism::tensor` | `MatrixShape<ROWS, COLS, ELEM_BYTES>`, `VectorShape<N, ELEM_BYTES>`, `Tensor3Shape<D0, D1, D2, ELEM_BYTES>`, `Tensor4Shape<D0, D1, D2, D3, ELEM_BYTES>`, plus the 43-member `prism::tensor::dtype` GGML/GGUF/ONNX element-type alphabet (`F32`/`F16`/`BF16`/`F64`, ONNX FLOAT8 / complex / packed-4-bit, signed/unsigned ints, boolean, GGML legacy block-32 + K-series block-256 + IQ-series quantization) registered through `dtype::TensorDtypeRegistry` per ADR-057 |
 | `prism::fhe` | `CiphertextShape<BYTES>` |
 
 Each carrier implements `ConstrainedTypeShape` + `GroundedShape` +

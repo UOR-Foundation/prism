@@ -16,7 +16,10 @@ axis! {
     /// integer-arithmetic determinism contract per ADR-030.
     pub trait ActivationAxis: AxisExtension {
         const AXIS_ADDRESS: &'static str = "https://uor.foundation/axis/ActivationAxis";
-        /// Vector byte-width (overridden per impl).
+        /// Per-impl axis output ceiling. The application's
+        /// `HostBounds::AXIS_OUTPUT_BYTES_MAX` (ADR-037) is checked
+        /// against this value at dispatch; the axis impl carries no
+        /// substrate-arbitrary cap of its own.
         const MAX_OUTPUT_BYTES: usize = 16;
         /// Apply ReLU elementwise.
         ///
@@ -32,10 +35,6 @@ axis! {
         fn sigmoid_q(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation>;
     }
 }
-
-/// Maximum vector length any [`CpuI8VectorActivation`] instantiation
-/// supports.
-pub const MAX_ACTIVATION_LEN: usize = 256;
 
 fn arity_violation(constraint: &'static str) -> ShapeViolation {
     ShapeViolation {
@@ -69,6 +68,18 @@ fn check_lens(input: &[u8], out: &[u8], n: usize) -> Result<(), ShapeViolation> 
 /// `N` is the vector length. The same kernels (ReLU, Q1.7 sigmoid) are
 /// applied to every element independently; per-element determinism
 /// composes to per-vector determinism per ADR-030.
+///
+/// # `HostBounds` discipline
+///
+/// `N` is unconstrained at the axis level per [Wiki ADR-018][09]. The
+/// application's [`HostBounds`][uor_foundation::HostBounds] selection
+/// declares the ceiling: a `CpuI8VectorActivation<N>` instantiation
+/// requires the application's `B` to satisfy
+/// `N <= B::AXIS_OUTPUT_BYTES_MAX` per ADR-037. Specific `N` values
+/// (16, 32, 64, 128, 256, …) are picked by the application from its
+/// declared bounds, not by this crate.
+///
+/// [09]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 #[derive(Debug, Clone, Copy)]
 pub struct CpuI8VectorActivation<const N: usize>;
 
@@ -83,9 +94,13 @@ impl<const N: usize> ActivationAxis for CpuI8VectorActivation<N> {
     const MAX_OUTPUT_BYTES: usize = N;
 
     fn relu(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        if N == 0 || N > MAX_ACTIVATION_LEN {
+        // Structural well-formedness only — a zero-length vector is
+        // not a vector. Capacity ceilings are the application's
+        // `HostBounds::AXIS_OUTPUT_BYTES_MAX` per ADR-037, enforced
+        // structurally at the dispatch layer.
+        if N == 0 {
             return Err(arity_violation(
-                "https://uor.foundation/axis/ActivationAxisShape/nInRange",
+                "https://uor.foundation/axis/ActivationAxisShape/nNonZero",
             ));
         }
         check_lens(input, out, N)?;
@@ -98,9 +113,9 @@ impl<const N: usize> ActivationAxis for CpuI8VectorActivation<N> {
     }
 
     fn sigmoid_q(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        if N == 0 || N > MAX_ACTIVATION_LEN {
+        if N == 0 {
             return Err(arity_violation(
-                "https://uor.foundation/axis/ActivationAxisShape/nInRange",
+                "https://uor.foundation/axis/ActivationAxisShape/nNonZero",
             ));
         }
         check_lens(input, out, N)?;
@@ -128,14 +143,3 @@ impl<const N: usize> ActivationAxis for CpuI8VectorActivation<N> {
 
 // ADR-052 generic-form companion.
 axis_extension_impl_for_activation_axis!(@generic CpuI8VectorActivation<N>, [const N: usize]);
-
-/// 16-element `i8` vector activation (the canonical small-vector reference).
-pub type CpuI8VectorActivation16 = CpuI8VectorActivation<16>;
-/// 32-element `i8` vector activation.
-pub type CpuI8VectorActivation32 = CpuI8VectorActivation<32>;
-/// 64-element `i8` vector activation.
-pub type CpuI8VectorActivation64 = CpuI8VectorActivation<64>;
-/// 128-element `i8` vector activation.
-pub type CpuI8VectorActivation128 = CpuI8VectorActivation<128>;
-/// 256-element `i8` vector activation (the `MAX_ACTIVATION_LEN` ceiling).
-pub type CpuI8VectorActivation256 = CpuI8VectorActivation<256>;

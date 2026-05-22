@@ -11,10 +11,22 @@
 )]
 
 use prism_tensor::{
-    ActivationAxis, CpuI8MatmulSquare, CpuI8Tensor4x4Matmul, CpuI8Tensor8x8Matmul,
-    CpuI8VectorActivation16, CpuI8VectorActivation32, MatrixShape, TensorAxis, VectorShape,
+    ActivationAxis, CpuI8MatmulSquare, CpuI8VectorActivation, MatrixShape, TensorAxis, VectorShape,
 };
 use uor_foundation::pipeline::ConstrainedTypeShape;
+
+/// 4×4 i8 matmul reference used throughout the conformance vectors.
+/// Picked at test scope; the production-grade ceiling is the
+/// application's `HostBounds::AXIS_OUTPUT_BYTES_MAX` per ADR-037.
+type Mat4 = CpuI8MatmulSquare<4>;
+/// 8×8 i8 matmul reference.
+type Mat8 = CpuI8MatmulSquare<8>;
+/// 16×16 i8 matmul reference — exercising a larger square shape.
+type Mat16 = CpuI8MatmulSquare<16>;
+/// 16-element i8 vector activation reference.
+type Vec16 = CpuI8VectorActivation<16>;
+/// 32-element i8 vector activation reference.
+type Vec32 = CpuI8VectorActivation<32>;
 
 // ---- TensorAxis: 4x4 matmul ----
 
@@ -28,7 +40,7 @@ fn matmul_identity_times_a_equals_a() {
     input[..16].copy_from_slice(&identity);
     input[16..].copy_from_slice(&a);
     let mut out = [0u8; 32];
-    CpuI8Tensor4x4Matmul::matmul(&input, &mut out).expect("matmul ok");
+    Mat4::matmul(&input, &mut out).expect("matmul ok");
     // Each output cell is i16 BE. Cell (r,c) of I·A = A[r][c].
     for cell in 0..16 {
         let expected = i16::from(a[cell] as i8);
@@ -48,7 +60,7 @@ fn matmul_zero_times_a_equals_zero() {
     input[..16].copy_from_slice(&zero);
     input[16..].copy_from_slice(&a);
     let mut out = [0u8; 32];
-    CpuI8Tensor4x4Matmul::matmul(&input, &mut out).expect("matmul ok");
+    Mat4::matmul(&input, &mut out).expect("matmul ok");
     for byte in out {
         assert_eq!(byte, 0);
     }
@@ -64,7 +76,7 @@ fn relu_clamps_negatives() {
         input[8 + i] = (i as i8 + 1) as u8; // positives
     }
     let mut out = [0u8; 16];
-    CpuI8VectorActivation16::relu(&input, &mut out).expect("relu ok");
+    Vec16::relu(&input, &mut out).expect("relu ok");
     for i in 0..8 {
         assert_eq!(out[i], 0, "negative input at {i} should clamp");
         assert_eq!(
@@ -85,7 +97,7 @@ fn sigmoid_q_saturates_at_extremes() {
     // mid-range x = 0 → y = 64 (the Q1.7 mid-point per the piecewise impl).
     input[2] = 0;
     let mut out = [0u8; 16];
-    CpuI8VectorActivation16::sigmoid_q(&input, &mut out).expect("sigmoid ok");
+    Vec16::sigmoid_q(&input, &mut out).expect("sigmoid ok");
     assert_eq!(out[0], 0);
     assert_eq!(out[1], 127);
     assert_eq!(out[2], 64);
@@ -97,7 +109,7 @@ fn sigmoid_q_saturates_at_extremes() {
 fn matmul_rejects_wrong_input_length() {
     let input = [0u8; 16]; // half the expected 32
     let mut out = [0u8; 32];
-    let err = CpuI8Tensor4x4Matmul::matmul(&input, &mut out).unwrap_err();
+    let err = Mat4::matmul(&input, &mut out).unwrap_err();
     assert_eq!(
         err.constraint_iri,
         "https://uor.foundation/axis/TensorAxisShape/inputByteLength"
@@ -120,7 +132,7 @@ fn matmul_8x8_identity() {
         }
     }
     let mut out = [0u8; 128]; // 2 * 8 * 8
-    CpuI8Tensor8x8Matmul::matmul(&input, &mut out).expect("matmul ok");
+    Mat8::matmul(&input, &mut out).expect("matmul ok");
     // Identity × B = B (in i16 saturating).
     for r in 0..8 {
         for c in 0..8 {
@@ -134,15 +146,54 @@ fn matmul_8x8_identity() {
 
 #[test]
 fn matmul_16x16_zero() {
-    // Test the MAX_TENSOR_DIM ceiling. Zero × zero = zero.
-    type Mat16 = CpuI8MatmulSquare<16>;
-    let input = [0u8; 512]; // 2 * 16 * 16
-    let mut out = [0u8; 512];
+    // Exercise the matmul kernel at a larger square dimension; the
+    // axis layer has no DIM ceiling of its own per ADR-037 — the
+    // application's `HostBounds::AXIS_OUTPUT_BYTES_MAX` declares the
+    // per-application bound.
+    let input = [0u8; 2 * 16 * 16];
+    let mut out = [0u8; 2 * 16 * 16];
     let n = Mat16::matmul(&input, &mut out).expect("matmul ok");
-    assert_eq!(n, 512);
+    assert_eq!(n, 2 * 16 * 16);
     for b in &out {
         assert_eq!(*b, 0);
     }
+}
+
+#[test]
+fn matmul_dim_is_unbounded_at_axis_layer() {
+    // Per ADR-037 the axis impl carries no substrate-arbitrary
+    // ceiling on DIM. Instantiate at a dimension larger than the
+    // historical `MAX_TENSOR_DIM = 16` cap to witness the absence of
+    // an axis-level bound. The application's `HostBounds` declares
+    // the per-application ceiling structurally; the test allocates
+    // its own buffers at the appropriate size.
+    type Mat32 = CpuI8MatmulSquare<32>;
+    const N: usize = 32;
+    const MAT_BYTES: usize = N * N;
+    let mut input = vec![0u8; 2 * MAT_BYTES];
+    // Set A = identity, B = zeros -> A * B = zeros (cheap correctness
+    // check at this DIM that doesn't require constructing a full
+    // expected matrix).
+    for k in 0..N {
+        input[k * N + k] = 1;
+    }
+    let mut out = vec![0u8; 2 * MAT_BYTES];
+    let n = Mat32::matmul(&input, &mut out).expect("matmul ok at DIM = 32");
+    assert_eq!(n, 2 * MAT_BYTES);
+    for b in &out {
+        assert_eq!(*b, 0);
+    }
+}
+
+#[test]
+fn matmul_zero_dim_is_structural_violation() {
+    // DIM == 0 is rejected as a structural well-formedness violation,
+    // independent of HostBounds. This is the only DIM-validity check
+    // the axis impl performs; the upper ceiling is HostBounds territory.
+    type Mat0 = CpuI8MatmulSquare<0>;
+    let input: [u8; 0] = [];
+    let mut out: [u8; 0] = [];
+    Mat0::matmul(&input, &mut out).expect_err("DIM = 0 must violate structural well-formedness");
 }
 
 #[test]
@@ -153,7 +204,7 @@ fn activation_relu_32_element() {
         input[16 + i] = (i as i8 + 1) as u8; // positives
     }
     let mut out = [0u8; 32];
-    CpuI8VectorActivation32::relu(&input, &mut out).expect("relu ok");
+    Vec32::relu(&input, &mut out).expect("relu ok");
     for i in 0..16 {
         assert_eq!(out[i], 0);
         assert_eq!(out[16 + i], input[16 + i]);

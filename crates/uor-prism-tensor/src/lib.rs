@@ -10,17 +10,37 @@
 //!
 //! ## Scope
 //!
-//! - **`TensorAxis`** — fixed-shape matmul. Parametric:
+//! - **`TensorAxis`** — fixed-shape matmul. Parametric reference:
 //!   [`CpuI8MatmulSquare<DIM>`] for `DIM × DIM` `i8` × `i8` → `i16`
-//!   matrices with `DIM ≤ MAX_TENSOR_DIM` (16). Aliases:
-//!   [`CpuI8Tensor4x4Matmul`], [`CpuI8Tensor8x8Matmul`],
-//!   [`CpuI8Tensor16x16Matmul`].
-//! - **`ActivationAxis`** — element-wise nonlinearity. Parametric:
-//!   [`CpuI8VectorActivation<N>`] for length-`N` `i8` vectors with
-//!   `N ≤ MAX_ACTIVATION_LEN` (256). Aliases:
-//!   [`CpuI8VectorActivation16`], [`CpuI8VectorActivation32`],
-//!   [`CpuI8VectorActivation64`], [`CpuI8VectorActivation128`],
-//!   [`CpuI8VectorActivation256`].
+//!   matrices. `DIM` is unconstrained at the axis level; the
+//!   application's [`HostBounds::AXIS_OUTPUT_BYTES_MAX`][hb] per
+//!   [ADR-037][09-adr-037] enforces the per-application ceiling
+//!   structurally (`<Impl as TensorAxis>::MAX_OUTPUT_BYTES =
+//!   2 * DIM * DIM <= B::AXIS_OUTPUT_BYTES_MAX`).
+//! - **`ActivationAxis`** — element-wise nonlinearity. Parametric
+//!   reference: [`CpuI8VectorActivation<N>`] for length-`N` `i8`
+//!   vectors. `N` is unconstrained at the axis level; the
+//!   application's `HostBounds::AXIS_OUTPUT_BYTES_MAX` enforces the
+//!   ceiling structurally (`<Impl as ActivationAxis>::MAX_OUTPUT_BYTES
+//!   = N <= B::AXIS_OUTPUT_BYTES_MAX`).
+//! - **[`dtype`]** — GGML / GGUF / ONNX tensor element-type alphabet
+//!   per [ADR-057][09-adr-057]: 43 sealed [`dtype::Dtype`] impls
+//!   (continuous floats, ONNX FLOAT8 / complex / packed-4-bit,
+//!   signed / unsigned integers, boolean, GGML legacy block-32
+//!   quantization, GGML K-series block-256 quantization, GGML
+//!   IQ-series importance-aware quantization) exposed through the
+//!   [`dtype::TensorDtypeRegistry`] shape-IRI registry as
+//!   `Term::Recurse` targets for container-format realizations.
+//!   Compression-operator codomain context: per [ADR-058][09-adr-058]
+//!   the κ-derivation is the framework's compression operator; tensor
+//!   element types occupy the R-level of the operator-geometry
+//!   codomain per [ADR-059][09-adr-059].
+//! - **[`shape`]** — higher-rank tensor shape carriers:
+//!   [`shape::Tensor3Shape`] (rank-3) and [`shape::Tensor4Shape`]
+//!   (rank-4). Common GGUF / ONNX rank coverage; higher ranks compose
+//!   through `partition_product!` per ADR-033/044.
+//!
+//! [hb]: uor_foundation::HostBounds::AXIS_OUTPUT_BYTES_MAX
 //!
 //! ## ConstrainedTypeShape declarations
 //!
@@ -28,6 +48,12 @@
 //!
 //! - **[`MatrixShape<ROWS, COLS, ELEM_BYTES>`]** — rank-2 tensor shape.
 //! - **[`VectorShape<N, ELEM_BYTES>`]** — rank-1 tensor shape.
+//! - **[`Tensor3Shape<D0, D1, D2, ELEM_BYTES>`][shape::Tensor3Shape]** — rank-3 tensor shape.
+//! - **[`Tensor4Shape<D0, D1, D2, D3, ELEM_BYTES>`][shape::Tensor4Shape]** — rank-4 tensor shape.
+//! - **[`dtype`]** — 43 fixed-byte-count element-type shapes
+//!   (continuous floats, ONNX FLOAT8 / complex / packed-4-bit,
+//!   signed / unsigned integers, boolean, GGML legacy / K-series /
+//!   IQ-series quantization).
 //!
 //! Higher-rank tensors compose through `partition_product!` per
 //! ADR-033/044; the axis layer fixes the atom shape.
@@ -43,25 +69,30 @@
 //!
 //! - [Wiki: 09 Architecture Decisions § ADR-030 — `axis!` SDK macro][09-adr-030]
 //! - [Wiki: 09 Architecture Decisions § ADR-031 — `prism` is the standard library][09-adr-031]
+//! - [Wiki: 09 Architecture Decisions § ADR-037 — `HostBounds` ceilings on the principal data path][09-adr-037]
+//! - [Wiki: 09 Architecture Decisions § ADR-057 — Bounded recursive structural typing][09-adr-057]
+//! - [Wiki: 09 Architecture Decisions § ADR-058 — κ-derivation as the framework's compression operator][09-adr-058]
+//! - [Wiki: 09 Architecture Decisions § ADR-059 — Atlas image inside E₈ as the codomain of κ-derivation][09-adr-059]
 //!
 //! [09-adr-030]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 //! [09-adr-031]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
+//! [09-adr-037]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
+//! [09-adr-057]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
+//! [09-adr-058]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
+//! [09-adr-059]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 
 #![no_std]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub mod activation;
+pub mod dtype;
+pub mod shape;
 pub mod tensor;
 pub mod verbs;
 
-pub use activation::{
-    ActivationAxis, CpuI8VectorActivation, CpuI8VectorActivation128, CpuI8VectorActivation16,
-    CpuI8VectorActivation256, CpuI8VectorActivation32, CpuI8VectorActivation64, MAX_ACTIVATION_LEN,
-};
-pub use tensor::{
-    CpuI8MatmulSquare, CpuI8Tensor16x16Matmul, CpuI8Tensor4x4Matmul, CpuI8Tensor8x8Matmul,
-    MatrixShape, TensorAxis, VectorShape, MAX_TENSOR_DIM,
-};
+pub use activation::{ActivationAxis, CpuI8VectorActivation};
+pub use shape::{Tensor3Shape, Tensor4Shape};
+pub use tensor::{CpuI8MatmulSquare, MatrixShape, TensorAxis, VectorShape};
 
 /// Wiki ADR-031 standard-library version banner.
 pub const STANDARD_LIBRARY_VERSION: &str = env!("CARGO_PKG_VERSION");

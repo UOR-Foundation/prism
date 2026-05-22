@@ -214,7 +214,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "uor-foundation",
  "uor-foundation-sdk",
@@ -226,7 +226,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-crypto"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "blake3",
  "sha2",
@@ -237,7 +237,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-fhe"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "uor-foundation",
  "uor-foundation-sdk",
@@ -245,7 +245,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-numerics"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "uor-foundation",
  "uor-foundation-sdk",
@@ -253,7 +253,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-tensor"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "uor-foundation",
  "uor-foundation-sdk",
@@ -262,7 +262,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-verify"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "uor-foundation",
  "uor-prism",
@@ -276,4 +276,4 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "wiki-link-check"
-version = "0.1.4"
+version = "0.2.0"

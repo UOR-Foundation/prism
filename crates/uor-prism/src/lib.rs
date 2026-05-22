@@ -24,8 +24,10 @@
 //! in its natural axis (byte-width, Q-format split, hasher, dimension)
 //! so application authors instantiate the impl their model needs
 //! without re-rolling the kernel body; canonical type aliases (e.g.,
-//! `Sha256Hasher`, `BigInt256Numeric`, `CpuI8Tensor4x4Matmul`) name
-//! the most common instantiations.
+//! `Sha256Hasher`, `BigInt256Numeric`) name the most common
+//! instantiations, while parametric impls (e.g.,
+//! `CpuI8MatmulSquare<DIM>`) are instantiated at the application's
+//! chosen dimension.
 //!
 //! - **[`crypto`]** — wiki: hashes, curves, signatures, commitments.
 //!   `HashAxis` impls: `Sha256Hasher`, `Sha512Hasher`,
