@@ -736,11 +736,20 @@ impl<
 // - F₄ via quotient (96 / ± mirror symmetry → 48 sign classes, rank 4):
 //   unary quotient. `F4QuotientShape::SITE_COUNT = N`.
 // - E₆ via filtration (64 degree-5 + 8 degree-6 vertices → 72 roots,
-//   rank 6): unary filtration. `E6FiltrationShape::SITE_COUNT = N`.
+//   rank 6): unary filtration, structure-preserving — the canonical
+//   form retains the operand identity (N bytes) annotated with a one-
+//   byte degree-partition tag identifying which of the two filtration
+//   groups (degree-5 or degree-6) the operand belongs to.
+//   `E6FiltrationShape::SITE_COUNT = N + 1` per wiki ADR-061 §(2).
 // - E₇ via augmentation (96 vertices + 30 S₄ orbits → 126 roots,
-//   rank 7): unary augmentation. `E7AugmentationShape::SITE_COUNT = N`.
+//   rank 7): unary augmentation, canonical-form-internal — the
+//   operand is normalized to its S₄-orbit canonical representative;
+//   no additional bytes prepended. `E7AugmentationShape::SITE_COUNT = N`.
 // - E₈ via direct embedding (φ: Atlas ↪ E₈ injective → 240 roots,
-//   rank 8): unary direct embedding. `E8EmbeddingShape::SITE_COUNT = N`.
+//   rank 8): unary direct embedding, identity on canonical-form
+//   bytes — the composed κ-label is distinguished from the operand's
+//   κ-label by realization-IRI provenance.
+//   `E8EmbeddingShape::SITE_COUNT = N`.
 //
 // Multi-operand compositions of arity > 2 iterate via
 // `ConstraintRef::Recurse` per ADR-057 — a three-operand product
@@ -899,14 +908,14 @@ impl<const COMPONENT_LABEL_BYTES: usize> ConstrainedTypeShape
 /// the degree-partition filtration (64 degree-5 vertices + 8 degree-6
 /// vertices → 72 roots). As a categorical operation, E₆ is a
 /// *filtration* of one Atlas structure by vertex degree — the shape
-/// is therefore unary by structural necessity:
-/// `SITE_COUNT = COMPONENT_LABEL_BYTES`. A single operand κ-label is
-/// canonicalized with respect to the realization's commitment to the
-/// degree-partition before σ-projection.
-///
-/// The composed κ-label respects the filtration's degree-partition
-/// structure. Two operands whose canonical forms admit the same
-/// degree-partition compose to byte-identical composed κ-labels.
+/// is unary, with `SITE_COUNT = COMPONENT_LABEL_BYTES + 1` per wiki
+/// [ADR-061] §(2). The filtration is structure-preserving (not
+/// quotient-like): the canonical form retains the operand's identity
+/// (`COMPONENT_LABEL_BYTES` bytes) annotated with a one-byte degree-
+/// partition tag identifying which of the two filtration groups
+/// (degree-5 or degree-6) the operand belongs to. The composed
+/// κ-label respects the filtration's degree-partition by structural
+/// concatenation of the tag and the operand bytes.
 ///
 /// # See also
 ///
@@ -940,8 +949,9 @@ impl<const COMPONENT_LABEL_BYTES: usize> ConstrainedTypeShape
 /// // Given a unary E₆ filtration over one sha256 κ-label (71 bytes),
 /// type E6 = E6FiltrationShape<71>;
 /// // When SITE_COUNT is queried,
-/// // Then it equals the operand width — E₆'s filtration is unary.
-/// assert_eq!(<E6 as ConstrainedTypeShape>::SITE_COUNT, 71);
+/// // Then it equals the operand width + 1 — the structure-preserving
+/// // filtration prepends a one-byte degree-partition tag.
+/// assert_eq!(<E6 as ConstrainedTypeShape>::SITE_COUNT, 72);
 /// assert_eq!(
 ///     <E6 as ConstrainedTypeShape>::IRI,
 ///     "https://uor.foundation/type/ConstrainedType",
@@ -954,7 +964,7 @@ impl<const COMPONENT_LABEL_BYTES: usize> ConstrainedTypeShape
     for E6FiltrationShape<COMPONENT_LABEL_BYTES>
 {
     const IRI: &'static str = "https://uor.foundation/type/ConstrainedType";
-    const SITE_COUNT: usize = COMPONENT_LABEL_BYTES;
+    const SITE_COUNT: usize = COMPONENT_LABEL_BYTES + 1;
     const CONSTRAINTS: &'static [ConstraintRef] = &[];
     #[allow(clippy::cast_possible_truncation)]
     const CYCLE_SIZE: u64 = 256u64.saturating_pow(Self::SITE_COUNT as u32);
@@ -967,11 +977,13 @@ impl<const COMPONENT_LABEL_BYTES: usize> ConstrainedTypeShape
 /// E₇ is the rank-7 exceptional Lie algebra reached from the Atlas by
 /// the S₄-orbit augmentation (96 vertices + 30 S₄ orbits → 126 roots).
 /// As a categorical operation, E₇ is an *augmentation* of one Atlas
-/// structure with S₄-orbit data — the shape is therefore unary by
-/// structural necessity: `SITE_COUNT = COMPONENT_LABEL_BYTES`. The
-/// augmentation data is part of the realization's canonical-form
-/// derivation, internal to the canonicalize function, not an
-/// additional operand position.
+/// structure with S₄-orbit data — the shape is unary, with
+/// `SITE_COUNT = COMPONENT_LABEL_BYTES` per wiki [ADR-061] §(2). The
+/// S₄ augmentation is canonical-form-internal: the operand is
+/// normalized to its S₄-orbit canonical representative; no additional
+/// bytes are prepended to the canonical form. The augmentation data
+/// is part of the realization's canonicalize verb, internal to the
+/// canonicalize function, not an additional operand position.
 ///
 /// The composed κ-label respects the augmentation's S₄-orbit structure.
 ///
@@ -1035,10 +1047,13 @@ impl<const COMPONENT_LABEL_BYTES: usize> ConstrainedTypeShape
 /// the direct embedding φ: Atlas ↪ E₈ (injective, adjacency-preserving,
 /// 240 roots). As a categorical operation, E₈ is the *direct embedding*
 /// of one Atlas structure into the full E₈ root system — the shape is
-/// therefore unary by structural necessity:
-/// `SITE_COUNT = COMPONENT_LABEL_BYTES`. The embedding is the universal
-/// target — any single operand factors through E₈ without further
-/// algebraic constraint per ADR-059's Atlas-as-initial-object commitment.
+/// unary, with `SITE_COUNT = COMPONENT_LABEL_BYTES` per wiki [ADR-061]
+/// §(2). The universal target — any single operand factors through E₈
+/// without further algebraic constraint per ADR-059's
+/// Atlas-as-initial-object commitment. The embedding is the identity
+/// on canonical-form bytes; the composed κ-label is distinguished from
+/// the operand's κ-label by realization-IRI provenance, not by digest
+/// bytes.
 ///
 /// The composed κ-label addresses the operand's E₈ image directly.
 /// Two operands at the same Atlas-image position modulo E₈ Weyl-orbit

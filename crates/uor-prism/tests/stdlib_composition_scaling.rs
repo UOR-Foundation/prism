@@ -10,7 +10,9 @@
 //! `RevocationShape<…>` impose **no ceiling** on their component-label
 //! byte widths. Their `SITE_COUNT` is a pure parametric function of the
 //! const-generic widths (`2×N` for the binary G₂ product, `N` for the
-//! four unary operations, the sum of the per-component widths for the
+//! operand-preserving unary operations F₄/E₇/E₈, `N + 1` for the
+//! structure-preserving E₆ filtration's one-byte degree-partition tag
+//! per wiki ADR-061 §(2), the sum of the per-component widths for the
 //! route/revocation shapes), and admission through
 //! `uor-foundation`'s constrained-type path is **independent of
 //! `SITE_COUNT`**.
@@ -70,10 +72,16 @@ use prism::std_types::{
 //
 // `SITE_COUNT` is a pure function of the width with no clamp. Each arm
 // is a compile-time assertion: the binary product is exactly `2×N`, the
-// four unary operations are exactly `N`, at every width in the spread.
+// operand-preserving unary operations (F₄, E₇, E₈) are exactly `N`,
+// and the structure-preserving E₆ filtration is exactly `N + 1` (the
+// one-byte degree-partition tag per wiki ADR-061 §(2)), at every width
+// in the spread.
 
-/// Assert `G2ProductShape<N>::SITE_COUNT == 2×N` and every unary
-/// operation's `SITE_COUNT == N`, at compile time, for each width.
+/// Assert `G2ProductShape<N>::SITE_COUNT == 2×N`, the operand-
+/// preserving unary shapes (F₄, E₇, E₈) `SITE_COUNT == N`, and the
+/// structure-preserving E₆ filtration `SITE_COUNT == N + 1` (the one-
+/// byte degree-partition tag per wiki ADR-061 §(2)), at compile time,
+/// for each width.
 macro_rules! assert_arity_exact {
     ($($n:literal),* $(,)?) => {$(
         const _: () = assert!(
@@ -83,7 +91,7 @@ macro_rules! assert_arity_exact {
             <F4QuotientShape<$n> as ConstrainedTypeShape>::SITE_COUNT == $n
         );
         const _: () = assert!(
-            <E6FiltrationShape<$n> as ConstrainedTypeShape>::SITE_COUNT == $n
+            <E6FiltrationShape<$n> as ConstrainedTypeShape>::SITE_COUNT == $n + 1
         );
         const _: () = assert!(
             <E7AugmentationShape<$n> as ConstrainedTypeShape>::SITE_COUNT == $n
@@ -121,13 +129,33 @@ fn site_count_scales_linearly_with_no_clamp() {
         <F4QuotientShape<1_048_576> as ConstrainedTypeShape>::SITE_COUNT,
         <F4QuotientShape<16_777_216> as ConstrainedTypeShape>::SITE_COUNT,
     ];
+    const E6: [usize; 6] = [
+        <E6FiltrationShape<71> as ConstrainedTypeShape>::SITE_COUNT,
+        <E6FiltrationShape<256> as ConstrainedTypeShape>::SITE_COUNT,
+        <E6FiltrationShape<4096> as ConstrainedTypeShape>::SITE_COUNT,
+        <E6FiltrationShape<65536> as ConstrainedTypeShape>::SITE_COUNT,
+        <E6FiltrationShape<1_048_576> as ConstrainedTypeShape>::SITE_COUNT,
+        <E6FiltrationShape<16_777_216> as ConstrainedTypeShape>::SITE_COUNT,
+    ];
 
     for i in 0..W.len() {
-        assert_eq!(F[i], W[i], "unary SITE_COUNT must equal the width exactly");
+        assert_eq!(
+            F[i], W[i],
+            "operand-preserving unary SITE_COUNT (F₄/E₇/E₈) must equal the width exactly"
+        );
         assert_eq!(G[i], 2 * W[i], "product SITE_COUNT must equal 2× the width");
+        assert_eq!(
+            E6[i],
+            W[i] + 1,
+            "structure-preserving E₆ filtration SITE_COUNT must equal width + 1"
+        );
         if i > 0 {
             assert!(F[i] > F[i - 1], "SITE_COUNT must stay strictly monotone");
             assert!(G[i] > G[i - 1], "no hidden plateau / clamp at scale");
+            assert!(
+                E6[i] > E6[i - 1],
+                "E₆ SITE_COUNT must stay strictly monotone"
+            );
         }
     }
 }
@@ -219,7 +247,8 @@ fn revocation_extends_route_by_revoked_width_at_scale() {
 
 #[test]
 fn cycle_size_is_exact_below_the_saturation_threshold() {
-    // Unary shapes: SITE_COUNT = N, so CYCLE_SIZE = 256^N exact for N < 8.
+    // Operand-preserving unary shapes: SITE_COUNT = N, so
+    // CYCLE_SIZE = 256^N exact for N < 8.
     assert_eq!(<F4QuotientShape<0> as ConstrainedTypeShape>::CYCLE_SIZE, 1);
     assert_eq!(
         <F4QuotientShape<1> as ConstrainedTypeShape>::CYCLE_SIZE,
@@ -231,6 +260,22 @@ fn cycle_size_is_exact_below_the_saturation_threshold() {
     );
     assert_eq!(
         <E8EmbeddingShape<7> as ConstrainedTypeShape>::CYCLE_SIZE,
+        72_057_594_037_927_936, // 256^7 = 2^56
+    );
+
+    // Structure-preserving E₆ filtration: SITE_COUNT = N + 1, so
+    // CYCLE_SIZE = 256^(N+1) exact for N < 7 (saturates one width
+    // earlier than the operand-preserving unaries).
+    assert_eq!(
+        <E6FiltrationShape<0> as ConstrainedTypeShape>::CYCLE_SIZE,
+        256
+    ); // 256^1 — the degree-partition tag alone
+    assert_eq!(
+        <E6FiltrationShape<1> as ConstrainedTypeShape>::CYCLE_SIZE,
+        65_536
+    ); // 256^2
+    assert_eq!(
+        <E6FiltrationShape<6> as ConstrainedTypeShape>::CYCLE_SIZE,
         72_057_594_037_927_936, // 256^7 = 2^56
     );
 
@@ -253,6 +298,13 @@ fn cycle_size_saturates_at_and_above_the_threshold() {
     // overflow or panic.
     assert_eq!(
         <F4QuotientShape<8> as ConstrainedTypeShape>::CYCLE_SIZE,
+        u64::MAX
+    );
+    // E₆ saturates at COMPONENT_LABEL_BYTES = 7 (SITE_COUNT = 8) —
+    // one width earlier than the operand-preserving unaries because
+    // of its structure-preserving N + 1 width.
+    assert_eq!(
+        <E6FiltrationShape<7> as ConstrainedTypeShape>::CYCLE_SIZE,
         u64::MAX
     );
     assert_eq!(
@@ -329,11 +381,29 @@ fn distinct_widths_remain_distinct_shapes_at_scale() {
         <F4QuotientShape<16_777_216> as ConstrainedTypeShape>::SITE_COUNT,
         <F4QuotientShape<16_777_215> as ConstrainedTypeShape>::SITE_COUNT,
     );
+    // E₆'s structure-preserving N + 1 formula also gives distinct
+    // widths at adjacent COMPONENT_LABEL_BYTES, even at MiB scale.
+    assert_ne!(
+        <E6FiltrationShape<16_777_216> as ConstrainedTypeShape>::SITE_COUNT,
+        <E6FiltrationShape<16_777_215> as ConstrainedTypeShape>::SITE_COUNT,
+    );
+    // E₆ at width N produces SITE_COUNT = N + 1, structurally
+    // distinct from F₄/E₇/E₈ at the same N (SITE_COUNT = N), so the
+    // four unary shapes at the same component-label width are not all
+    // numerically equal — E₆ is one byte wider.
+    assert_ne!(
+        <E6FiltrationShape<71> as ConstrainedTypeShape>::SITE_COUNT,
+        <F4QuotientShape<71> as ConstrainedTypeShape>::SITE_COUNT,
+    );
     // The shared closure IRI is width-invariant — it identifies the
     // family, not the instance — across the whole range.
     assert_eq!(
         <G2ProductShape<1> as ConstrainedTypeShape>::IRI,
         <G2ProductShape<16_777_216> as ConstrainedTypeShape>::IRI,
+    );
+    assert_eq!(
+        <E6FiltrationShape<1> as ConstrainedTypeShape>::IRI,
+        <E6FiltrationShape<16_777_216> as ConstrainedTypeShape>::IRI,
     );
     assert_eq!(
         <RouteShape<1, 1, 1, 1, 1> as ConstrainedTypeShape>::IRI,

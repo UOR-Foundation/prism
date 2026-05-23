@@ -9,9 +9,12 @@
 //! against `uor-foundation`'s constrained-type admission path:
 //!
 //! - Each shape's `SITE_COUNT` is `const`-evaluable and reflects the
-//!   shape's natural arity per ADR-059's construction (binary product
-//!   for G₂; unary quotient/filtration/augmentation/embedding for F₄,
-//!   E₆, E₇, E₈). TC-01.
+//!   shape's natural arity and canonical-form structure per ADR-059's
+//!   construction (binary product for G₂ → SITE_COUNT = 2N; unary
+//!   operand-preserving for F₄/E₇/E₈ → SITE_COUNT = N; unary
+//!   structure-preserving filtration for E₆ → SITE_COUNT = N + 1, the
+//!   one-byte degree-partition tag prepended to operand bytes per
+//!   wiki ADR-061 §(2)). TC-01.
 //! - All five shapes share the closure-under-foundation class IRI
 //!   per AGENTS.md § 11.3, distinguished by Rust type identity rather
 //!   than by IRI namespace.
@@ -56,37 +59,43 @@ fn g2_product_shape_site_count_is_binary() {
 }
 
 #[test]
-fn unary_shape_site_counts_equal_component_label_bytes() {
-    // Given: F₄/E₆/E₇/E₈'s categorical constructions are unary
-    //        (quotient/filtration/augmentation/embedding of one Atlas
-    //        structure).
+fn unary_shape_site_counts_per_adr_061_section_2() {
+    // Given: F₄/E₇/E₈'s categorical constructions are unary
+    //        (quotient/augmentation/embedding of one Atlas structure)
+    //        with canonical-form width = operand width;
+    //        E₆'s filtration is unary but structure-preserving,
+    //        prepending a one-byte degree-partition tag to the operand
+    //        bytes per wiki ADR-061 §(2).
     // When: each unary shape is specialized over a per-component byte width.
-    // Then: SITE_COUNT equals COMPONENT_LABEL_BYTES — the shapes'
-    //       natural arity is 1.
+    // Then: F₄/E₇/E₈ SITE_COUNT equals COMPONENT_LABEL_BYTES (operand
+    //       width preserved); E₆ SITE_COUNT equals
+    //       COMPONENT_LABEL_BYTES + 1 (degree-partition tag + operand).
     const F4: usize = <F4QuotientShape<71> as ConstrainedTypeShape>::SITE_COUNT;
     const E6: usize = <E6FiltrationShape<71> as ConstrainedTypeShape>::SITE_COUNT;
     const E7: usize = <E7AugmentationShape<71> as ConstrainedTypeShape>::SITE_COUNT;
     const E8: usize = <E8EmbeddingShape<71> as ConstrainedTypeShape>::SITE_COUNT;
 
     assert_eq!(F4, SHA256_LABEL_BYTES);
-    assert_eq!(E6, SHA256_LABEL_BYTES);
+    assert_eq!(E6, SHA256_LABEL_BYTES + 1);
     assert_eq!(E7, SHA256_LABEL_BYTES);
     assert_eq!(E8, SHA256_LABEL_BYTES);
 }
 
 #[test]
 fn unary_shapes_widen_with_sigma_axis() {
-    // Given: keccak256's κ-label is 74 bytes; sha256's is 71.
-    // When: each unary shape is specialized over keccak256-width vs
-    //       sha256-width.
-    // Then: SITE_COUNT scales linearly with the σ-axis label width.
+    // Given: keccak256's κ-label is 74 bytes; sha256's is 71;
+    //        sha3-256's is 73.
+    // When: each unary shape is specialized over a wider σ-axis.
+    // Then: F₄/E₇/E₈ SITE_COUNT scales linearly with operand width
+    //       (preserves operand bytes); E₆ scales as 1 + operand width
+    //       (prepends one-byte degree-partition tag per CA-6).
     assert_eq!(
         <F4QuotientShape<74> as ConstrainedTypeShape>::SITE_COUNT,
         KECCAK256_LABEL_BYTES,
     );
     assert_eq!(
         <E6FiltrationShape<74> as ConstrainedTypeShape>::SITE_COUNT,
-        KECCAK256_LABEL_BYTES,
+        KECCAK256_LABEL_BYTES + 1,
     );
     assert_eq!(
         <E8EmbeddingShape<73> as ConstrainedTypeShape>::SITE_COUNT,
@@ -134,20 +143,26 @@ fn composition_shapes_admit_under_compile_time_admission() {
 
 #[test]
 fn composition_shapes_are_pairwise_distinct_types() {
-    // Given: F₄, E₆, E₇, E₈ at sha256-width all carry SITE_COUNT = 71.
+    // Given: F₄, E₇, E₈ at sha256-width all carry SITE_COUNT = 71
+    //        (operand-width-preserving); E₆ carries SITE_COUNT = 72
+    //        (degree-partition tag + operand) per wiki ADR-061 §(2).
     // When: their numerical SITE_COUNTs are compared.
-    // Then: they agree numerically (all four are unary at the same
-    //       σ-axis width). The Rust type system distinguishes them
-    //       nonetheless — admission of one does not imply admission
-    //       of another, and downstream realizations pattern-match on
-    //       the specific shape, not on the SITE_COUNT.
+    // Then: F₄/E₇/E₈ agree numerically; E₆ is one byte wider than the
+    //       other three. The Rust type system distinguishes all five
+    //       shapes regardless — admission of one does not imply
+    //       admission of another, and downstream realizations
+    //       pattern-match on the specific shape, not on the SITE_COUNT.
     const F4: usize = <F4QuotientShape<71> as ConstrainedTypeShape>::SITE_COUNT;
     const E6: usize = <E6FiltrationShape<71> as ConstrainedTypeShape>::SITE_COUNT;
     const E7: usize = <E7AugmentationShape<71> as ConstrainedTypeShape>::SITE_COUNT;
     const E8: usize = <E8EmbeddingShape<71> as ConstrainedTypeShape>::SITE_COUNT;
-    assert_eq!(F4, E6);
-    assert_eq!(E6, E7);
+    assert_eq!(F4, E7);
     assert_eq!(E7, E8);
+    assert_eq!(
+        E6,
+        F4 + 1,
+        "E₆ is one byte wider than the operand-preserving unaries"
+    );
 
     // Validate each independently — the type system's distinction
     // means admission of one is not admission of another.

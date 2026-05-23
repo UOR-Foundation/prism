@@ -186,9 +186,12 @@ implementation. Code in this repository must satisfy:
   same `'a` lifetime); **ADR-061** (operational composition surface for
   κ-labels — each of ADR-059's five categorical operations on the Atlas
   image inside E₈ **is** a `ConstrainedTypeShape` in prism's standard
-  type library: `G2ProductShape<N>` (binary product, `SITE_COUNT = 2×N`)
-  and the four unary shapes `F4QuotientShape<N>` / `E6FiltrationShape<N>`
-  / `E7AugmentationShape<N>` / `E8EmbeddingShape<N>` (`SITE_COUNT = N`),
+  type library: `G2ProductShape<N>` (binary product, `SITE_COUNT = 2×N`),
+  the operand-preserving unary shapes `F4QuotientShape<N>` /
+  `E7AugmentationShape<N>` / `E8EmbeddingShape<N>` (`SITE_COUNT = N`),
+  and the structure-preserving unary `E6FiltrationShape<N>`
+  (`SITE_COUNT = N + 1` — the one-byte degree-partition tag prepended
+  to operand bytes per wiki ADR-061 §(2)),
   parametric over the component-label byte width. Arity is fixed by the
   operation's algebra, not an application const; arity > 2 iterates via
   `ConstraintRef::Recurse` per ADR-057 (T = 3 / O = 8 bounds per
@@ -872,7 +875,7 @@ composed κ-label is itself a κ-label, recursively composable.
 |---|---|---|
 | `G2ProductShape<const N: usize>` | `2×N` | G₂-via-product — binary product of two operand κ-labels |
 | `F4QuotientShape<const N: usize>` | `N` | F₄-via-quotient — unary, addresses the operand's mirror-symmetry class |
-| `E6FiltrationShape<const N: usize>` | `N` | E₆-via-filtration — unary, respects the degree-partition |
+| `E6FiltrationShape<const N: usize>` | `N + 1` | E₆-via-filtration — unary, structure-preserving: one-byte degree-partition tag prepended to operand bytes per wiki ADR-061 §(2) |
 | `E7AugmentationShape<const N: usize>` | `N` | E₇-via-augmentation — unary, S₄-orbit augmentation internal to canonicalize |
 | `E8EmbeddingShape<const N: usize>` | `N` | E₈-via-direct-embedding — unary universal target (Atlas ↪ E₈) |
 
