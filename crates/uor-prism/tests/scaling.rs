@@ -40,6 +40,11 @@
 //! primitive at those widths, so they remain test-only stand-ins
 //! purely for axis-width coverage.
 //!
+//! This matrix holds `FP_MAX = 32` (the test bounds'
+//! `FINGERPRINT_MAX_BYTES`); the wider `FP_MAX = 64` path — the 64-byte
+//! `Sha512Hasher` flowing through the pipeline per the foundation 0.5.2
+//! tower generalization — is exercised in `tests/wide_hasher_pipeline.rs`.
+//!
 //! Per [TR-05][11-tr-05] (hasher selection mismatch produces verification
 //! failure indistinguishable from data corruption), the spread also
 //! exercises the foundation's normative width-tag invariant on
