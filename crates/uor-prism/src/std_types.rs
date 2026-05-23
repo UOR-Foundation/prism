@@ -25,6 +25,18 @@
 //! - **First-class prism-defined surface.** [`FixedSites<N>`],
 //!   [`Bytes<N>`], and the byte-aligned numeric / character / boolean
 //!   primitives (`U8` … `I256`, `F32`, `F64`, `Bool`, `Char`).
+//! - **Decentralized publication-graph shapes.** [`RouteShape`] and
+//!   [`RevocationShape`] — the typed-distinction surfaces for publishing
+//!   and revoking routes to UOR-addressed content over a `UorTime`
+//!   validity window.
+//! - **Composition shapes (ADR-061).** [`G2ProductShape<N>`][G2ProductShape]
+//!   (binary product, `SITE_COUNT = 2N`), the operand-preserving unary
+//!   [`F4QuotientShape<N>`][F4QuotientShape] /
+//!   [`E7AugmentationShape<N>`][E7AugmentationShape] /
+//!   [`E8EmbeddingShape<N>`][E8EmbeddingShape] (`SITE_COUNT = N`), and the
+//!   structure-preserving [`E6FiltrationShape<N>`][E6FiltrationShape]
+//!   (`SITE_COUNT = N + 1`) — each of ADR-059's five categorical
+//!   operations on the Atlas image inside E₈, as a `ConstrainedTypeShape`.
 //!
 //! ## IRI rule (closure under `uor-foundation`)
 //!
