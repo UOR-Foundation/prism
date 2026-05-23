@@ -124,7 +124,7 @@ fn ground_large_input<H: Hasher>(large_input: &[u8]) {
         .validate()
         .expect("unit well-formed for large input");
     let grounded =
-        run::<ConstrainedTypeInput, _, H, CARRIER>(unit).expect("pipeline admits large input");
+        run::<ConstrainedTypeInput, _, H, CARRIER, 32>(unit).expect("pipeline admits large input");
 
     // The grounded fingerprint width equals the hasher's output width.
     assert_eq!(

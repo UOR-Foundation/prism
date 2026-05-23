@@ -281,13 +281,24 @@ that contribute the built-in axes and built-in types it re-exports.
   `prism`'s pin on `uor-foundation` may lag the latest published
   version; updates to this repo are demand-driven (a needed surface
   change) rather than calendar-driven.
-- **`uor-foundation`**: `^0.5` (effective floor 0.5.1 — completes the
-  ADR-060 input path: `IntoBindingValue` gains a `'a` lifetime and
-  replaces the `MAX_BYTES` const + `into_binding_bytes` writer with
+- **`uor-foundation`**: `^0.5` (effective floor 0.5.2 — generalizes the
+  resolver/pipeline tower over the fingerprint width `FP_MAX`: the
+  `AxisTuple` blanket impl is now
+  `impl<INLINE_BYTES, FP_MAX, H: Hasher<FP_MAX>>`, the eight ψ-stage
+  resolver traits take an unbounded `H`, and `run` / `run_route` /
+  `Grounded` / `PrismModel` / `certify_from_trace` carry `FP_MAX` as a
+  const parameter (`Hasher<const FP_MAX = 32>`). 0.5.1 had pinned the
+  whole tower to `Hasher<32>`, so a 64-byte-fingerprint hasher
+  (`Sha512Hasher: Hasher<64>`) could not flow through the pipeline at
+  all — fixed in 0.5.2 (regression-tested in
+  `crates/uor-prism/tests/wide_hasher_pipeline.rs`). Earlier floor 0.5.1
+  completed the ADR-060 input path: `IntoBindingValue` gains a `'a`
+  lifetime and replaces the `MAX_BYTES` const + `into_binding_bytes`
+  writer with
   `as_binding_value<INLINE_BYTES>(&self) -> TermValue<'a, INLINE_BYTES>`,
   returning the source-polymorphic carrier directly so `run_route`
   admits arbitrarily large inputs with no byte-width cap;
-  `PrismModel` / `Grounded` / `run_route` gain the same `'a`. Earlier
+  `PrismModel` / `Grounded` / `run_route` gain the `'a`. Earlier
   floor 0.5.0 introduced the ADR-060 source-polymorphic value carrier:
   `TermValue` becomes the const-generic enum
   `TermValue<'a, INLINE_BYTES>` with
@@ -341,14 +352,13 @@ that contribute the built-in axes and built-in types it re-exports.
   `PrimitiveOp::{Le, Lt, Ge, Gt, Concat}` per ADR-026;
   `Output: IntoBindingValue` per ADR-023 value-flow expansion.
   `default-features = false`, `no_std`-clean.
-- **`uor-foundation-sdk`**: `^0.5` (effective floor 0.5.1 — tracks
-  the foundation 0.5.1 release completing the ADR-060 input path; the
+- **`uor-foundation-sdk`**: `^0.5` (effective floor 0.5.2 — tracks
+  the foundation 0.5.2 `FP_MAX` tower generalization; the
   `axis!` / `verb!` / `prism_model!` / `partition_product!` /
   `register_shape!` macro names and grammar are unchanged, but the
-  `verb!`-emitted `<verb>_term_arena()` accessors and the model/route
-  surface are const-generic over the ADR-060 `INLINE_BYTES` carrier
-  width and the `prism_model!`-emitted impls now carry the
-  `IntoBindingValue<'a>` lifetime. Earlier floors: 0.4.15 added the optional
+  `prism_model!`-emitted impls now carry the `FP_MAX` const parameter
+  alongside `INLINE_BYTES` and the `IntoBindingValue<'a>` lifetime
+  (0.5.1). Earlier floors: 0.4.15 added the optional
   `resolver!` macro `shape_registry: MyRegistry` clause that wires an
   application's `ShapeRegistryProvider` marker into the emitted
   `ResolverTuple` impl as the `ShapeRegistry` associated type;

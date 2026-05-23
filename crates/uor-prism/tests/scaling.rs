@@ -106,7 +106,7 @@ fn assert_roundtrip<H: Hasher>(witt_ceiling: WittLevel) {
         .target_domains(DOMAINS)
         .result_type::<ConstrainedTypeInput>();
     let unit: Validated<_> = builder.validate().expect("unit well-formed");
-    let grounded = run::<ConstrainedTypeInput, _, H, CARRIER>(unit).expect("pipeline admits");
+    let grounded = run::<ConstrainedTypeInput, _, H, CARRIER, 32>(unit).expect("pipeline admits");
 
     // (2) Hasher contract: width recorded on the fingerprint matches the
     // hasher's declared `OUTPUT_BYTES`.
@@ -230,9 +230,10 @@ fn fingerprints_at_different_widths_are_distinguishable() {
             .expect("unit well-formed")
     }
 
-    let g16 = run::<ConstrainedTypeInput, _, Fnv16, CARRIER>(fresh_unit()).expect("admits");
-    let g24 = run::<ConstrainedTypeInput, _, Fnv24, CARRIER>(fresh_unit()).expect("admits");
-    let g32 = run::<ConstrainedTypeInput, _, Sha256Hasher, CARRIER>(fresh_unit()).expect("admits");
+    let g16 = run::<ConstrainedTypeInput, _, Fnv16, CARRIER, 32>(fresh_unit()).expect("admits");
+    let g24 = run::<ConstrainedTypeInput, _, Fnv24, CARRIER, 32>(fresh_unit()).expect("admits");
+    let g32 =
+        run::<ConstrainedTypeInput, _, Sha256Hasher, CARRIER, 32>(fresh_unit()).expect("admits");
 
     let f16 = g16.content_fingerprint();
     let f24 = g24.content_fingerprint();

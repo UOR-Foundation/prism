@@ -50,7 +50,8 @@ fn pipeline_run_then_replay_roundtrip() {
 
     // When: `prism::pipeline::run` consumes the unit with the FNV-1a
     // substrate, producing a sealed `Grounded<T>`.
-    let grounded = run::<ConstrainedTypeInput, _, Fnv16, CARRIER>(unit).expect("pipeline admits");
+    let grounded =
+        run::<ConstrainedTypeInput, _, Fnv16, CARRIER, 32>(unit).expect("pipeline admits");
 
     // And: the grounded value's derivation is replayed into a `Trace`
     // at the foundation's default `HostBounds` capacity

@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 rust-version = "1.83"
 license = "MIT"
@@ -24,14 +24,16 @@ readme = "README.md"
 # Per wiki ADR-031, the `prism` standard library and its Layer-3
 # sub-crates close under the foundation substrate (`uor-foundation`) and
 # its SDK macro lane (`uor-foundation-sdk` per ADR-022 / ADR-030 /
-# ADR-036). Both are floored at v0.5 (effective floor 0.5.0 — the
-# ADR-060 source-polymorphic value carrier: `TermValue` becomes the
-# `Inline`/`Borrowed`/`Stream` carrier enum over a `ChunkSource`, the
-# fictional 4096 byte-width caps and the foundation-provided
-# `DefaultHostBounds` are removed, and per-stage carrier widths derive
-# from app-declared structural-count primitives via the foundation
-# `*_carrier_bytes::<B>()` const fns. Wire format byte-identical
-# (`TRACE_REPLAY_FORMAT_VERSION` stays 10); MSRV stays 1.83).
+# ADR-036). Both are floored at v0.5 (effective floor 0.5.2 — the
+# resolver/pipeline tower is generalized over the fingerprint width
+# `FP_MAX` so a 64-byte hasher (`Sha512Hasher: Hasher<64>`) flows
+# through the pipeline; 0.5.1 had pinned it to `Hasher<32>`. Builds on
+# the 0.5.0/0.5.1 ADR-060 source-polymorphic value carrier: `TermValue`
+# is the `Inline`/`Borrowed`/`Stream` enum over a `ChunkSource`, the
+# fictional 4096 byte-width caps and `DefaultHostBounds` are removed,
+# and `IntoBindingValue::as_binding_value` returns the carrier directly.
+# Wire format byte-identical (`TRACE_REPLAY_FORMAT_VERSION` stays 10);
+# MSRV stays 1.83).
 uor-foundation = { version = "0.5", default-features = false }
 uor-foundation-sdk = { version = "0.5", default-features = false }
 
@@ -39,10 +41,10 @@ uor-foundation-sdk = { version = "0.5", default-features = false }
 # consumption pattern (numerics → foundation; crypto → foundation +
 # numerics; tensor → foundation + numerics + optionally crypto; fhe →
 # foundation). The `prism` façade depends on all four.
-uor-prism-numerics = { version = "0.3.1", path = "crates/uor-prism-numerics", default-features = false }
-uor-prism-crypto = { version = "0.3.1", path = "crates/uor-prism-crypto", default-features = false }
-uor-prism-tensor = { version = "0.3.1", path = "crates/uor-prism-tensor", default-features = false }
-uor-prism-fhe = { version = "0.3.1", path = "crates/uor-prism-fhe", default-features = false }
+uor-prism-numerics = { version = "0.3.2", path = "crates/uor-prism-numerics", default-features = false }
+uor-prism-crypto = { version = "0.3.2", path = "crates/uor-prism-crypto", default-features = false }
+uor-prism-tensor = { version = "0.3.2", path = "crates/uor-prism-tensor", default-features = false }
+uor-prism-fhe = { version = "0.3.2", path = "crates/uor-prism-fhe", default-features = false }
 
 # Cryptographic substrate dependencies for `prism-crypto`'s canonical
 # `HashAxis` impls (ADR-031). These are widely-vetted, no_std-clean

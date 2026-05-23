@@ -57,10 +57,10 @@ const CARRIER: usize = uor_foundation::pipeline::carrier_inline_bytes::<TestHost
 // crate fails to compile and the test binary fails to build.
 
 #[allow(dead_code)]
-fn _accepts_prism_model<'a, H, M>()
+fn _accepts_prism_model<'a, H, M, const FP_MAX: usize>()
 where
-    H: Hasher,
-    M: PrismModel<'a, DefaultHostTypes, TestHostBounds, H, CARRIER>,
+    H: Hasher<FP_MAX>,
+    M: PrismModel<'a, DefaultHostTypes, TestHostBounds, H, CARRIER, FP_MAX>,
 {
     // `PrismModel`'s fourth generic `R` defaults to `NullResolverTuple`
     // per ADR-035/036; the 3-param form below uses that default. Foundation
@@ -70,10 +70,10 @@ where
 }
 
 #[allow(dead_code)]
-fn _associated_type_bounds<'a, H, M>()
+fn _associated_type_bounds<'a, H, M, const FP_MAX: usize>()
 where
-    H: Hasher,
-    M: PrismModel<'a, DefaultHostTypes, TestHostBounds, H, CARRIER>,
+    H: Hasher<FP_MAX>,
+    M: PrismModel<'a, DefaultHostTypes, TestHostBounds, H, CARRIER, FP_MAX>,
     // ADR-060: `IntoBindingValue<'a>` now returns a source-polymorphic
     // `TermValue` carrier (Inline/Borrowed/Stream) rather than
     // serializing into a fixed buffer; the `'a` is the borrowed-input
@@ -85,14 +85,14 @@ where
 }
 
 #[allow(dead_code)]
-fn _run_route_signature<'a, H, M, R, C>(
+fn _run_route_signature<'a, H, M, R, C, const FP_MAX: usize>(
     input: M::Input,
     resolvers: &R,
     commitment: &C,
-) -> Result<Grounded<'a, M::Output, CARRIER>, PipelineFailure>
+) -> Result<Grounded<'a, M::Output, CARRIER, FP_MAX>, PipelineFailure>
 where
-    H: Hasher + 'a,
-    M: PrismModel<'a, DefaultHostTypes, TestHostBounds, H, CARRIER, R, C>,
+    H: Hasher<FP_MAX> + 'a,
+    M: PrismModel<'a, DefaultHostTypes, TestHostBounds, H, CARRIER, FP_MAX, R, C>,
     // ADR-035/036: `R: ResolverTuple` is the substrate parameter for
     // the eight categorical-machinery resolvers (Nerve, ChainComplex,
     // HomologyGroup, CochainComplex, CohomologyGroup, Postnikov,
@@ -120,7 +120,7 @@ where
     // `PrismModel::forward` expands to exactly this call with R / C
     // defaulting to `NullResolverTuple` / `EmptyCommitment` when the
     // model declares neither resolver use nor a typed commitment.
-    prism::pipeline::run_route::<DefaultHostTypes, TestHostBounds, H, M, R, C, CARRIER>(
+    prism::pipeline::run_route::<DefaultHostTypes, TestHostBounds, H, M, R, C, CARRIER, FP_MAX>(
         input, resolvers, commitment,
     )
 }
