@@ -183,7 +183,25 @@ implementation. Code in this repository must satisfy:
   `run_route` consumes it with no byte-width cap. prism's stdlib shapes
   are zero-sized markers, so each `as_binding_value` returns
   `TermValue::empty()`; `PrismModel` / `Grounded` / `run_route` gain the
-  same `'a` lifetime.
+  same `'a` lifetime); **ADR-061** (operational composition surface for
+  κ-labels — each of ADR-059's five categorical operations on the Atlas
+  image inside E₈ **is** a `ConstrainedTypeShape` in prism's standard
+  type library: `G2ProductShape<N>` (binary product, `SITE_COUNT = 2×N`)
+  and the four unary shapes `F4QuotientShape<N>` / `E6FiltrationShape<N>`
+  / `E7AugmentationShape<N>` / `E8EmbeddingShape<N>` (`SITE_COUNT = N`),
+  parametric over the component-label byte width. Arity is fixed by the
+  operation's algebra, not an application const; arity > 2 iterates via
+  `ConstraintRef::Recurse` per ADR-057 (T = 3 / O = 8 bounds per
+  ADR-025). Compositions are content-addressing realizations — the
+  composed κ-label is itself a κ-label, recursively composable, closed
+  under the Atlas; no new substrate primitive. Prism-runtime-level: no
+  foundation/SDK changes — the shapes satisfy the standard-type-library
+  inclusion criteria per ADR-031, the canonicalize verb is
+  realization-architect work. The same change adds the decentralized
+  publication-graph shapes `RouteShape<5 widths>` / `RevocationShape<6
+  widths>` (route-declaration use case per ADR-061's consequences),
+  empty-`CONSTRAINTS` typed-distinction markers whose `SITE_COUNT` is the
+  sum of their per-component κ-label/endpoint/time-pair byte widths).
 
 Substitution axes (the only permitted variation points per ADR-007 /
 ADR-030 / ADR-036 / ADR-048): `HostTypes`, `HostBounds`, `AxisTuple`,
@@ -842,6 +860,31 @@ to the byte width of the carrier when used at `WittLevel::W8`.
 |---|---|---|
 | `Bool` | `1` | Value-in-{0, 1} contract enforced host-side; the IRI distinguishes from `U8` |
 | `Char` | `4` | UTF-32 codepoint width; Unicode validity is host-side |
+
+**Composition shapes (ADR-061)** — the five categorical operations on
+the Atlas image inside E₈ per ADR-059, each parametric over the
+component-label byte width `N` (e.g., 71 for sha256/blake3, 73 for
+sha3-256, 74 for keccak256). Arity is fixed by the operation's algebra;
+arity > 2 iterates via `ConstraintRef::Recurse` per ADR-057. The
+composed κ-label is itself a κ-label, recursively composable.
+
+| Type | `SITE_COUNT` | Notes |
+|---|---|---|
+| `G2ProductShape<const N: usize>` | `2×N` | G₂-via-product — binary product of two operand κ-labels |
+| `F4QuotientShape<const N: usize>` | `N` | F₄-via-quotient — unary, addresses the operand's mirror-symmetry class |
+| `E6FiltrationShape<const N: usize>` | `N` | E₆-via-filtration — unary, respects the degree-partition |
+| `E7AugmentationShape<const N: usize>` | `N` | E₇-via-augmentation — unary, S₄-orbit augmentation internal to canonicalize |
+| `E8EmbeddingShape<const N: usize>` | `N` | E₈-via-direct-embedding — unary universal target (Atlas ↪ E₈) |
+
+**Decentralized publication-graph shapes** — typed-distinction markers
+for publishing and revoking routes to UOR-addressed content over a
+`UorTime` validity window (route-declaration use case per ADR-061).
+`SITE_COUNT` is the sum of the per-component widths.
+
+| Type | `SITE_COUNT` | Notes |
+|---|---|---|
+| `RouteShape<TARGET, ENDPOINT, TIME_PAIR, SIG, COMMIT>` | sum of the 5 widths | Route declaration: target κ-label → endpoint over a time window, signature- and commitment-witnessed |
+| `RevocationShape<TARGET, ENDPOINT, TIME_PAIR, SIG, COMMIT, REVOKED>` | sum of the 6 widths | Revocation: `RouteShape`'s surface plus the revoked route's κ-label width |
 
 Subsequent additions follow the specialized track of § 11.4.
 

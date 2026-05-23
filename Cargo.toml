@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.3.2"
+version = "0.3.3"
 edition = "2021"
 rust-version = "1.83"
 license = "MIT"
@@ -41,10 +41,10 @@ uor-foundation-sdk = { version = "0.5", default-features = false }
 # consumption pattern (numerics → foundation; crypto → foundation +
 # numerics; tensor → foundation + numerics + optionally crypto; fhe →
 # foundation). The `prism` façade depends on all four.
-uor-prism-numerics = { version = "0.3.2", path = "crates/uor-prism-numerics", default-features = false }
-uor-prism-crypto = { version = "0.3.2", path = "crates/uor-prism-crypto", default-features = false }
-uor-prism-tensor = { version = "0.3.2", path = "crates/uor-prism-tensor", default-features = false }
-uor-prism-fhe = { version = "0.3.2", path = "crates/uor-prism-fhe", default-features = false }
+uor-prism-numerics = { version = "0.3.3", path = "crates/uor-prism-numerics", default-features = false }
+uor-prism-crypto = { version = "0.3.3", path = "crates/uor-prism-crypto", default-features = false }
+uor-prism-tensor = { version = "0.3.3", path = "crates/uor-prism-tensor", default-features = false }
+uor-prism-fhe = { version = "0.3.3", path = "crates/uor-prism-fhe", default-features = false }
 
 # Cryptographic substrate dependencies for `prism-crypto`'s canonical
 # `HashAxis` impls (ADR-031). These are widely-vetted, no_std-clean
