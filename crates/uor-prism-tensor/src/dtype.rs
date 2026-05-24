@@ -23,13 +23,21 @@
 //! as Layer-2 sibling format families) consume this alphabet through the
 //! `TensorDtypeRegistry` per ADR-057's `Term::Recurse` lowering rule. A
 //! container's `address_inference` verb body references a dtype shape
-//! through
+//! through a `Recurse` constraint whose `descent_bound` is the
+//! application-declared recursion-descent cap per ADR-057 (here `8`, the
+//! O-level algebra dimension per ADR-025):
 //!
-//! ```ignore
-//! ConstraintRef::Recurse {
+//! ```
+//! use uor_foundation::pipeline::ConstraintRef;
+//!
+//! let dtype_ref = ConstraintRef::Recurse {
 //!     shape_iri: "https://uor.foundation/type/ConstrainedType",
-//!     descent_bound: MAX_TENSOR_DEPTH,
-//! }
+//!     descent_bound: 8,
+//! };
+//! assert!(matches!(
+//!     dtype_ref,
+//!     ConstraintRef::Recurse { descent_bound: 8, .. }
+//! ));
 //! ```
 //!
 //! and the runtime ψ_1 NerveResolver expands the reference through the
