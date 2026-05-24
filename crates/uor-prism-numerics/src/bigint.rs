@@ -4,9 +4,10 @@
 //! `BigIntAxis` as the canonical Layer-3 vocabulary for fixed-width
 //! integer arithmetic. The reference impl [`BigIntModularNumeric`] is
 //! generic over operand byte-width per ADR-031's `BigInt<MaxBits>`
-//! shape commitment — every instantiation up to [`MAX_BIG_INT_BYTES`]
-//! (512 bits) is a distinct sealed `AxisExtension` that the
-//! application's `AxisTuple` can select.
+//! shape commitment — every `BYTES ≥ 1` instantiation is a distinct
+//! sealed `AxisExtension` that the application's `AxisTuple` can select.
+//! The kernels carry no fixed-width scratch, so the operand width scales
+//! arbitrarily with no ceiling (§ 11.10).
 //!
 //! [`BigIntShape`] is the matching `ConstrainedTypeShape` so
 //! application authors can declare `BigInt<N>`-typed inputs and outputs
@@ -28,7 +29,7 @@ axis! {
     /// Kernels take input `a || b` (big-endian-encoded equal-width
     /// operands) and emit modular arithmetic results. The reference
     /// impl `BigIntModularNumeric<BYTES>` is generic in `BYTES` for
-    /// the full range `[1, MAX_BIG_INT_BYTES]`.
+    /// any `BYTES ≥ 1`.
     pub trait BigIntAxis: AxisExtension {
         /// ADR-017 content address.
         const AXIS_ADDRESS: &'static str = "https://uor.foundation/axis/BigIntAxis";
@@ -55,23 +56,20 @@ axis! {
     }
 }
 
-/// Maximum operand byte-width any `BigIntModularNumeric<BYTES>`
-/// instantiation supports. Driven by the on-stack accumulator size
-/// used by the multiplication kernel (a `2*MAX_BIG_INT_BYTES` `u32`
-/// array — 1 KiB at 64 bytes / 512 bits).
-pub const MAX_BIG_INT_BYTES: usize = 64;
-
-const ACC_CAP: usize = 2 * MAX_BIG_INT_BYTES;
-
+/// `BigIntModularNumeric<BYTES>` admits **any** operand byte-width
+/// `BYTES ≥ 1`: add/sub stream carries directly into `out`, and `mul`
+/// computes the modular product column-by-column with a single running
+/// `u64` carry (`O(1)` scratch), so there is no fixed-width accumulator
+/// and therefore no upper ceiling on the width (§ 11.10). The only floor
+/// is non-emptiness: a fixed-width integer needs at least one byte.
 fn width_violation() -> ShapeViolation {
     ShapeViolation {
         shape_iri: "https://uor.foundation/axis/BigIntAxis",
-        constraint_iri: "https://uor.foundation/axis/BigIntAxis/widthInRange",
+        constraint_iri: "https://uor.foundation/axis/BigIntAxis/widthPositive",
         property_iri: "https://uor.foundation/axis/operandByteWidth",
-        expected_range: "https://uor.foundation/axis/BigIntAxis/MaxBigIntBytes",
+        expected_range: "https://uor.foundation/axis/BigIntAxis/PositiveByteWidth",
         min_count: 1,
-        #[allow(clippy::cast_possible_truncation)]
-        max_count: MAX_BIG_INT_BYTES as u32,
+        max_count: u32::MAX,
         kind: uor_foundation::ViolationKind::ValueCheck,
     }
 }
@@ -79,8 +77,8 @@ fn width_violation() -> ShapeViolation {
 /// Parametric `N`-byte modular-arithmetic impl of [`BigIntAxis`].
 ///
 /// `BYTES` is the operand width in bytes (`8 * BYTES` bits). Arithmetic
-/// is mod `2^(8 * BYTES)` (wrapping). The supported range is
-/// `[1, MAX_BIG_INT_BYTES]` (512 bits at the upper bound).
+/// is mod `2^(8 * BYTES)` (wrapping). Any `BYTES ≥ 1` is supported — the
+/// kernels carry no fixed-width scratch, so the width has no ceiling.
 #[derive(Debug, Clone, Copy)]
 pub struct BigIntModularNumeric<const BYTES: usize>;
 
@@ -95,7 +93,7 @@ impl<const BYTES: usize> BigIntAxis for BigIntModularNumeric<BYTES> {
     const MAX_OUTPUT_BYTES: usize = BYTES;
 
     fn add(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        if BYTES == 0 || BYTES > MAX_BIG_INT_BYTES {
+        if BYTES == 0 {
             return Err(width_violation());
         }
         let (a, b) = split_pair(input, BYTES)?;
@@ -113,7 +111,7 @@ impl<const BYTES: usize> BigIntAxis for BigIntModularNumeric<BYTES> {
     }
 
     fn sub(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        if BYTES == 0 || BYTES > MAX_BIG_INT_BYTES {
+        if BYTES == 0 {
             return Err(width_violation());
         }
         let (a, b) = split_pair(input, BYTES)?;
@@ -139,35 +137,33 @@ impl<const BYTES: usize> BigIntAxis for BigIntModularNumeric<BYTES> {
     }
 
     fn mul(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        if BYTES == 0 || BYTES > MAX_BIG_INT_BYTES {
+        if BYTES == 0 {
             return Err(width_violation());
         }
         let (a, b) = split_pair(input, BYTES)?;
         check_output(out, BYTES)?;
-        // Schoolbook product into a fixed-size accumulator sized for
-        // MAX_BIG_INT_BYTES; only the first 2*BYTES positions are used.
-        let mut acc = [0u32; ACC_CAP];
-        for i in (0..BYTES).rev() {
-            for j in (0..BYTES).rev() {
-                let prod = u32::from(a[i]) * u32::from(b[j]);
-                let pos = i + j + 1;
-                let sum = acc[pos] + (prod & 0xff);
-                acc[pos] = sum & 0xff;
-                let mut carry = (sum >> 8) + (prod >> 8);
-                let mut k = pos;
-                while carry > 0 && k > 0 {
-                    k -= 1;
-                    let next = acc[k] + carry;
-                    acc[k] = next & 0xff;
-                    carry = next >> 8;
-                }
+        // Modular product mod 2^(8*BYTES): only the low `BYTES` bytes of
+        // the schoolbook product survive, so we compute them column by
+        // column from least-significant upward, carrying forward in a
+        // single running `u64`. This needs `O(1)` scratch — no fixed-width
+        // accumulator — so the operand width has no ceiling. Operands are
+        // big-endian; little-endian position `p` is byte `BYTES - 1 - p`.
+        // For `p < BYTES` every (x, p - x) index pair is in range, so the
+        // inner sum runs `x` from `0..=p`. The column sum is bounded by
+        // `BYTES * 255^2 + carry`, which stays well within `u64` for any
+        // width whose operands fit in memory.
+        let mut carry: u64 = 0;
+        for p in 0..BYTES {
+            let mut col: u64 = carry;
+            for x in 0..=p {
+                let y = p - x;
+                col += u64::from(a[BYTES - 1 - x]) * u64::from(b[BYTES - 1 - y]);
             }
-        }
-        for i in 0..BYTES {
             #[allow(clippy::cast_possible_truncation)]
             {
-                out[i] = (acc[i + BYTES] & 0xff) as u8;
+                out[BYTES - 1 - p] = (col & 0xff) as u8;
             }
+            carry = col >> 8;
         }
         Ok(BYTES)
     }

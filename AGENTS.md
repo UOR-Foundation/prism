@@ -1018,22 +1018,88 @@ clause. Currently shipped (per § 1 above): SHA-256, SHA-512,
 SHA3-256, Keccak-256, BLAKE3 (HashAxis); MerkleRoot<H, LEAF_BYTES>
 (CommitmentAxis); PrimeFieldNumericSecp256k1 (FieldAxis);
 BigIntModularNumeric<BYTES> + FixedPointQNumeric<I, F> +
-Gf2NumericAxisN<BYTES> (legacy modular-arithmetic axes preserved
-alongside the substrate-native PrimitiveOp evaluation path of
-ADR-050); CpuI8MatmulSquare<DIM> + CpuI8VectorActivation<N>
+Gf2NumericAxisN<BYTES> (parametric modular-arithmetic axes; the
+unbounded-width arithmetic of ADR-050's substrate PrimitiveOp lane is
+the sibling evaluation path); CpuI8MatmulSquare<DIM> + CpuI8VectorActivation<N>
 (Tensor/Activation); OneTimePadFhe<BLOCK_BYTES> (Fhe reference).
 
 Per ADR-050 the ring-axis modular-arithmetic operations
 (`Add`, `Sub`, `Mul`, `Div`, `Mod`, `Pow`) and hypercube-axis
-operations (`Xor`, `And`, `Or`, `Bnot`) are now substrate primitives
-evaluable at full Witt-tower widths through `Term::Application`.
-The prism-numerics axes that previously hand-coded these
-(`BigIntAxis`, `FixedPointAxis`, `RingAxis`) are retained for
-back-compatibility and `AxisTuple` parametricity but the wiki's
-canonical evaluation path for wide arithmetic is the substrate
-PrimitiveOp; only `FieldAxis` retains an axis-kernel necessity per
-ADR-031 (prime-field arithmetic mod-p is not a single
-folding-transformation).
+operations (`Xor`, `And`, `Or`, `Bnot`) are also substrate primitives
+evaluable at full Witt-tower widths through `Term::Application`. The
+prism-numerics axes (`BigIntAxis`, `RingAxis`) are the parametric
+`AxisExtension` surface for the same operations; their kernels carry no
+fixed-width scratch (add/sub stream carries into `out`; `BigIntAxis::mul`
+folds the modular product in a single running `u64`; `RingAxis` is
+bytewise), so they scale to **any** operand width with no ceiling,
+matching the substrate path's unbounded width. `FieldAxis` retains an
+axis-kernel necessity per ADR-031 (prime-field arithmetic mod-p is not a
+single folding-transformation); `FixedPointAxis` is a Q-format over a
+fixed signed-64-bit container by definition (`I + F ≤ 64` is the
+container width, not a scaling cap — § 11.10 category 4).
+
+### 11.10 Scaling & limits policy — no arbitrary ceilings
+
+The standard type library carries **no arbitrary scaling ceilings**.
+Every width/size bound in the codebase falls into exactly one of the
+following principled categories; a reviewer encountering a numeric cap
+must be able to place it in one of these, and a regression test pins the
+uncapped categories.
+
+1. **Shape markers scale arbitrarily.** Every `ConstrainedTypeShape`
+   marker — the baseline `FixedSites<N>` / `Bytes<N>`, the ADR-061
+   composition shapes (`G2ProductShape<N>`, `F4QuotientShape<N>`,
+   `E6FiltrationShape<N>`, `E7AugmentationShape<N>`, `E8EmbeddingShape<N>`),
+   the publication-graph `RouteShape` / `RevocationShape`, and the
+   Layer-3 carriers (`BigIntShape<BYTES>`, `Gf2RingShape<BYTES>`,
+   `FieldElementShape<BYTES>`, `PolynomialShape<D, C>`, `MatrixShape<…>`,
+   `MerkleProofShape<D, L>`, `CiphertextShape<BYTES>`, …) — computes its
+   trait constants (`SITE_COUNT`, `CYCLE_SIZE`) as a pure parametric
+   function of its const generics with **no clamp**. Admission through
+   `validate_constrained_type` inspects only `CONSTRAINTS`, never
+   `SITE_COUNT`, so a shape admits at any width. The only width-dependent
+   quantity is `CYCLE_SIZE = 256^SITE_COUNT`, which **saturates** to
+   `u64::MAX` per ADR-032 — graceful, documented saturation, not a cap.
+   This is the V&V commitment of `tests/stdlib_composition_scaling.rs`
+   (composition + publication shapes across eight orders of magnitude)
+   and `tests/stdlib_fixed_sites.rs` / `tests/scaling.rs`.
+
+2. **Canonical wide-arithmetic compute scales arbitrarily.** Per ADR-050
+   the substrate `PrimitiveOp` lane (`Term::Application`) evaluates ring
+   and hypercube arithmetic at **full Witt-tower widths** — no cap.
+
+3. **Kernel-backed Layer-3 axes scale arbitrarily — they carry no fixed
+   width/count caps.** Even though the axis kernels run in `#![no_std]`
+   with `unsafe_code = "forbid"` (no heap) and stable Rust cannot size a
+   stack array as `[T; f(BYTES)]` from a const generic, the kernels are
+   written so their scratch is either `O(1)` or sized by the const
+   generic directly, eliminating every fixed ceiling:
+   - `RingAxis` (`Gf2NumericAxisN<BYTES>`) — bytewise XOR/AND straight
+     into `out`, no scratch; any `BYTES ≥ 1`.
+   - `BigIntAxis` (`BigIntModularNumeric<BYTES>`) — add/sub stream the
+     carry into `out`; `mul` folds the modular product column-by-column
+     with a single running `u64` (`O(1)` scratch, no `2·BYTES`
+     accumulator); any `BYTES ≥ 1`.
+   - `MerkleRoot<H, LEAF_BYTES>` — a streaming Merkle over an `O(log N)`
+     subtree stack of `usize::BITS` slots (covers every leaf count a
+     `usize`-indexed slice can hold), with all buffers sized by
+     `LEAF_BYTES` via `[[u8; LEAF_BYTES]; 2].as_flattened()`; any leaf
+     count and any `LEAF_BYTES ≥ 1`.
+   The only floor is non-emptiness (`BYTES ≥ 1`, `LEAF_BYTES ≥ 1`),
+   reported as a typed `ShapeViolation`, never a panic or truncation.
+
+4. **Primitive output widths are intrinsic.** `MAX_OUTPUT_BYTES` on each
+   `AxisExtension` impl (hash ≤ 64, signature/curve/commitment ≤ 96,
+   field = 32, …) is the fixed output width of that specific
+   cryptographic primitive, not a scaling ceiling on input.
+   `FixedPointAxis` (`FixedPointQNumeric<I, F>`, `I + F ≤ 64`) likewise
+   is a Q-format over a signed-64-bit container by definition.
+
+New shapes MUST land in category (1) or (2). A new shape or kernel that
+bakes in an arbitrary width/count ceiling is rejected at review: a
+kernel that cannot avoid a fixed buffer must size it by `usize::BITS`
+(for `O(log N)` recursion stacks) or by its const generics, or route
+through the category-(2) substrate path — never a hand-picked maximum.
 
 ## 12. Out of scope (explicit)
 

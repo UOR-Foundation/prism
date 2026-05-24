@@ -17,11 +17,11 @@
 //!
 //! The one-line substrate-Term form is what ADR-054 commits to: no
 //! opaque axis-kernel boundary inside the substrate's structural
-//! reach. The hand-written kernel in `fhe.rs` is retained for
-//! existing-API compatibility and inlining-friendly LLVM codegen per
-//! the three-way responsibility split in ADR-024 (structural
-//! correctness foundation-owned via the substrate-Term form;
-//! algorithm-strategy implementation-owned).
+//! reach. The hand-written kernel in `fhe.rs` is the
+//! algorithm-strategy surface — inlining-friendly LLVM codegen per the
+//! three-way responsibility split in ADR-024 (structural correctness
+//! foundation-owned via the substrate-Term form; algorithm-strategy
+//! implementation-owned).
 //!
 //! [09-adr-054]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
 

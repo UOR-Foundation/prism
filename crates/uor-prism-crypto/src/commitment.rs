@@ -39,14 +39,14 @@ fn shape_violation(constraint: &'static str) -> ShapeViolation {
     }
 }
 
-/// Maximum leaf count any [`MerkleRoot`] instantiation supports.
-/// Depth-6 binary tree; deeper Merkle commitments compose at the verb
-/// level (per ADR-024) rather than baking into the axis kernel.
-pub const MAX_MERKLE_LEAVES: usize = 64;
-
-/// Maximum leaf byte-width — the largest `HashAxis::MAX_OUTPUT_BYTES`
-/// among standard-library hash impls (64 bytes for SHA-512).
-const MAX_LEAF_WIDTH: usize = 64;
+/// Depth of the streaming-Merkle subtree stack: `usize::BITS` slots.
+/// A binary tree with `N` leaves has height `⌈log2 N⌉`, and any leaf
+/// sequence a `usize`-indexed slice can address has `N ≤ usize::MAX`, so
+/// `usize::BITS` stack slots accommodate the **maximum possible** tree —
+/// there is no arbitrary leaf-count ceiling (§ 11.10). The commit kernel
+/// reads leaves directly from `input` and combines equal-height subtrees
+/// on this `O(log N)` stack, so leaf count scales arbitrarily.
+const MERKLE_STACK_DEPTH: usize = usize::BITS as usize;
 
 /// Parametric Merkle-root commitment over **any** `HashAxis` impl
 /// `H` with `H::MAX_OUTPUT_BYTES = LEAF_BYTES`.
@@ -96,39 +96,39 @@ impl<H: HashAxis, const LEAF_BYTES: usize> CommitmentAxis for MerkleRoot<H, LEAF
                 "https://uor.foundation/axis/CommitmentAxis/MerkleRoot/outputBuffer",
             ));
         }
-        if leaf_count > MAX_MERKLE_LEAVES {
-            return Err(shape_violation(
-                "https://uor.foundation/axis/CommitmentAxis/MerkleRoot/maxLeaves",
-            ));
-        }
-        // Use a fixed-size working buffer sized for the maximum
-        // supported leaf width across HashAxis impls (64 bytes for
-        // SHA-512). Per-instantiation LEAF_BYTES bounds the actually
-        // used slice.
-        if LEAF_BYTES > MAX_LEAF_WIDTH {
-            return Err(shape_violation(
-                "https://uor.foundation/axis/CommitmentAxis/MerkleRoot/leafBytesInRange",
-            ));
-        }
-        let mut layer = [[0u8; MAX_LEAF_WIDTH]; MAX_MERKLE_LEAVES];
+        // Streaming Merkle: read leaves left-to-right directly from
+        // `input` and combine equal-height subtrees on an `O(log N)`
+        // stack. All scratch is sized by the const-generic `LEAF_BYTES`
+        // (no fixed leaf-width cap) and the stack has `usize::BITS` slots
+        // (no fixed leaf-count cap — see `MERKLE_STACK_DEPTH`). This is
+        // identical, leaf-for-leaf, to the bottom-up pairing
+        // `hash(node[2i] || node[2i+1])` for the power-of-two leaf counts
+        // this kernel admits.
+        let mut roots = [[0u8; LEAF_BYTES]; MERKLE_STACK_DEPTH];
+        let mut levels = [0u32; MERKLE_STACK_DEPTH];
+        let mut top = 0usize;
         for i in 0..leaf_count {
-            layer[i][..LEAF_BYTES].copy_from_slice(&input[i * LEAF_BYTES..(i + 1) * LEAF_BYTES]);
-        }
-        let mut pair_buf = [0u8; 2 * MAX_LEAF_WIDTH];
-        let mut digest_buf = [0u8; MAX_LEAF_WIDTH];
-        let mut len = leaf_count;
-        while len > 1 {
-            let half = len / 2;
-            for i in 0..half {
-                pair_buf[..LEAF_BYTES].copy_from_slice(&layer[2 * i][..LEAF_BYTES]);
-                pair_buf[LEAF_BYTES..2 * LEAF_BYTES]
-                    .copy_from_slice(&layer[2 * i + 1][..LEAF_BYTES]);
-                H::hash(&pair_buf[..2 * LEAF_BYTES], &mut digest_buf[..LEAF_BYTES])?;
-                layer[i][..LEAF_BYTES].copy_from_slice(&digest_buf[..LEAF_BYTES]);
+            let mut cur = [0u8; LEAF_BYTES];
+            cur.copy_from_slice(&input[i * LEAF_BYTES..(i + 1) * LEAF_BYTES]);
+            let mut cur_level = 0u32;
+            // Fold the current subtree with any same-height neighbour on
+            // top of the stack; the popped entry is the left sibling.
+            while top > 0 && levels[top - 1] == cur_level {
+                top -= 1;
+                let mut pair = [[0u8; LEAF_BYTES]; 2];
+                pair[0] = roots[top];
+                pair[1] = cur;
+                let mut digest = [0u8; LEAF_BYTES];
+                H::hash(pair.as_flattened(), &mut digest[..])?;
+                cur = digest;
+                cur_level += 1;
             }
-            len = half;
+            roots[top] = cur;
+            levels[top] = cur_level;
+            top += 1;
         }
-        out[..LEAF_BYTES].copy_from_slice(&layer[0][..LEAF_BYTES]);
+        // Power-of-two leaf count ⇒ the stack collapses to a single root.
+        out[..LEAF_BYTES].copy_from_slice(&roots[0][..LEAF_BYTES]);
         Ok(LEAF_BYTES)
     }
 }

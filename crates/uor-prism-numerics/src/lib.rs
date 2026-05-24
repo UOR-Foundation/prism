@@ -16,8 +16,8 @@
 //! kernel body.
 //!
 //! - **`BigIntAxis`** — `(a + b) / (a - b) / (a * b) mod 2^(8*N)`.
-//!   Parametric: [`BigIntModularNumeric<BYTES>`] with `BYTES` in
-//!   `[1, MAX_BIG_INT_BYTES]`. Aliases: [`BigInt64Numeric`],
+//!   Parametric: [`BigIntModularNumeric<BYTES>`] for any `BYTES ≥ 1`
+//!   (no width ceiling). Aliases: [`BigInt64Numeric`],
 //!   [`BigInt128Numeric`], [`BigInt256Numeric`], [`BigInt512Numeric`].
 //!   Shape: [`BigIntShape<BYTES>`].
 //! - **`FixedPointAxis`** — Q-format arithmetic on a 64-bit container.
@@ -81,7 +81,7 @@ pub mod verbs;
 
 pub use bigint::{
     BigInt128Numeric, BigInt256Numeric, BigInt512Numeric, BigInt64Numeric, BigIntAxis,
-    BigIntModularNumeric, BigIntShape, MAX_BIG_INT_BYTES,
+    BigIntModularNumeric, BigIntShape,
 };
 pub use field::{FieldAxis, FieldElementShape, PrimeFieldNumericSecp256k1};
 pub use fixed_point::{
@@ -91,7 +91,6 @@ pub use fixed_point::{
 pub use polynomial::{Polynomial15Mod256, Polynomial7Mod256, PolynomialShape};
 pub use ring::{
     Gf2NumericAxis, Gf2NumericAxis128, Gf2NumericAxis512, Gf2NumericAxisN, Gf2RingShape, RingAxis,
-    MAX_GF2_BYTES,
 };
 
 /// Wiki ADR-031 standard-library version banner.

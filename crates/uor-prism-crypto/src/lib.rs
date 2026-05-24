@@ -71,9 +71,7 @@ pub mod shapes;
 pub mod signature;
 pub mod verbs;
 
-pub use commitment::{
-    CommitmentAxis, MerkleProofShape, MerkleRoot, MerkleRootCommitment, MAX_MERKLE_LEAVES,
-};
+pub use commitment::{CommitmentAxis, MerkleProofShape, MerkleRoot, MerkleRootCommitment};
 pub use curve::CurveAxis;
 pub use hash::{
     Blake3Hasher, HashAxis, Keccak256Hasher, Sha256Hasher, Sha3_256Hasher, Sha512Hasher,

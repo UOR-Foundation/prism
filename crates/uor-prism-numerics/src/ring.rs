@@ -42,21 +42,19 @@ axis! {
     }
 }
 
-/// Maximum operand byte-width any `Gf2NumericAxisN<BYTES>`
-/// instantiation supports. GF(2) bitwise ops have no accumulator
-/// cost, but we cap the type-system surface at 128 bytes (1024 bits)
-/// to keep error-path metadata cohesive.
-pub const MAX_GF2_BYTES: usize = 128;
-
+/// `Gf2NumericAxisN<BYTES>` admits **any** operand byte-width `BYTES ≥ 1`:
+/// the GF(2) bitwise kernels (XOR / AND) write directly into the caller's
+/// `out` buffer with no fixed-width scratch, so there is no upper ceiling
+/// on the width — the operand scales arbitrarily (§ 11.10 category 3).
+/// The only floor is non-emptiness: a ring element needs at least one byte.
 fn width_violation() -> ShapeViolation {
     ShapeViolation {
         shape_iri: "https://uor.foundation/axis/RingAxis",
-        constraint_iri: "https://uor.foundation/axis/RingAxis/widthInRange",
+        constraint_iri: "https://uor.foundation/axis/RingAxis/widthPositive",
         property_iri: "https://uor.foundation/axis/operandByteWidth",
-        expected_range: "https://uor.foundation/axis/RingAxis/MaxGf2Bytes",
+        expected_range: "https://uor.foundation/axis/RingAxis/PositiveByteWidth",
         min_count: 1,
-        #[allow(clippy::cast_possible_truncation)]
-        max_count: MAX_GF2_BYTES as u32,
+        max_count: u32::MAX,
         kind: uor_foundation::ViolationKind::ValueCheck,
     }
 }
@@ -80,7 +78,7 @@ impl<const BYTES: usize> RingAxis for Gf2NumericAxisN<BYTES> {
     const MAX_OUTPUT_BYTES: usize = BYTES;
 
     fn add(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        if BYTES == 0 || BYTES > MAX_GF2_BYTES {
+        if BYTES == 0 {
             return Err(width_violation());
         }
         let (a, b) = split_pair(input, BYTES)?;
@@ -92,7 +90,7 @@ impl<const BYTES: usize> RingAxis for Gf2NumericAxisN<BYTES> {
     }
 
     fn mul(input: &[u8], out: &mut [u8]) -> Result<usize, ShapeViolation> {
-        if BYTES == 0 || BYTES > MAX_GF2_BYTES {
+        if BYTES == 0 {
             return Err(width_violation());
         }
         let (a, b) = split_pair(input, BYTES)?;
