@@ -72,12 +72,13 @@
 //! validation phase to `Validated`, which fails because `()` does not
 //! implement the foundation-sealed `ValidationPhase` trait.
 //!
-//! ```compile_fail
+//! ```compile_fail,E0277
 //! use prism::seal::Validated;
 //! use prism::std_types::ConstrainedTypeInput;
 //! // `()` is not a `ValidationPhase` impl — only foundation-supplied
 //! // `CompileTime` and `Runtime` markers are. The Rust toolchain
-//! // rejects the program at compile time (TC-04 + ADR-011).
+//! // rejects the program at compile time with E0277 (the
+//! // `ValidationPhase` bound is unsatisfied) per TC-04 + ADR-011.
 //! fn _bad(_: Validated<ConstrainedTypeInput, ()>) {}
 //! ```
 //!
