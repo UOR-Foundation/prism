@@ -293,7 +293,7 @@ that contribute the built-in axes and built-in types it re-exports.
 ## 4. Toolchain
 
 - **Rust edition**: 2021
-- **MSRV**: 1.85 since 0.4.2, which the BLAKE3 1.8 line's
+- **MSRV**: 1.85 since 0.4.3 (0.4.1 and 0.4.2 were tagged and never published), which the BLAKE3 1.8 line's
   dependencies require (`constant_time_eq 0.4`, `cpufeatures 0.3`).
   Before 0.4.2 it was 1.83, matching the `rust-version` declared by every
   released `uor-foundation` since v0.3.1 — currently still 1.83 in

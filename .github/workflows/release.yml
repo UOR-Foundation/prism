@@ -99,10 +99,12 @@ jobs:
       # verifies packaging; `--allow-dirty` is required because the cargo
       # cache restored above produces a not-stamped lockfile after the
       # CI runs. The leaf crates compile-verify against their direct deps
-      # (foundation, foundation-sdk, sha2/sha3/blake3); non-leaf crates
-      # dry-run with `--no-verify` since their workspace-path deps aren't
-      # yet on the registry (the publish step is the authoritative
-      # verification, gated by wait-for-index).
+      # (foundation, foundation-sdk, sha2/sha3/blake3). The non-leaf crates
+      # have no dry-run here: since Cargo 1.84, packaging resolves a crate's
+      # dependencies against the registry, where the workspace crates of
+      # this version are not yet published. Each non-leaf `cargo publish`
+      # below runs after its dependencies are on the index and verifies the
+      # package in full.
 
       - name: Verify packaging — uor-prism-numerics
         run: cargo publish --dry-run --allow-dirty -p uor-prism-numerics
@@ -112,15 +114,6 @@ jobs:
 
       - name: Verify packaging — uor-prism-fhe
         run: cargo publish --dry-run --allow-dirty -p uor-prism-fhe
-
-      - name: Verify packaging — uor-prism-tensor (no-verify; depends on numerics)
-        run: cargo publish --dry-run --allow-dirty --no-verify -p uor-prism-tensor
-
-      - name: Verify packaging — uor-prism (no-verify; depends on all sub-crates)
-        run: cargo publish --dry-run --allow-dirty --no-verify -p uor-prism
-
-      - name: Verify packaging — uor-prism-verify (no-verify; depends on prism)
-        run: cargo publish --dry-run --allow-dirty --no-verify -p uor-prism-verify
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
