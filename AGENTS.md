@@ -413,10 +413,10 @@ that contribute the built-in axes and built-in types it re-exports.
   macro surface through the single `prism` dep.
 - **Backing crates for standard-library Layer-3 sub-crates** (per
   ADR-031's `prism-crypto` roster of canonical impls):
-  `sha2 = "0.10"`, `sha3 = "0.10"`, `blake3 = "1.5"` (pinned to
-  the 1.5 line; the 1.8+ line transitively requires
-  `constant_time_eq 0.4` which needs Rust edition 2024 / MSRV 1.85
-  per Cargo.lock).
+  `sha2 = "0.10"`, `sha3 = "0.10"`, `blake3 = ">=1.5, <2"` (the
+  lockfile keeps 1.5.5, which builds on the 1.83 MSRV; the 1.6+ line
+  transitively requires `constant_time_eq 0.4`, which needs Rust
+  1.85, so a consumer locks 1.8+ only on a toolchain that has it).
 - **Workspace resolver**: `"2"`
 - **Release profile** (per QS-01): `opt-level = 3`, `lto = true`, `codegen-units = 1`
 - **`#![no_std]` posture**: default for both crates; `std` and `alloc`
