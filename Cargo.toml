@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 rust-version = "1.83"
 license = "MIT"
@@ -41,10 +41,10 @@ uor-foundation-sdk = { version = "0.5", default-features = false }
 # consumption pattern (numerics → foundation; crypto → foundation +
 # numerics; tensor → foundation + numerics + optionally crypto; fhe →
 # foundation). The `prism` façade depends on all four.
-uor-prism-numerics = { version = "0.4.0", path = "crates/uor-prism-numerics", default-features = false }
-uor-prism-crypto = { version = "0.4.0", path = "crates/uor-prism-crypto", default-features = false }
-uor-prism-tensor = { version = "0.4.0", path = "crates/uor-prism-tensor", default-features = false }
-uor-prism-fhe = { version = "0.4.0", path = "crates/uor-prism-fhe", default-features = false }
+uor-prism-numerics = { version = "0.4.1", path = "crates/uor-prism-numerics", default-features = false }
+uor-prism-crypto = { version = "0.4.1", path = "crates/uor-prism-crypto", default-features = false }
+uor-prism-tensor = { version = "0.4.1", path = "crates/uor-prism-tensor", default-features = false }
+uor-prism-fhe = { version = "0.4.1", path = "crates/uor-prism-fhe", default-features = false }
 
 # Cryptographic substrate dependencies for `prism-crypto`'s canonical
 # `HashAxis` impls (ADR-031). These are widely-vetted, no_std-clean
@@ -53,12 +53,12 @@ uor-prism-fhe = { version = "0.4.0", path = "crates/uor-prism-fhe", default-feat
 # re-implementing primitives from RFCs.
 sha2 = { version = "0.10", default-features = false }
 sha3 = { version = "0.10", default-features = false }
-# blake3 1.6+ pulls `constant_time_eq = "0.4"` which requires
-# Rust edition 2024 / MSRV 1.85. Cap at the ~1.5 line until our
-# workspace MSRV (1.83) catches up to match foundation's floor.
-# Downstream consumers of `uor-prism-crypto` inherit this cap
-# transitively.
-blake3 = { version = ">=1.5, <1.6", default-features = false }
+# Any 1.x from 1.5. The lockfile keeps 1.5.5, whose dependencies build
+# on the workspace MSRV (1.83); 1.6+ pulls `constant_time_eq = "0.4"`,
+# which needs Rust 1.85. A consumer on a newer toolchain may lock 1.8+,
+# which adds the `wasm32_simd` backend and the supported `hazmat` API.
+# Only `blake3::hash` and `blake3::Hasher` are used, the same in both.
+blake3 = { version = ">=1.5, <2", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
