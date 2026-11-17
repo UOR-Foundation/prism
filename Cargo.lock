@@ -3,12 +3,6 @@
 version = 4
 
 [[package]]
-name = "arrayref"
-version = "0.3.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76a2e8124351fda1ef8aaaa3bbd7ebbcb486bbcd4225aca0aa0d84bb2db8fecb"
-
-[[package]]
 name = "arrayvec"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -16,15 +10,15 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
 name = "blake3"
-version = "1.5.5"
+version = "1.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8ee0c1824c4dea5b5f81736aff91bae041d2c07ee1192bec91054e10e3e601e"
+checksum = "6d9e454fc11f76977dc803893aff6304ed33d6a26efae8696573bea74baa27ae"
 dependencies = [
- "arrayref",
  "arrayvec",
  "cc",
  "cfg-if",
  "constant_time_eq",
+ "cpufeatures 0.3.1",
 ]
 
 [[package]]
@@ -54,15 +48,24 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
 name = "constant_time_eq"
-version = "0.3.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
+checksum = "3d52eff69cd5e647efe296129160853a42795992097e8af39800e1060caeea9b"
 
 [[package]]
 name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "cpufeatures"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ca28b0ae3115b884660db4118d803791fd6756b6e88f39c0f3f7859060d7566"
 dependencies = [
  "libc",
 ]
@@ -109,7 +112,7 @@ version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb26cec98cce3a3d96cbb7bced3c4b16e3d13f27ec56dbd62cbc8f39cfb9d653"
 dependencies = [
- "cpufeatures",
+ "cpufeatures 0.2.17",
 ]
 
 [[package]]
@@ -149,7 +152,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
 dependencies = [
  "cfg-if",
- "cpufeatures",
+ "cpufeatures 0.2.17",
  "digest",
 ]
 
@@ -214,7 +217,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "uor-foundation",
  "uor-foundation-sdk",
@@ -226,7 +229,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-crypto"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "blake3",
  "sha2",
@@ -237,7 +240,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-fhe"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "uor-foundation",
  "uor-foundation-sdk",
@@ -245,7 +248,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-numerics"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "uor-foundation",
  "uor-foundation-sdk",
@@ -253,7 +256,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-tensor"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "uor-foundation",
  "uor-foundation-sdk",
@@ -262,7 +265,7 @@ dependencies = [
 
 [[package]]
 name = "uor-prism-verify"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "uor-foundation",
  "uor-prism",
@@ -276,4 +279,4 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "wiki-link-check"
-version = "0.4.1"
+version = "0.4.2"

@@ -281,7 +281,7 @@ that contribute the built-in axes and built-in types it re-exports.
 ├── docs/                              # C4 diagrams, assets referenced from rustdoc
 ├── deny.toml                          # cargo-deny config
 ├── justfile                           # task runner shortcuts
-├── rust-toolchain.toml                # pinned to MSRV 1.83 stable
+├── rust-toolchain.toml                # pinned to MSRV 1.85 stable
 ├── rustfmt.toml
 └── .github/workflows/
     ├── ci.yml                         # PR + push: fmt, clippy, test, doc, no_std, wiki-links, deny
@@ -293,7 +293,9 @@ that contribute the built-in axes and built-in types it re-exports.
 ## 4. Toolchain
 
 - **Rust edition**: 2021
-- **MSRV**: 1.83 (matches the `rust-version` declared by every
+- **MSRV**: 1.85 since 0.4.2, which the BLAKE3 1.8 line's
+  dependencies require (`constant_time_eq 0.4`, `cpufeatures 0.3`).
+  Before 0.4.2 it was 1.83, matching the `rust-version` declared by every
   released `uor-foundation` since v0.3.1 — currently still 1.83 in
   v0.4.6 — which corrected v0.3.0's stale 1.81 declaration).
   Pinned via `rust-toolchain.toml`, which the Rust toolchain enforces
@@ -413,10 +415,9 @@ that contribute the built-in axes and built-in types it re-exports.
   macro surface through the single `prism` dep.
 - **Backing crates for standard-library Layer-3 sub-crates** (per
   ADR-031's `prism-crypto` roster of canonical impls):
-  `sha2 = "0.10"`, `sha3 = "0.10"`, `blake3 = ">=1.5, <2"` (the
-  lockfile keeps 1.5.5, which builds on the 1.83 MSRV; the 1.6+ line
-  transitively requires `constant_time_eq 0.4`, which needs Rust
-  1.85, so a consumer locks 1.8+ only on a toolchain that has it).
+  `sha2 = "0.10"`, `sha3 = "0.10"`, `blake3 = ">=1.5, <2"` (a fresh
+  resolution takes the 1.8+ line, whose `constant_time_eq 0.4` and
+  `cpufeatures 0.3` need Rust 1.85, the workspace MSRV since 0.4.2).
 - **Workspace resolver**: `"2"`
 - **Release profile** (per QS-01): `opt-level = 3`, `lto = true`, `codegen-units = 1`
 - **`#![no_std]` posture**: default for both crates; `std` and `alloc`
