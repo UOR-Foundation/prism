@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-labelledby="title description">
+  <title id="title">PRISM banner</title>
+  <desc id="description">Dark navy editorial banner with silver text, teal details, and an abstract prism illustration.</desc>
+  <defs><linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0A142A"/><stop offset="60%" stop-color="#132B4C"/><stop offset="100%" stop-color="#0B3551"/></linearGradient><linearGradient id="line" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#84E5E9"/><stop offset="100%" stop-color="#B0D4E8"/></linearGradient></defs>
+  <rect width="1280" height="320" fill="url(#background)"/>
+  <g stroke="#ADCEE3" stroke-width="1" opacity=".11"><path d="M0 64H1280M0 128H1280M0 192H1280M0 256H1280M160 0V320M320 0V320M480 0V320M640 0V320M800 0V320M960 0V320M1120 0V320"/></g>
+  <rect x="18" y="18" width="1244" height="284" rx="18" fill="none" stroke="#B0D4E8" stroke-width="1.5" opacity=".35"/>
+  <rect x="73" y="74" width="64" height="5" rx="2.5" fill="url(#line)"/>
+  <text x="73" y="150" fill="#F6F9FC" font-family="Segoe UI, Arial, sans-serif" font-size="64" font-weight="700" letter-spacing="1.2">PRISM</text>
+  <text x="75" y="195" fill="#B5DCEB" font-family="Segoe UI, Arial, sans-serif" font-size="19" letter-spacing="1.05">TYPED RUST STANDARD LIBRARY</text>
+  <path d="M74 218H695" stroke="#BED7E6" stroke-width="1" opacity=".35"/>
+  <text x="75" y="258" fill="#D0DDEA" font-family="Segoe UI, Arial, sans-serif" font-size="14" letter-spacing="2">FOUNDATION · AXES · REPLAY</text>
+  <path d="M918 60L1092 252H814Z" fill="#204464" stroke="#D3EBF5" stroke-width="3"/><path d="M798 170L987 170" stroke="#D9E6ED" stroke-width="7"/><path d="M987 170L1192 94" stroke="#75E1E5" stroke-width="7"/><path d="M987 170L1192 141" stroke="#8DBEEF" stroke-width="7"/><path d="M987 170L1192 204" stroke="#B7A6E8" stroke-width="7"/><path d="M987 170L1192 260" stroke="#76C6DC" stroke-width="7"/>
+</svg>
