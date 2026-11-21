@@ -1,4 +1,6 @@
-![PRISM visual banner: TYPED RUST STANDARD LIBRARY](assets/readme-banner.svg)
+![Prism temporary visual banner: typed Rust standard library, illustrative placeholder not approved](assets/readme-banner-PLACEHOLDER.png)
+
+*Illustrative placeholder artwork, pending UOR Foundation brand approval.*
 
 # Prism
 
