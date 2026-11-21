@@ -1,33 +1,34 @@
 # Prism
 
-Prism gives Rust application authors one standard-library entry point for
-UOR foundation types, SDK macros, and built-in cryptographic, numeric,
-tensor, and reference encryption axes. It is a **library workspace**, not
-a hosted application or runtime service.
+[![CI](https://github.com/UOR-Foundation/prism/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/UOR-Foundation/prism/actions/workflows/ci.yml)
 
-Source repository and publishing pipeline for the **Prism standard
-library** — the implementation of the **Prism** system specified by
-the [UOR-Framework wiki][wiki]. Per wiki [ADR-031][adr-031], `prism` IS
-the standard library: a façade re-exporting the `uor-foundation`
-substrate together with the Layer-3 sub-crates that contribute the
-built-in axes and built-in types it surfaces.
+**One Rust standard-library entry point for UOR's typed models, built-in
+computational axes, and verifiable execution interfaces.**
 
-## Workspace packages
+Instead of assembling the UOR foundation, SDK macros, cryptographic axes,
+numeric types, and tensor primitives as separate dependencies, application
+authors start with `uor-prism` and import the public API through `prism`.
+The architecture is defined by the [UOR-Framework wiki][wiki], especially
+[ADR-031][adr-031]. This repository implements that standard library and
+its publishing pipeline. It is **not** a hosted service or a ready-made app.
 
-| Cargo package         | Library (import) name | Role                                                                                                          |
-|-----------------------|-----------------------|---------------------------------------------------------------------------------------------------------------|
-| `uor-prism`           | `prism`               | Standard-library façade. Re-exports foundation + SDK macros + every Layer-3 sub-crate (wiki ADR-031)          |
-| `uor-prism-verify`    | `prism_verify`        | Replay façade for verifiers (wiki ADR-005)                                                                    |
-| `uor-prism-crypto`    | `prism_crypto`        | Layer-3: `HashAxis` (SHA-2/3, BLAKE3, Keccak) + `CurveAxis` + `SignatureAxis` + `CommitmentAxis`              |
-| `uor-prism-numerics`  | `prism_numerics`      | Layer-3: `BigIntAxis` + `FixedPointAxis` + `FieldAxis` (secp256k1 base) + `RingAxis` (GF(2))                  |
-| `uor-prism-tensor`    | `prism_tensor`        | Layer-3: `TensorAxis` + `ActivationAxis` (CPU integer-precision reference impls)                              |
-| `uor-prism-fhe`       | `prism_fhe`           | Layer-3: `FheAxis` (one-time-pad reference impl)                                                              |
+[**Quick start**](#quick-start) · [**Crate map**](#crate-map) ·
+[**Architecture**](#how-it-fits-together) · [**Verification**](#verification) ·
+[**Releases**](#releases-and-compatibility) · [**Contributing**](#contributing)
 
-## Using the library
+## What Prism provides
 
-Per ADR-031's façade commitment, application authors depend on
-`uor-prism` alone — every standard-library axis and SDK macro is
-reachable through `use prism::*`. Examples:
+- **One application dependency:** the `prism` façade exposes foundation
+  pipeline types, `prism_model!` and related SDK macros, standard shapes,
+  and four built-in axis families.
+- **Typed composition:** application authors use the foundation's model,
+  shape, route, and admission contracts. The compiler checks the declared
+  interfaces; running a test or compiling a model does not prove every
+  possible model correct.
+- **Independent replay surface:** `uor-prism-verify` exposes trace-replay
+  certification separately from application execution.
+
+For example, the façade makes these public imports available:
 
 ```rust
 use prism::pipeline::{prism_model, run_route};
@@ -35,57 +36,172 @@ use prism::crypto::Sha256Hasher;
 use prism::numerics::BigInt256Numeric;
 ```
 
-The substrate crates [`uor-foundation`](https://crates.io/crates/uor-foundation)
-and [`uor-foundation-sdk`](https://crates.io/crates/uor-foundation-sdk)
-are consumed unmodified as normal crates.io dependencies.
+These are imports, **not** a complete executable `PrismModel`. A complete
+model also supplies the appropriate shapes, route, host types, and any
+resolvers or commitments its application needs. See the
+[model contract tests](crates/uor-prism/tests/prism_model.rs) and
+[route tests](crates/uor-prism/tests/stdlib_route_publication.rs) rather
+than treating a three-line import as an end-to-end example.
 
-The architecture is defined at the [UOR-Framework wiki][wiki] in arc42 + C4
-form, and is normative. Every public item in this codebase backlinks to
-the wiki section that defines it; the rustdoc surface forms the C4 view of
-the system. Wiki backlinks are mechanically validated in CI by the
-workspace tool at [`tools/wiki-link-check`](tools/wiki-link-check/) — a
-broken anchor fails the build.
+## Quick start
 
-## Build and verify from source
+### 1. Inspect a working source-checkout test
 
-The repository pins **Rust 1.85** in [`rust-toolchain.toml`](rust-toolchain.toml).
-With Git, Rust and Cargo installed, a first source-checkout check is:
+Prerequisites: Git, Cargo, and the Rust toolchain. The repository pins
+**Rust 1.85** in [`rust-toolchain.toml`](rust-toolchain.toml). From a terminal:
 
 ```sh
 git clone https://github.com/UOR-Foundation/prism.git
 cd prism
-cargo test --workspace --all-features
+cargo test -p uor-prism --test stdlib_primitives
 ```
 
-This runs the workspace tests, as declared in
-[`justfile`](justfile) and the
-[CI workflow](.github/workflows/ci.yml). It is not a test of any
-published release or downstream application. To build all workspace
-packages without running tests, use `cargo build --workspace`;
-contributors can also use the documented `just dev`, `just test`
-and `just lint` recipes.
+This exercises real built-in shape admission and type metadata tests.
+A successful run ends with a passing Cargo test summary. It validates
+the **checked-out source**, not a published downstream installation.
 
-## Find the right source
+### 2. Use the library from a small Rust application
 
-- **Application API:** [`uor-prism` façade](crates/uor-prism/src/lib.rs)
-  and its [Cargo manifest](crates/uor-prism/Cargo.toml)
-- **Independent replay interface:** [`uor-prism-verify`](crates/uor-prism-verify/src/lib.rs)
-- **Architecture decisions:** the [UOR-Framework wiki][wiki], which is
-  normative for this repository
-- **Contributing and acceptance rules:** [CONTRIBUTING.md](CONTRIBUTING.md)
-  and [AGENTS.md](AGENTS.md)
-- **Technical documentation:** [documentation orientation](docs/README.md)
-  and the source of [wiki backlink checks](tools/wiki-link-check/)
+From the directory **containing** the cloned `prism/` folder, create
+a sibling application. The path dependency deliberately uses your
+local checkout so this example does not assume a particular version
+has already propagated through crates.io:
 
-## Repository definition
+```sh
+cargo new prism-first-steps
+cd prism-first-steps
+cargo add uor-prism --path ../prism/crates/uor-prism
+```
 
-The canonical definition of this repository (layout, toolchain, CI gates,
-release pipeline, documentation conventions) lives in
-[`AGENTS.md`](AGENTS.md). Anything not described there is out of scope.
+Replace `prism-first-steps/src/main.rs` with:
+
+```rust
+use prism::pipeline::{validate_constrained_type, ConstrainedTypeShape};
+use prism::std_types::U32;
+
+fn main() {
+    validate_constrained_type(U32).expect("the built-in U32 shape is admissible");
+    println!("U32 site count: {}", <U32 as ConstrainedTypeShape>::SITE_COUNT);
+}
+```
+
+Run `cargo run` from `prism-first-steps/`. The expected output is:
+
+```text
+U32 site count: 4
+```
+
+The public imports, `U32` admission, and four-site count are covered by
+[`stdlib_primitives.rs`](crates/uor-prism/tests/stdlib_primitives.rs).
+**Evidence boundary:** this standalone copy-and-run sequence has not
+been independently exercised as a consumer acceptance test in this
+README change. It demonstrates shape admission, **not** a full route,
+certificate, or verified cryptographic application. Cargo may need
+network access to resolve transitive dependencies.
+
+For published dependencies, use
+[`uor-prism` on crates.io](https://crates.io/crates/uor-prism)
+and select a version available in the registry. Its Cargo package
+name is `uor-prism`; its Rust import name is `prism`. The
+[versioned API documentation](https://docs.rs/uor-prism) may list a
+different release from the latest GitHub tag, so check the version you
+actually installed.
+
+## Crate map
+
+The six published-package *targets* come from
+[the workspace manifest](Cargo.toml). Application authors normally
+depend on the façade alone; the verifier is a separate dependency
+for replay consumers.
+
+| Cargo package | Rust import | Purpose |
+| --- | --- | --- |
+| [`uor-prism`](crates/uor-prism/) | `prism` | Standard-library façade: foundation types, SDK macros, and all Layer-3 sub-crates |
+| [`uor-prism-verify`](crates/uor-prism-verify/) | `prism_verify` | Independent trace-replay and certification façade (ADR-005) |
+| [`uor-prism-crypto`](crates/uor-prism-crypto/) | `prism_crypto` | `HashAxis` (SHA-2/3, BLAKE3, Keccak), `CurveAxis`, `SignatureAxis`, `CommitmentAxis` |
+| [`uor-prism-numerics`](crates/uor-prism-numerics/) | `prism_numerics` | `BigIntAxis`, `FixedPointAxis`, `FieldAxis` (secp256k1 base), `RingAxis` (GF(2)) |
+| [`uor-prism-tensor`](crates/uor-prism-tensor/) | `prism_tensor` | `TensorAxis`, `ActivationAxis` with CPU integer-precision references |
+| [`uor-prism-fhe`](crates/uor-prism-fhe/) | `prism_fhe` | `FheAxis` with a one-time-pad reference implementation |
+
+The substrate crates
+[`uor-foundation`](https://crates.io/crates/uor-foundation) and
+[`uor-foundation-sdk`](https://crates.io/crates/uor-foundation-sdk)
+are consumed as normal registry dependencies, not vendored or forked
+here. The `fhe` package's one-time-pad reference is **not** a claim
+of production homomorphic-encryption security.
+
+## How it fits together
+
+```text
+Your Rust application
+        |
+        v
+uor-prism (import: prism)
+        |
+        +-- foundation pipeline, shapes, and SDK macros
+        +-- crypto / numerics / tensor / fhe axes
+        |
+        v
+uor-foundation (external substrate)
+
+Separate verifier: uor-prism-verify -> trace replay
+```
+
+The [UOR-Framework wiki][wiki] is the **normative** architecture in
+arc42 and C4 form. The source implementation is documented in rustdoc.
+Every public item is expected to backlink to its wiki definition, and
+the [wiki-link checker](tools/wiki-link-check/) is run in CI. For
+repository layout, permitted scope, release rules, documentation
+conventions, and CI policy, consult [`AGENTS.md`](AGENTS.md).
+Local [documentation assets](docs/README.md) are illustrative; they
+do not supersede the wiki.
+
+## Verification
+
+The repository's [CI workflow](.github/workflows/ci.yml) runs separate
+checks for Rust formatting, Clippy, workspace tests, `no_std` builds,
+rustdoc, wiki links, and dependency policy (`cargo deny`). These are
+source/repository checks, not proofs that a specific downstream
+application is safe or that a published artifact was installed.
+
+| Contributor goal | Existing command |
+| --- | --- |
+| Build the workspace | `cargo build --workspace` or `just dev` |
+| Run all workspace tests | `cargo test --workspace --all-features` or `just test` |
+| Check formatting, Clippy, rustdoc and wiki links | `just lint` |
+| Validate wiki backlinks only | `just lint-wiki` |
+| Check `no_std` configurations | `just no-std` (requires the configured target) |
+| Inspect generated API docs | `just doc` or `just doc-open` |
+
+All `just` recipes are defined in [`justfile`](justfile). A green
+CI badge reflects that workflow on `main` only. It does not imply
+passing consumer acceptance, current published-registry availability,
+or a security certification.
+
+## Releases and compatibility
+
+The [GitHub releases](https://github.com/UOR-Foundation/prism/releases)
+record tagged source releases and the six-crate publishing contract.
+The currently inspected workspace declares **`0.4.3`** in
+[`Cargo.toml`](Cargo.toml); check the releases page and
+[crates.io](https://crates.io/crates/uor-prism) for what is available
+when you install. A GitHub release note and a registry publication
+are distinct evidence. The pinned **Rust 1.85** toolchain applies to
+this repository checkout; see crate manifests and dependency
+constraints when evaluating downstream compatibility.
+
+## Contributing
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) for development commands
+and [AGENTS.md](AGENTS.md) for the required five-block public-item
+documentation structure, architectural constraints, and acceptance
+rules. Architecture changes belong in the [UOR-Framework wiki][wiki],
+not in an unreviewed README edit. Proposed library changes should
+include focused behavioral tests and conform to the existing gates.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+MIT. See [LICENSE](LICENSE).
 
 [wiki]: https://github.com/UOR-Foundation/UOR-Framework/wiki
 [adr-031]: https://github.com/UOR-Foundation/UOR-Framework/wiki/09-Architecture-Decisions
