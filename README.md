@@ -1,6 +1,11 @@
+![PRISM visual banner: TYPED RUST STANDARD LIBRARY](assets/readme-banner.svg)
+
 # Prism
 
 [![CI](https://github.com/UOR-Foundation/prism/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/UOR-Foundation/prism/actions/workflows/ci.yml)
+[![Docs](https://github.com/UOR-Foundation/prism/actions/workflows/docs.yml/badge.svg?branch=main)](https://github.com/UOR-Foundation/prism/actions/workflows/docs.yml)
+[![Release](https://img.shields.io/github/v/release/UOR-Foundation/prism)](https://github.com/UOR-Foundation/prism/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-718096)](LICENSE)
 
 **One Rust standard-library entry point for UOR's typed models, built-in
 computational axes, and verifiable execution interfaces.**
@@ -12,9 +17,16 @@ The architecture is defined by the [UOR-Framework wiki][wiki], especially
 [ADR-031][adr-031]. This repository implements that standard library and
 its publishing pipeline. It is **not** a hosted service or a ready-made app.
 
-[**Quick start**](#quick-start) · [**Crate map**](#crate-map) ·
-[**Architecture**](#how-it-fits-together) · [**Verification**](#verification) ·
-[**Releases**](#releases-and-compatibility) · [**Contributing**](#contributing)
+## Contents
+
+- [What Prism provides](#what-prism-provides)
+- [Quick start](#quick-start)
+- [Crate map](#crate-map)
+- [How it fits together](#how-it-fits-together)
+- [Verification](#verification)
+- [Releases and compatibility](#releases-and-compatibility)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## What Prism provides
 
