@@ -1,4 +1,6 @@
-![PRISM visual banner: TYPED RUST STANDARD LIBRARY](assets/readme-banner.svg)
+![Prism temporary visual banner: typed Rust standard library, illustrative placeholder not approved](assets/readme-banner-PLACEHOLDER.png)
+
+*Illustrative placeholder artwork, pending UOR Foundation brand approval.*
 
 # Prism
 
@@ -7,18 +9,43 @@
 [![Release](https://img.shields.io/github/v/release/UOR-Foundation/prism)](https://github.com/UOR-Foundation/prism/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-718096)](LICENSE)
 
-**One Rust standard-library entry point for UOR's typed models, built-in
-computational axes, and verifiable execution interfaces.**
+**Build software with UOR's building blocks, without assembling them one by one.**
 
-Instead of assembling the UOR foundation, SDK macros, cryptographic axes,
-numeric types, and tensor primitives as separate dependencies, application
-authors start with `uor-prism` and import the public API through `prism`.
-The architecture is defined by the [UOR-Framework wiki][wiki], especially
-[ADR-031][adr-031]. This repository implements that standard library and
-its publishing pipeline. It is **not** a hosted service or a ready-made app.
+## Why Prism exists
+
+Building on a shared framework should not mean hunting through different
+libraries to find the pieces that work together. Rust developers using the
+[UOR Framework](https://github.com/UOR-Foundation/uor-framework) need ways
+to describe data, connect operations, and check how results were produced.
+Combining those pieces by hand adds setup work and makes it harder to know
+which interfaces are meant to fit together.
+
+**Prism brings the UOR building blocks into one place.** It gives Rust
+applications a common starting point for working with UOR's data models,
+numerical tools, cryptography, and other supported operations.
+
+Think of Prism as a **toolkit for developers building with UOR**, not an app
+you sign in to. It gives you the parts and interfaces; you decide what
+your application does with them.
+
+## What it is
+
+This repository maintains the Rust library published as `uor-prism`.
+Applications use the import name `prism` to access its public interfaces.
+Behind that single entry point are the UOR foundation and separate
+libraries for specialized operations.
+
+Prism follows the architecture recorded in the
+[UOR-Framework wiki][wiki], particularly [ADR-031][adr-031].
+Its goal is to make supported UOR capabilities easier to use together.
+**A successful build is not proof that every application using Prism is
+correct or secure.** The [verification section](#verification) explains
+the checks that actually run.
 
 ## Contents
 
+- [Why Prism exists](#why-prism-exists)
+- [What it is](#what-it-is)
 - [What Prism provides](#what-prism-provides)
 - [Quick start](#quick-start)
 - [Crate map](#crate-map)
