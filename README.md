@@ -11,6 +11,10 @@
 
 **Build software with UOR's building blocks, without assembling them one by one.**
 
+[Why Prism](#why-prism-exists) · [Quick start](#quick-start) ·
+[Crate map](#crate-map) · [Verification](#verification) ·
+[Contributing](#contributing)
+
 ## Why Prism exists
 
 Building on a shared framework should not mean hunting through different
